@@ -1,0 +1,39 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--bg-main);
+  margin-left: 0 !important; 
+}
+
+.register-box {
+  background: white;
+  padding: 50px;
+  border-radius: 30px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.input-group {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.input-group input, .input-group select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  box-sizing: border-box;
+}

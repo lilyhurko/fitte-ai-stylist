@@ -1,0 +1,139 @@
+/* Assistant.css */
+
+.assistant-content {
+  /* Usuwamy margin-left: 320px stąd, jeśli dodałaś go do kontenera w App.jsx */
+  padding: 40px 60px;
+  max-width: 1200px; /* Opcjonalnie, żeby tekst nie rozciągał się za bardzo na szerokich ekranach */
+}
+
+.main-title {
+  font-family: "Playfair Display", serif;
+  font-size: 42px;
+  font-weight: 400;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.terracotta {
+  color: var(--color-fitte-terracotta);
+  font-style: italic;
+}
+
+.main-subtitle {
+  color: #8E8E8E;
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+/* Biała karta wyboru */
+.selection-box {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 30px;
+  padding: 35px;
+  margin-bottom: 50px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 15px;
+  display: block;
+}
+
+/* Grid propozycji */
+.results-title {
+  font-family: "Playfair Display", serif;
+  font-size: 24px;
+  margin-bottom: 25px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+/* Karty outfitów */
+.outfit-card {
+  background: #FDFBFA;
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid #F0ECE6;
+  transition: transform 0.3s ease, shadow 0.3s ease;
+}
+
+.outfit-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.items-preview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.item-slot {
+  aspect-ratio: 1;
+  background-color: var(--color-fitte-beige);
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+}
+
+.card-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #555;
+  margin-bottom: 20px;
+  min-height: 60px; /* Spójna wysokość opisu na kartach */
+}
+
+/* Przyciski na kartach */
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-dark {
+  flex: 1.5;
+  background: var(--text-primary);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-light {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-dark:hover, .btn-light:hover {
+  opacity: 0.8;
+}

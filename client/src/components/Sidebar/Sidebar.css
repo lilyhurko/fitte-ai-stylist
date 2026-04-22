@@ -1,0 +1,87 @@
+.sidebar {
+  width: 320px;
+  height: 100vh;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  padding: 30px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.logo {
+  font-family: "Playfair Display", serif;
+  font-size: 28px;
+  font-style: italic;
+  margin-bottom: 30px;
+}
+
+.user-card {
+  background-color: #EFE9E1; /* Nieco ciemniejszy krem dla odróżnienia */
+  padding: 15px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+
+.tag {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+.tag.dark {
+  background-color: var(--text-primary);
+  color: white;
+}
+
+.tag.light {
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.color-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+
+.dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.recent-list {
+  list-style: none;
+  padding: 0;
+  font-size: 12px;
+}
+
+.recent-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #F0ECE6;
+  display: flex;
+  justify-content: space-between;
+}
+
+.recent-list span {
+  color: #B2B2B2;
+}

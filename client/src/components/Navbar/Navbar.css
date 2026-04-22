@@ -1,0 +1,37 @@
+.navbar {
+  height: 70px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent; /* Tło bierze z kontenera głównego */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 0 40px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 40px;
+}
+
+.nav-item {
+  text-decoration: none;
+  font-family: var(--font-dmsans);
+  font-size: 14px;
+  color: #8E8E8E; /* Szary dla nieaktywnych */
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 5px 0;
+}
+
+.nav-item:hover {
+  color: var(--color-fitte-brown-dark);
+}
+
+.nav-item.active {
+  color: var(--color-fitte-brown-dark);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-fitte-brown-dark);
+}
