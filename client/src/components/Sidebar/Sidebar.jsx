@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const { user } = useAuth(); // Pobieramy zalogowanego użytkownika
+  const { user } = useAuth(); 
 
   if (!user) return null;
 

@@ -1,0 +1,171 @@
+.quiz-container {
+  margin-left: 0 !important; 
+}
+
+.option-card {
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.option-card:hover {
+  transform: translateY(-5px);
+  background-color: var(--color-fitte-beige);
+}
+
+.progress-fill {
+  transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.quiz-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 80px;
+}
+
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 60px;
+}
+
+.quiz-logo {
+  font-size: 32px;
+  color: var(--color-fitte-brown-dark);
+}
+
+.quiz-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 300px;
+}
+
+.quiz-progress-bar {
+  flex: 1;
+  height: 2px;
+  background: var(--color-fitte-sand);
+  position: relative;
+}
+
+.progress-fill {
+  position: absolute;
+  height: 100%;
+  background: var(--color-fitte-terracotta);
+  transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.progress-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.quiz-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.quiz-content {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.question-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.category-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--color-fitte-terracotta);
+  display: block;
+  margin-bottom: 20px;
+}
+
+.quiz-question {
+  font-size: 48px;
+  line-height: 1.2;
+  color: var(--color-fitte-brown-dark);
+}
+
+.options-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.luxury-option {
+  background: white;
+  border: 1px solid var(--color-fitte-sand);
+  padding: 40px;
+  border-radius: 0; /* Kwadratowe są bardziej luxury/high-fashion */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  text-align: left;
+}
+
+.luxury-option:hover {
+  background: var(--color-fitte-brown-dark);
+  border-color: var(--color-fitte-brown-dark);
+  transform: translateY(-5px);
+}
+
+.luxury-option:hover .option-label,
+.luxury-option:hover .option-sub {
+  color: white;
+}
+
+.option-label {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 5px;
+  transition: color 0.3s;
+}
+
+.option-sub {
+  font-size: 12px;
+  color: #8E8E8E;
+  transition: color 0.3s;
+}
+
+.option-colors {
+  display: flex;
+  gap: 6px;
+}
+
+.color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.hover-arrow {
+  opacity: 0;
+  color: white;
+  font-size: 20px;
+  transition: all 0.3s;
+  transform: translateX(-10px);
+}
+
+.luxury-option:hover .hover-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.quiz-footer {
+  text-align: center;
+  padding-top: 40px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--color-fitte-brown-light);
+}

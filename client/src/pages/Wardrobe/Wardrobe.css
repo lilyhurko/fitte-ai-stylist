@@ -1,0 +1,94 @@
+.wardrobe-content {
+  animation: fadeIn 0.8s ease-out;
+  min-height: 100vh;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wardrobe-content h2 .italic {
+  color: var(--color-fitte-terracotta);
+  font-style: italic;
+}
+
+.wardrobe-content button.bg-fitte-brown-dark {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(61, 43, 31, 0.15);
+}
+
+.wardrobe-content button.bg-fitte-brown-dark:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(61, 43, 31, 0.25);
+  opacity: 0.95;
+}
+
+.cloth-card {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.image-wrapper {
+  background-color: var(--color-fitte-beige);
+  border: 1px solid transparent;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.cloth-card:hover .image-wrapper {
+  border-color: var(--color-fitte-sand);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.cloth-card img {
+  transition: transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.cloth-card:hover img {
+  transform: scale(1.08);
+}
+
+.cloth-card h4 {
+  margin-top: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: color 0.3s ease;
+}
+
+.cloth-card:hover h4 {
+  color: var(--color-fitte-terracotta);
+}
+
+.cloth-card span {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #A0A0A0;
+}
+
+body::-webkit-scrollbar {
+  width: 6px;
+}
+
+body::-webkit-scrollbar-track {
+  background: var(--color-fitte-cream);
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--color-fitte-sand);
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .wardrobe-content {
+    padding: 20px;
+  }
+  
+  .clothes-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .font-playfair {
+    font-size: 28px;
+  }
+}
