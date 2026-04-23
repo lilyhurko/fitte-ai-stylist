@@ -1,24 +1,33 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; 
-import { AuthProvider, useAuth } from './context/AuthContext'; 
-import { WardrobeProvider } from './context/WardrobeContext'; 
-import Sidebar from './components/Sidebar/Sidebar';
-import Assistant from './components/Assistant/Assistant'; 
-import Register from './components/Register/Register'; 
-import Navbar from './components/Navbar/Navbar'; 
-import GuestPage from './pages/GuestPage/GuestPage'; 
-import StyleQuiz from './pages/StyleQuiz/StyleQuiz';
-import Wardrobe from './pages/Wardrobe/Wardrobe';
-import './index.css'; 
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { WardrobeProvider } from "./context/WardrobeContext";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Assistant from "./components/Assistant/Assistant";
+import Register from "./pages/Register/Register";
+import Navbar from "./components/Navbar/Navbar";
+import GuestPage from "./pages/GuestPage/GuestPage";
+import StyleQuiz from "./pages/StyleQuiz/StyleQuiz";
+import Wardrobe from "./pages/Wardrobe/Wardrobe";
+import Login from "./pages/Login/Login";
+import "./index.css";
 
 function AppContent() {
-  const { user } = useAuth();
-
+  const { user, loading } = useAuth();
+if (loading) {
+    return <div className="flex items-center justify-center h-screen">Ładowanie stylu...</div>;
+  }
   if (!user) {
     return (
       <Routes>
         <Route path="/" element={<GuestPage />} />
-        <Route path="/quiz" element={<StyleQuiz />} /> 
+        <Route path="/quiz" element={<StyleQuiz />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
@@ -27,15 +36,21 @@ function AppContent() {
 
   return (
     <div className="flex min-h-screen bg-fitte-cream">
-      <Sidebar /> 
-      <div className="flex-1 flex flex-col" style={{ marginLeft: '320px' }}>
+      <Sidebar />
+      <div className="flex-1 flex flex-col" style={{ marginLeft: "320px" }}>
         <Navbar />
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Assistant />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
-            <Route path="/history" element={<div className="p-10">Tu będzie Historia</div>} />
-            <Route path="/profile" element={<div className="p-10">Tu będzie Edycja Profilu</div>} />
+            <Route
+              path="/history"
+              element={<div className="p-10">Tu będzie Historia</div>}
+            />
+            <Route
+              path="/profile"
+              element={<div className="p-10">Tu będzie Edycja Profilu</div>}
+            />
           </Routes>
         </main>
       </div>
@@ -45,8 +60,8 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider> 
-      <WardrobeProvider> 
+    <AuthProvider>
+      <WardrobeProvider>
         <Router>
           <AppContent />
         </Router>
