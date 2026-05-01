@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { useWardrobe } from '../../context/WardrobeContext';
+import AddItemModal from '../../components/Wardrobe/AddItemModal'; 
 import './Wardrobe.css';
 
 const Wardrobe = () => {
   const { clothes } = useWardrobe();
   const [activeTab, setActiveTab] = useState('Wszystkie');
+  const [isModalOpen, setIsModalOpen] = useState(false); 
 
   const categories = ['Wszystkie', 'Góra', 'Dół', 'Sukienki', 'Obuwie'];
 
   const filteredClothes = activeTab === 'Wszystkie' 
     ? clothes 
     : clothes.filter(c => c.category === activeTab);
+
+  const handleItemAdded = (result) => {
+    console.log("AI przetworzyło ubranie i jest gotowe do zapisu:", result);
+    // Tutaj w przyszłości dodamy funkcję z WardrobeContext, 
+    // która wyśle dane do MongoDB (prisma.item.create)
+  };
 
   return (
     <div className="wardrobe-content p-10">
@@ -19,7 +27,12 @@ const Wardrobe = () => {
           <h2 className="font-playfair text-4xl mb-2">Moja <span className="italic">Garderoba</span></h2>
           <p className="text-gray-400 text-sm">Zbiór Twoich wyselekcjonowanych ubrań</p>
         </div>
-        <button className="bg-fitte-brown-dark text-white px-8 py-3 rounded-xl font-bold">+ Dodaj ubranie</button>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-fitte-brown-dark text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-all"
+        >
+          + Dodaj ubranie
+        </button>
       </header>
 
       <div className="flex gap-10 border-b border-fitte-sand mb-10">
@@ -45,6 +58,12 @@ const Wardrobe = () => {
           </div>
         ))}
       </div>
+
+      <AddItemModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onAddSuccess={handleItemAdded}
+      />
     </div>
   );
 };
