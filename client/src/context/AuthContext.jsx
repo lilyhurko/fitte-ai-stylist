@@ -72,29 +72,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await fetch("http://localhost:5001/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
+const register = async (userData) => {
+  try {
+    const response = await fetch("http://localhost:5001/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        saveSession(data.user, data.token); 
-        return true;
-      } else {
-        alert(data.error || "Błąd rejestracji");
-        return false;
-      }
-    } catch (error) {
-      console.error("Auth Error:", error);
-      alert("Serwer nie odpowiada.");
-      return false;
+    if (response.ok) {
+      saveSession(data.user, data.token); 
+      return { success: true }; 
+    } else {
+      return { success: false, error: data.error || "Błąd rejestracji" }; // Zwracamy błąd
     }
-  };
+  } catch (error) {
+    return { success: false, error: "Serwer nie odpowiada." };
+  }
+};
 
   const logout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

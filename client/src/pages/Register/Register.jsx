@@ -27,14 +27,19 @@ const Register = () => {
     setErrors(e);
     return Object.keys(e).length === 0;
   };
-
+  const [serverError, setServerError] = useState("");
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError(""); 
     if (!validate()) return;
     
-    const success = await register(formData);
-    if (success) navigate("/");
-  };
+    const result = await register(formData);
+    if (result.success) {
+      navigate("/");
+    } else {
+      setServerError(result.error); 
+    }
+  }
 
   return (
     <div className="auth-container">
@@ -43,9 +48,12 @@ const Register = () => {
         <p className="auth-subtitle">Twoja szafa AI czeka na Ciebie</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
+          {serverError && <div className="auth-error-msg">{serverError}</div>}
+          
           <div className="auth-input-group">
             <label>Imię</label>
             <input 
+              placeholder="Twoje imię"
               className={errors.name ? "input-error" : ""}
               onChange={(e) => setFormData({...formData, name: e.target.value})} 
             />
@@ -56,6 +64,7 @@ const Register = () => {
             <label>Email</label>
             <input 
               type="email"
+              placeholder="twoj@email.com"
               className={errors.email ? "input-error" : ""}
               onChange={(e) => setFormData({...formData, email: e.target.value})} 
             />
@@ -66,6 +75,7 @@ const Register = () => {
             <label>Hasło</label>
             <input 
               type="password"
+              placeholder="Min. 6 znaków"
               className={errors.password ? "input-error" : ""}
               onChange={(e) => setFormData({...formData, password: e.target.value})} 
             />

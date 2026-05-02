@@ -34,6 +34,11 @@ cloudinary.config({
 app.post('/api/register', async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
   try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "Ten adres e-mail jest już zajęty." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
@@ -44,12 +49,11 @@ app.post('/api/register', async (req, res) => {
         favoriteColors: JSON.stringify(favoriteColors)
       }
     });
+    
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword, token });
+    res.json({ user, token });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: "Użytkownik już istnieje." });
+    res.status(500).json({ error: "Błąd serwera podczas rejestracji." });
   }
 });
 
@@ -126,7 +130,6 @@ app.post('/api/wardrobe/add', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: "Błąd serwera przy dodawaniu" });
   }
 });
-// Pobieranie ubrań zalogowanego użytkownika
 app.get('/api/wardrobe', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
