@@ -105,7 +105,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
                 )}
 
                 <button
-                  className="btn-primary mt-4 w-full flex-center"
+                  className="btn-fitte btn-primary mt-4 w-full flex-center"
                   onClick={processImageWithAI}
                   disabled={isLoading}
                 >
