@@ -21,7 +21,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   };
 
   const processImageWithAI = async () => {
-    const token = localStorage.getItem("fitte_token");
+    const token = sessionStorage.getItem("fitte_token");
     console.log("Mój token to:", token);
 
     if (!token) {

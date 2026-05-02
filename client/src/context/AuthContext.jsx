@@ -1,18 +1,57 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const timeoutRef = useRef(null);
+
+  const INACTIVITY_LIMIT = 15 * 60 * 1000;
+
+  const resetInactivityTimer = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    
+    if (user) {
+      timeoutRef.current = setTimeout(() => {
+        console.log("Sesja wygasła z powodu braku aktywności.");
+        logout();
+      }, INACTIVITY_LIMIT);
+    }
+  };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("fitte_user");
+    if (user) {
+      const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
+      
+      events.forEach((event) => window.addEventListener(event, resetInactivityTimer));
+      resetInactivityTimer(); 
+
+      return () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        events.forEach((event) => window.removeEventListener(event, resetInactivityTimer));
+      };
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const savedUser = sessionStorage.getItem("fitte_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
+
+  const saveSession = (userData, token) => {
+    sessionStorage.setItem("fitte_token", token);
+    const processedUser = {
+      ...userData,
+      styleTags: typeof userData.styleTags === 'string' ? JSON.parse(userData.styleTags) : userData.styleTags,
+      favoriteColors: typeof userData.favoriteColors === 'string' ? JSON.parse(userData.favoriteColors) : userData.favoriteColors
+    };
+    sessionStorage.setItem("fitte_user", JSON.stringify(processedUser));
+    setUser(processedUser);
+  };
 
   const login = async (email, password) => {
     try {
@@ -33,16 +72,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const saveSession = (userData, token) => {
-    localStorage.setItem("fitte_token", token);
-    const processedUser = {
-      ...userData,
-      styleTags: JSON.parse(userData.styleTags),
-      favoriteColors: JSON.parse(userData.favoriteColors)
-    };
-    localStorage.setItem("fitte_user", JSON.stringify(processedUser));
-    setUser(processedUser);
-  };
   const register = async (userData) => {
     try {
       const response = await fetch("http://localhost:5001/api/register", {
@@ -54,16 +83,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("fitte_token", data.token);
-        
-        const loggedUser = {
-          ...data.user,
-          styleTags: JSON.parse(data.user.styleTags),
-          favoriteColors: JSON.parse(data.user.favoriteColors)
-        };
-
-        localStorage.setItem("fitte_user", JSON.stringify(loggedUser));
-        setUser(loggedUser);
+        saveSession(data.user, data.token); 
         return true;
       } else {
         alert(data.error || "Błąd rejestracji");
@@ -77,9 +97,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("fitte_token");
-    localStorage.removeItem("fitte_user");
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    sessionStorage.removeItem("fitte_token");
+    sessionStorage.removeItem("fitte_user");
     setUser(null);
+
   };
 
   return (
