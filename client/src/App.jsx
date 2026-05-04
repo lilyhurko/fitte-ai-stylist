@@ -15,6 +15,7 @@ import GuestPage from "./pages/GuestPage/GuestPage";
 import StyleQuiz from "./pages/StyleQuiz/StyleQuiz";
 import Wardrobe from "./pages/Wardrobe/Wardrobe";
 import Login from "./pages/Login/Login";
+
 import "./index.css";
 
 function AppContent() {
@@ -46,11 +47,12 @@ if (loading) {
             <Route
               path="/history"
               element={<div className="p-10">Tu będzie Historia</div>}
-            />
+            /> 
             <Route
               path="/profile"
               element={<div className="p-10">Tu będzie Edycja Profilu</div>}
             />
+            
           </Routes>
         </main>
       </div>

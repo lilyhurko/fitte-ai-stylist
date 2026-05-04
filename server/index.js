@@ -4,21 +4,26 @@ const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
+const cloudinary = require("cloudinary").v2;
+
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { OpenAI } = require("openai");
 
 const app = express();
 const prisma = new PrismaClient();
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 30 * 1024 * 1024,
-  },
+  limits: { fileSize: 30 * 1024 * 1024 },
 });
-const JWT_SECRET = process.env.JWT_SECRET;
-const cloudinary = require("cloudinary").v2;
 
 app.use(cors());
 app.use(express.json({ limit: "30mb" }));
@@ -30,15 +35,64 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const authenticateToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Brak autoryzacji" });
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: "Sesja wygasła" });
+    req.user = decoded; 
+    next();
+  });
+};
+
+
+const generateContextString = (clothes) => {
+  if (clothes.length === 0) return "Szafa użytkownika jest obecnie pusta.";
+  return clothes
+    .map((c, i) => `- ${c.name} (Kategoria: ${c.category}, Styl: ${c.style}, Kolor: ${c.color})`)
+    .join("\n");
+};
+
+async function askGemini(query) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(`esteś stylistą. OTO MOJA SZAFA: \n${context}\n\n Pytanie: ${query}. 
+    WYBIERZ konkretne rzeczy z mojej szafy i stwórz z nich zestaw.`);
+    return result.response.text();
+  } catch (err) { return "Błąd Gemini: " + err.message; }
+}
+
+async function askOllamaLocal(query) {
+  try {
+    const response = await axios.post("http://localhost:11434/api/generate", {
+      model: "mistral",
+      prompt: `Jesteś stylistą mody. Odpowiedz krótko na pytanie: ${query}`,
+      stream: false,
+    });
+    return response.data.response;
+  } catch (err) { return "Błąd Mistral (Ollama): Serwer lokalny nie odpowiada."; }
+}
+
+async function askRAG(query, context) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "Jesteś ekspertem mody Fitte AI. Masz dostęp do ubrań użytkownika. Twórz zestawy tylko z posiadanych rzeczy." },
+        { role: "user", content: `Moja szafa:\n${context}\n\nPytanie: ${query}` }
+      ],
+    });
+    return response.choices[0].message.content;
+  } catch (err) { return "Błąd RAG (GPT-4o): " + err.message; }
+}
+
+
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ error: "Ten adres e-mail jest już zajęty." });
-    }
+    if (existingUser) return res.status(400).json({ error: "E-mail zajęty." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
@@ -51,115 +105,107 @@ app.post("/api/register", async (req, res) => {
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: "24h",
-    });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "24h" });
     res.json({ user, token });
-  } catch (error) {
-    res.status(500).json({ error: "Błąd serwera podczas rejestracji." });
-  }
+  } catch (error) { res.status(500).json({ error: "Błąd rejestracji." }); }
 });
 
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user)
-      return res.status(404).json({ error: "Nie znaleziono użytkownika" });
-    if (!user.password)
-      return res
-        .status(400)
-        .json({ error: "Konto wymaga zresetowania hasła." });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: "Błędne hasło" });
-
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: "24h",
-    });
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword, token });
-  } catch (error) {
-    res.status(500).json({ error: "Wystąpił błąd serwera." });
-  }
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: "Błędne dane logowania" });
+    }
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "24h" });
+    res.json({ user, token });
+  } catch (error) { res.status(500).json({ error: "Błąd logowania." }); }
 });
 
-app.post("/api/wardrobe/add", upload.single("image"), async (req, res) => {
+app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ error: "Zaloguj się najpierw!" });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
-
+    const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
     const form = new FormData();
     form.append("file", req.file.buffer, { filename: "upload.png" });
 
-    const aiResponse = await axios.post(
-      "http://localhost:8000/process-image",
-      form,
-      {
-        headers: { ...form.getHeaders() },
-        responseType: "arraybuffer",
-        timeout: 300000,
-      },
-    );
+    const aiResponse = await axios.post("http://localhost:8000/process-image", form, {
+      headers: { ...form.getHeaders() },
+      responseType: "arraybuffer",
+      timeout: 300000,
+    });
 
     const aiAnalysis = JSON.parse(aiResponse.headers["x-ai-analysis"]);
-    console.log(" Wykryty kolor:", aiAnalysis.color);
+    
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "fitte_wardrobe" },
-          (error, result) => {
-            if (result) resolve(result.secure_url);
-            else reject(error);
-          },
+          (err, res) => err ? reject(err) : resolve(res.secure_url)
         );
         stream.end(aiResponse.data);
       });
     };
 
     const imageUrl = await uploadToCloudinary();
-
     const newCloth = await prisma.cloth.create({
       data: {
         name: aiAnalysis.name,
         category: aiAnalysis.category,
         style: aiAnalysis.style,
-        color: aiAnalysis.color || "Nieokreślony", 
-        imageUrl: imageUrl,
-        userId: userId,
+        color: aiAnalysis.color || "Nieokreślony",
+        imageUrl,
+        userId,
       },
     });
-
     res.json({ success: true, item: newCloth });
-  } catch (error) {
-    console.error(" Błąd:", error.message);
-    res.status(500).json({ error: "Błąd serwera przy dodawaniu" });
-  }
+  } catch (error) { res.status(500).json({ error: "Błąd serwera przy dodawaniu" }); }
 });
-app.get("/api/wardrobe", async (req, res) => {
+
+app.get("/api/wardrobe", authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ error: "Brak autoryzacji" });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
     const clothes = await prisma.cloth.findMany({
-      where: { userId: decoded.userId },
+      where: { userId: req.user.userId },
       orderBy: { createdAt: "desc" },
     });
-
     res.json({ clothes });
-  } catch (error) {
-    res.status(500).json({ error: "Nie udało się pobrać szafy" });
-  }
+  } catch (error) { res.status(500).json({ error: "Błąd pobierania szafy" }); }
 });
+
+app.post('/api/analyze', authenticateToken, async (req, res) => {
+    try {
+        const { query } = req.body;
+        const userId = req.user.userId;
+
+        const clothes = await prisma.cloth.findMany({ where: { userId } });
+        const wardrobeContext = generateContextString(clothes); 
+
+        console.log("CONTEKST SZAFY:", wardrobeContext);
+
+        const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
+            askGemini(query, wardrobeContext),     
+            askOllamaLocal(query, wardrobeContext), 
+            askRAG(query, wardrobeContext)      
+        ]);
+
+        const analysisRecord = await prisma.analysis.create({
+            data: {
+                 query,
+                 geminiResponse: geminiOdp,
+                 mistralResponse: mistralOdp,
+                 ragResponse: ragOdp,
+                 contextUsed: wardrobeContext,
+                 userId
+            }
+        });
+
+        res.json(analysisRecord);
+    } catch (error) {
+        console.error("Błąd analizy:", error);
+        res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
+    }
+});
+
 const PORT = 5001;
-const server = app.listen(PORT, () =>
-  console.log(`🚀 Serwer Fitte działa na porcie ${PORT}`),
-);
-server.timeout = 300000;
+app.listen(PORT, () => console.log(` Serwer Fitte działa na porcie ${PORT}`));

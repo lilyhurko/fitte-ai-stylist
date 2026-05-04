@@ -7,15 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Analysis {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  query           String   
+  
+  geminiResponse  String?  
+  mistralResponse String?  
+  ragResponse     String?  
+  
+  geminiScore     Int?
+  mistralScore    Int?
+  ragScore        Int?
+  
+  contextUsed     String?  
+  
+  userId          String   @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
 model User {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  email          String   @unique
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  email          String     @unique
   name           String
   password       String
   styleTags      String   
   favoriteColors String
-  clothes        Cloth[]  
-  createdAt      DateTime @default(now())
+  clothes        Cloth[]
+  analyses       Analysis[]  
+  createdAt      DateTime   @default(now())
 }
 
 model Cloth {
