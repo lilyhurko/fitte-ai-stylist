@@ -51,10 +51,13 @@ async def process_image(file: UploadFile = File(...)):
         
         model = genai.GenerativeModel(AVAILABLE_MODEL)
         prompt = """
-        Analizuj to ubranie. Podaj krótką nazwę, kategorię (Góra, Dół, Sukienki, Obuwie) 
-        i styl (Minimalizm, Boho, Classic, Streetwear). 
+        Analizuj to ubranie na obrazku (który ma usunięte tło). 
+        Podaj krótką nazwę, kategorię (Góra, Dół, Sukienki, Obuwie), 
+        styl (Minimalizm, Boho, Classic, Streetwear) 
+        oraz dominujący kolor ubrania (np. błękitny, czarny, pastelowy róż).
+        
         Zwróć wynik WYŁĄCZNIE jako czysty JSON: 
-        {"name": "...", "category": "...", "style": "..."}
+        {"name": "...", "category": "...", "style": "...", "color": "..."}
         """
         
         response = model.generate_content([prompt, ai_image])
