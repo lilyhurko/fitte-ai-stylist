@@ -2,6 +2,7 @@ import os
 import io
 import json
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from rembg import remove
 from PIL import Image
@@ -16,21 +17,29 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"), transport='rest')
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def get_available_model():
     try:
         models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        priority_list = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]
+        priority_list = ["gemini-1.5-flash", "gemini-flash-latest"]
         for priority in priority_list:
             for m in models:
                 if priority in m: return m
-        return models[0] if models else "models/gemini-flash-latest"
-    except Exception: return "models/gemini-flash-latest"
+        return models[0] if models else "models/gemini-1.5-flash"
+    except Exception: return "models/gemini-1.5-flash"
 
 AVAILABLE_MODEL = get_available_model()
-print(f"Używam modelu: {AVAILABLE_MODEL}")
+print(f" Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
 
-@app.post("/process-clothing")
-async def process_clothing(file: UploadFile = File(...)):
+@app.post("/process-image")
+async def process_image(file: UploadFile = File(...)):
     try:
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
@@ -55,9 +64,9 @@ async def process_clothing(file: UploadFile = File(...)):
             parsed_json = json.loads(raw_text)
             safe_json = json.dumps(parsed_json, ensure_ascii=True)
         except:
-            safe_json = json.dumps({"name": "Ubranie", "category": "Góra", "style": "Classic"})
+            safe_json = json.dumps({"name": "Nowe ubranie", "category": "Góra", "style": "Classic"})
 
-        print(f"✅ Sukces: {safe_json}")
+        print(f" AI przeanalizowało: {safe_json}")
 
         img_output = io.BytesIO()
         output_image.save(img_output, format='PNG')

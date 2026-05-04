@@ -76,6 +76,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 
+
 app.post('/api/wardrobe/add', upload.single('image'), async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -89,9 +90,9 @@ app.post('/api/wardrobe/add', upload.single('image'), async (req, res) => {
     const form = new FormData();
     form.append('file', req.file.buffer, { filename: 'upload.png' });
 
-    const aiResponse = await axios.post('http://localhost:8000/process-clothing', form, {
+    const aiResponse = await axios.post('http://localhost:8000/process-image', form, {
       headers: { ...form.getHeaders() },
-      responseType: 'arraybuffer',
+      responseType: 'arraybuffer', 
       timeout: 300000
     });
 
@@ -126,7 +127,7 @@ app.post('/api/wardrobe/add', upload.single('image'), async (req, res) => {
     res.json({ success: true, item: newCloth });
 
   } catch (error) {
-    console.error("🚨 Błąd:", error.message);
+    console.error(" Błąd:", error.message);
     res.status(500).json({ error: "Błąd serwera przy dodawaniu" });
   }
 });

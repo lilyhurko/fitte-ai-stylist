@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "Inteligentny system zarządzania garderobą - Fitte",
   "scripts": {
-  "install-all": "npm install && cd client && npm install && cd ../server && npm install && cd ../ai-service && ./.venv/bin/pip install -r requirements.txt",
-  "client": "cd client && npm run dev",
-  "server": "cd server && node index.js",
-  "ai": "cd ai-service && ./.venv/bin/python main.py", 
-  "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\""
-},
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install && cd ../ai-service && ./.venv/bin/pip install -r requirements.txt",
+    "client": "cd client && npm run dev",
+    "server": "cd server && node index.js",
+    "ai": "cd ai-service && ./.venv/bin/python main.py",
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\""
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "cloudinary": "^2.10.0",
+    "multer": "^2.1.1"
   }
 }

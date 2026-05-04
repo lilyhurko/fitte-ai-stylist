@@ -1,168 +1,150 @@
 import React, { useState, useRef } from "react";
-import { Upload, X, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { Loader2, Upload, Sparkles, X } from "lucide-react";
 import "./AddItemModal.css";
 
 const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
-      setAiResult(null);
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragging(true);
+    } else if (e.type === "dragleave") {
+      setIsDragging(false);
     }
   };
 
-  const processImageWithAI = async () => {
-    const token = sessionStorage.getItem("fitte_token");
-    console.log("Mój token to:", token);
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
 
-    if (!token) {
-      alert("Błąd: Nie znaleziono tokena. Zaloguj się ponownie.");
-      return;
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
     }
+  };
+
+  const handleFile = (selectedFile) => {
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+  };
+
+  const handleGenerate = async () => {
     if (!file) return;
 
-    setIsLoading(true);
-    const formData = new FormData();
-    formData.append("image", file);
+    setIsProcessing(true); 
+
     try {
-      const response = await fetch("http://localhost:5001/api/wardrobe/add", {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("http://localhost:8000/process-image", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 
-      const data = await response.json();
+      if (!response.ok) throw new Error("Błąd serwera AI");
 
-      if (data.success) {
-        setAiResult({
-          analysis: {
-            name: data.item.name,
-            category: data.item.category,
-            style: data.item.style,
-          },
-          processedImage: data.item.imageUrl,
-        });
-      } else {
-        alert("Błąd AI: " + data.error);
-      }
+      const analysisRaw = response.headers.get("X-AI-Analysis");
+      const analysisData = JSON.parse(analysisRaw);
+
+      const imageBlob = await response.blob();
+      
+      const processedImageUrl = URL.createObjectURL(imageBlob);
+
+      console.log("AI Analysis:", analysisData);
+      console.log("Processed Image URL:", processedImageUrl);
+
+ 
+      onAddSuccess({
+        ...analysisData,
+        imageBlob: imageBlob,      
+        imageUrl: processedImageUrl 
+      }); 
+
+      handleClose();
+      
     } catch (error) {
-      console.error("Błąd połączenia:", error);
-      alert("Nie udało się połączyć z serwerem AI.");
+      console.error("AI Error:", error);
+      alert("Wystąpił błąd podczas analizy AI. Sprawdź konsolę.");
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false); 
     }
   };
 
   const handleClose = () => {
     setFile(null);
     setPreview(null);
-    setAiResult(null);
     onClose();
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
-        <button className="close-btn" onClick={handleClose}>
-          <X size={24} />
-        </button>
+      <div className="modal-content apple-card">
+        <button className="close-btn" onClick={handleClose}><X size={20} /></button>
 
-        <h2 className="title-serif italic mb-6">Dodaj do szafy</h2>
-
-        {!aiResult && (
-          <div className="upload-container">
-            <input
-              type="file"
-              accept="image/*, .heic, .HEIC"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-
-            {preview ? (
-              <div className="preview-box">
-                {file && file.name.toLowerCase().endsWith(".heic") ? (
-                  <div className="p-10 bg-gray-100 rounded-xl flex flex-col items-center">
-                    <Upload size={40} className="text-fitte-brown-dark mb-2" />
-                    <p className="text-sm font-medium">Zdjęcie iPhone (HEIC)</p>
-                    <p className="text-xs text-gray-400">
-                      Podgląd będzie dostępny po obróbce AI
-                    </p>
-                  </div>
-                ) : (
-                  <img src={preview} alt="Podgląd" className="preview-img" />
-                )}
-
-                <button
-                  className="btn-fitte btn-primary mt-4 w-full flex-center"
-                  onClick={processImageWithAI}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "AI pracuje..." : "Magiczne Usunięcie Tła"}
-                </button>
+        {isProcessing ? (
+          <div className="ai-loading-state">
+            <div className="ai-loader-content">
+              <div className="spinner-container">
+                <Loader2 className="animate-spin text-fitte-brown-dark" size={48} />
+                <Sparkles className="sparkle-icon" size={24} />
               </div>
-            ) : (
-              <div
-                className="upload-box"
-                onClick={() => fileInputRef.current.click()}
-              >
-                <Upload size={40} className="text-gray-400 mb-3" />
-                <p>Kliknij, aby wgrać zdjęcie ubrania</p>
-                <span className="text-xs text-gray-400 mt-2">
-                  Formaty: JPG, PNG
-                </span>
-              </div>
-            )}
+              <h3 className="font-playfair italic">Fitte AI analizuje Twoje ubranie...</h3>
+              <p>Usuwamy tło i dobieramy parametry stylu</p>
+              <div className="loading-bar"><div className="loading-progress"></div></div>
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            <h2 className="modal-title font-playfair">Dodaj do <span className="italic">Garderoby</span></h2>
 
-        {aiResult && (
-          <div className="ai-result-container">
-            <div className="result-img-box">
-              <img
-                src={aiResult.processedImage}
-                alt="Bez tła"
-                className="result-img"
-              />
-              <div className="success-badge">
-                <CheckCircle2 size={16} className="mr-1" /> Tło usunięte
-              </div>
-            </div>
-
-            <div className="ai-tags mt-4">
-              <h3 className="font-bold text-lg mb-2">
-                {aiResult.analysis?.name}
-              </h3>
-
-              <div className="tag-badges">
-                <span className="tag">
-                  Kategoria: {aiResult.analysis?.category}
-                </span>
-                <span className="tag">Styl: {aiResult.analysis?.style}</span>
-              </div>
-            </div>
-
-            <button
-              className="btn-primary w-full mt-6"
-              onClick={() => {
-                onAddSuccess(aiResult);
-                handleClose();
-              }}
+            <div 
+              className={`drop-zone ${isDragging ? "dragging" : ""} ${preview ? "has-image" : ""}`}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current.click()}
             >
-              Zapisz w szafie
-            </button>
-          </div>
+              {preview ? (
+                <img src={preview} alt="Preview" className="image-preview" />
+              ) : (
+                <div className="drop-zone-content">
+                  <div className="upload-icon-circle">
+                    <Upload size={32} />
+                  </div>
+                  <p className="main-text">Przeciągnij i upuść zdjęcie</p>
+                  <p className="sub-text">lub kliknij, aby wybrać z dysku</p>
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={(e) => handleFile(e.target.files[0])}
+                accept="image/*"
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className={`btn-fitte btn-primary w-full ${!file ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!file}
+                onClick={handleGenerate}
+              >
+                <span>Generuj z Fitte AI</span>
+                <span className="btn-icon">✦</span>
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
