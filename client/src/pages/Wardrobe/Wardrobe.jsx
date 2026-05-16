@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useWardrobe } from "../../context/WardrobeContext";
 import AddItemModal from "../../components/Wardrobe/AddItemModal";
-import { Loader2, Plus } from "lucide-react";
+import { Trash2, Loader2, Plus } from 'lucide-react'; 
 import "./Wardrobe.css";
 
 const Wardrobe = () => {
-  const { clothes, loading, fetchClothes } = useWardrobe();
+  const { clothes, deleteCloth, loading, fetchClothes } = useWardrobe();
   const [activeTab, setActiveTab] = useState("Wszystkie");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -25,7 +25,7 @@ const Wardrobe = () => {
 
     try {
       const formData = new FormData();
-      formData.append("image", aiResult.imageBlob); // Plik bez tła
+      formData.append("image", aiResult.imageBlob); 
       formData.append("name", aiResult.name);
       formData.append("category", aiResult.category);
       formData.append("style", aiResult.style);
@@ -98,6 +98,19 @@ const Wardrobe = () => {
             filteredClothes.map((item) => (
               <div key={item.id} className="cloth-card group">
                 <div className="image-wrapper relative aspect-[3/4] rounded-2xl overflow-hidden mb-3 bg-[#fdfdfd] border border-fitte-sand/20">
+                  
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`Czy na pewno chcesz usunąć "${item.name}" ze swojej garderoby?`)) {
+                        deleteCloth(item.id);
+                      }
+                    }}
+                    className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 z-10 shadow-sm"
+                    title="Usuń ubranie"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+
                   <img
                     src={item.imageUrl}
                     alt={item.name}

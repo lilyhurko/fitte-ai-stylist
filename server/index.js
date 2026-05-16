@@ -46,8 +46,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-
-
 const generateContextString = (clothes, user) => {
   const gender = user?.gender || 'osoba';
   const styles = user?.styleTags || 'brak sprecyzowanego stylu';
@@ -100,7 +98,6 @@ async function askOllamaLocal(query, context) {
   } catch (err) { return "Błąd Mistral (Ollama): Serwer lokalny nie odpowiada."; }
 }
 
-
 async function askRAG(query, context) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -110,6 +107,8 @@ async function askRAG(query, context) {
     return result.response.text();
   } catch (err) { return "Błąd Fitte AI: " + err.message; }
 }
+
+// --- AUTENTYKACJA ---
 
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
@@ -144,6 +143,8 @@ app.post("/api/login", async (req, res) => {
     res.json({ user, token });
   } catch (error) { res.status(500).json({ error: "Błąd logowania." }); }
 });
+
+// --- WARDROBE (CRUD) ---
 
 app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (req, res) => {
   try {
@@ -196,6 +197,31 @@ app.get("/api/wardrobe", authenticateToken, async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Błąd pobierania szafy" }); }
 });
 
+app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    const cloth = await prisma.cloth.findUnique({ where: { id } });
+    
+    if (!cloth) {
+      return res.status(404).json({ error: "Nie znaleziono takiego ubrania." });
+    }
+    
+    if (cloth.userId !== userId) {
+      return res.status(403).json({ error: "Brak uprawnień do usunięcia tego ubrania." });
+    }
+
+    await prisma.cloth.delete({ where: { id } });
+    res.json({ success: true, message: "Ubranie zostało pomyślnie usunięte z garderoby." });
+  } catch (error) {
+    console.error("🚨 Błąd podczas usuwania ubrania:", error);
+    res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
+  }
+});
+
+// --- ANALIZA ASYSTENTA (RAG) ---
+
 app.post('/api/analyze', authenticateToken, async (req, res) => {
     try {
         const { query } = req.body;
@@ -233,6 +259,8 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
     }
 });
+
+// --- PROFIL ---
 
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
@@ -305,4 +333,4 @@ app.post("/api/profile/change-password", authenticateToken, async (req, res) => 
 });
 
 const PORT = 5001;
-app.listen(PORT, () => console.log(` Serwer Fitte działa na porcie ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa na porcie ${PORT}`));
