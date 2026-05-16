@@ -103,7 +103,7 @@ async function askOllamaLocal(query, context) {
 
 async function askRAG(query, context) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context);
 
     const result = await model.generateContent(prompt);
@@ -242,18 +242,17 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
         email: true,
         gender: true,
         styleTags: true,
-        name: true // Pobieramy 'name' zamiast nieistniejącego 'firstName'
+        name: true 
       }
     });
     if (!user) return res.status(404).json({ error: "Nie znaleziono profilu" });
     
-    // Mapujemy 'name' na 'firstName', aby frontend dostał dokładnie to, czego oczekuje
     res.json({
       ...user,
       firstName: user.name
     });
   } catch (error) {
-    console.error("🚨 Błąd pobierania profilu:", error);
+    console.error(" Błąd pobierania profilu:", error);
     res.status(500).json({ error: "Błąd pobierania profilu" });
   }
 });
