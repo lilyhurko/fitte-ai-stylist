@@ -47,46 +47,69 @@ const authenticateToken = (req, res, next) => {
 };
 
 
-const generateContextString = (clothes) => {
-  if (clothes.length === 0) return "Szafa użytkownika jest obecnie pusta.";
-  return clothes
-    .map((c, i) => `- ${c.name} (Kategoria: ${c.category}, Styl: ${c.style}, Kolor: ${c.color})`)
+
+const generateContextString = (clothes, user) => {
+  const gender = user?.gender || 'osoba';
+  const styles = user?.styleTags || 'brak sprecyzowanego stylu';
+  
+  let context = `Użytkownik to ${gender}. Preferowany styl: ${styles}. \n`;
+  
+  if (!clothes || clothes.length === 0) return context + "Szafa jest obecnie pusta.";
+  
+  context += "Ubrania w szafie:\n";
+  context += clothes
+    .map((c, i) => `- ${c.name} (Kategoria: ${c.category}, Kolor: ${c.color})`)
     .join("\n");
+    
+  return context;
 };
 
-async function askGemini(query) {
+const getBasePrompt = (query, context) => `
+Jesteś profesjonalnym stylistą mody. 
+INFORMACJE O UŻYTKOWNIKU I SZAFIE:
+${context}
+
+ZASADY ODPOWIEDZI (KRYTYCZNE):
+1. Odpowiedz bardzo zwięźle (maksymalnie 3-4 konkretne zdania).
+2. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
+3. Nie pisz uprzejmościowych wstępów ani podsumowań.
+4. Skup się na dopasowaniu do okazji i stylu użytkownika.
+
+PYTANIE: ${query}
+`;
+
+async function askGemini(query, context) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(`esteś stylistą. OTO MOJA SZAFA: \n${context}\n\n Pytanie: ${query}. 
-    WYBIERZ konkretne rzeczy z mojej szafy i stwórz z nich zestaw.`);
+    const prompt = getBasePrompt(query, context);
+    
+    const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) { return "Błąd Gemini: " + err.message; }
 }
 
-async function askOllamaLocal(query) {
+async function askOllamaLocal(query, context) { 
   try {
+    const prompt = getBasePrompt(query, context);
     const response = await axios.post("http://localhost:11434/api/generate", {
       model: "mistral",
-      prompt: `Jesteś stylistą mody. Odpowiedz krótko na pytanie: ${query}`,
+      prompt: prompt,
       stream: false,
     });
     return response.data.response;
   } catch (err) { return "Błąd Mistral (Ollama): Serwer lokalny nie odpowiada."; }
 }
 
+
 async function askRAG(query, context) {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "Jesteś ekspertem mody Fitte AI. Masz dostęp do ubrań użytkownika. Twórz zestawy tylko z posiadanych rzeczy." },
-        { role: "user", content: `Moja szafa:\n${context}\n\nPytanie: ${query}` }
-      ],
-    });
-    return response.choices[0].message.content;
-  } catch (err) { return "Błąd RAG (GPT-4o): " + err.message; }
-}
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = getBasePrompt(query, context);
 
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) { return "Błąd Fitte AI: " + err.message; }
+}
 
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
@@ -178,10 +201,14 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
         const { query } = req.body;
         const userId = req.user.userId;
 
-        const clothes = await prisma.cloth.findMany({ where: { userId } });
-        const wardrobeContext = generateContextString(clothes); 
+        const [user, clothes] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId } }),
+            prisma.cloth.findMany({ where: { userId } })
+        ]);
 
-        console.log("CONTEKST SZAFY:", wardrobeContext);
+        const wardrobeContext = generateContextString(clothes, user); 
+
+        console.log("🚀 Wysyłam do AI kontekst:", wardrobeContext);
 
         const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
             askGemini(query, wardrobeContext),     
@@ -205,6 +232,77 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
         console.error("Błąd analizy:", error);
         res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
     }
+});
+
+app.get("/api/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        email: true,
+        gender: true,
+        styleTags: true,
+        name: true // Pobieramy 'name' zamiast nieistniejącego 'firstName'
+      }
+    });
+    if (!user) return res.status(404).json({ error: "Nie znaleziono profilu" });
+    
+    // Mapujemy 'name' na 'firstName', aby frontend dostał dokładnie to, czego oczekuje
+    res.json({
+      ...user,
+      firstName: user.name
+    });
+  } catch (error) {
+    console.error("🚨 Błąd pobierania profilu:", error);
+    res.status(500).json({ error: "Błąd pobierania profilu" });
+  }
+});
+
+app.patch("/api/profile", authenticateToken, async (req, res) => {
+  const { firstName, email, gender } = req.body;
+  try {
+    if (email) {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser && existingUser.id !== req.user.userId) {
+        return res.status(400).json({ error: "Ten adres e-mail jest już zajęty." });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        name: firstName, 
+        email,
+        gender
+      }
+    });
+    res.json(updatedUser);
+  } catch (error) {
+    console.error(" Błąd aktualizacji profilu:", error);
+    res.status(500).json({ error: "Błąd aktualizacji profilu" });
+  }
+});
+
+app.post("/api/profile/change-password", authenticateToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Obecne hasło jest nieprawidłowe." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ success: true, message: "Hasło zostało pomyślnie zmienione." });
+  } catch (error) {
+    res.status(500).json({ error: "Błąd serwera podczas zmiany hasła." });
+  }
 });
 
 const PORT = 5001;

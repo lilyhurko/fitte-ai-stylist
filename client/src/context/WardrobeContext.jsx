@@ -1,10 +1,13 @@
-import React, { createContext, useState, useContext } from 'react';
+// Zwróć uwagę na dodane useEffect w klamrach
+import React, { createContext, useState, useContext, useEffect } from "react"; 
+import { useAuth } from "./AuthContext";
 
 const WardrobeContext = createContext();
 
 export const WardrobeProvider = ({ children }) => {
   const [clothes, setClothes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   const fetchClothes = async () => {
     const token = sessionStorage.getItem("fitte_token");
@@ -28,11 +31,22 @@ export const WardrobeProvider = ({ children }) => {
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    if (user) {
+      console.log("Wykryto zalogowanego użytkownika, pobieram szafę...");
+      fetchClothes();
+    } else {
+      setClothes([]);
+    }
+  }, [user]);
 
   const addCloth = (item) => setClothes((prev) => [item, ...prev]);
 
   return (
-    <WardrobeContext.Provider value={{ clothes, loading, fetchClothes, addCloth }}>
+    <WardrobeContext.Provider
+      value={{ clothes, loading, fetchClothes, addCloth }}
+    >
       {children}
     </WardrobeContext.Provider>
   );
