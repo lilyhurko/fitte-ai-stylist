@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Loader2, Upload, Sparkles, X } from "lucide-react";
 import "./AddItemModal.css";
+import { AI_BACKEND_URL } from "../../config";
 
 const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [file, setFile] = useState(null);
@@ -39,13 +40,13 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const handleGenerate = async () => {
     if (!file) return;
 
-    setIsProcessing(true); 
+    setIsProcessing(true);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/process-image", {
+      const response = await fetch(`${AI_BACKEND_URL}/process-image`, {
         method: "POST",
         body: formData,
       });
@@ -56,26 +57,24 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
       const analysisData = JSON.parse(analysisRaw);
 
       const imageBlob = await response.blob();
-      
+
       const processedImageUrl = URL.createObjectURL(imageBlob);
 
       console.log("AI Analysis:", analysisData);
       console.log("Processed Image URL:", processedImageUrl);
 
- 
       onAddSuccess({
         ...analysisData,
-        imageBlob: imageBlob,      
-        imageUrl: processedImageUrl 
-      }); 
+        imageBlob: imageBlob,
+        imageUrl: processedImageUrl,
+      });
 
       handleClose();
-      
     } catch (error) {
       console.error("AI Error:", error);
       alert("Wystąpił błąd podczas analizy AI. Sprawdź konsolę.");
     } finally {
-      setIsProcessing(false); 
+      setIsProcessing(false);
     }
   };
 
@@ -88,25 +87,36 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content apple-card">
-        <button className="close-btn" onClick={handleClose}><X size={20} /></button>
+        <button className="close-btn" onClick={handleClose}>
+          <X size={20} />
+        </button>
 
         {isProcessing ? (
           <div className="ai-loading-state">
             <div className="ai-loader-content">
               <div className="spinner-container">
-                <Loader2 className="animate-spin text-fitte-brown-dark" size={48} />
+                <Loader2
+                  className="animate-spin text-fitte-brown-dark"
+                  size={48}
+                />
                 <Sparkles className="sparkle-icon" size={24} />
               </div>
-              <h3 className="font-playfair italic">Fitte AI analizuje Twoje ubranie...</h3>
+              <h3 className="font-playfair italic">
+                Fitte AI analizuje Twoje ubranie...
+              </h3>
               <p>Usuwamy tło i dobieramy parametry stylu</p>
-              <div className="loading-bar"><div className="loading-progress"></div></div>
+              <div className="loading-bar">
+                <div className="loading-progress"></div>
+              </div>
             </div>
           </div>
         ) : (
           <>
-            <h2 className="modal-title font-playfair">Dodaj do <span className="italic">Garderoby</span></h2>
+            <h2 className="modal-title font-playfair">
+              Dodaj do <span className="italic">Garderoby</span>
+            </h2>
 
-            <div 
+            <div
               className={`drop-zone ${isDragging ? "dragging" : ""} ${preview ? "has-image" : ""}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
@@ -125,17 +135,17 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
                   <p className="sub-text">lub kliknij, aby wybrać z dysku</p>
                 </div>
               )}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
                 onChange={(e) => handleFile(e.target.files[0])}
                 accept="image/*"
               />
             </div>
 
             <div className="modal-actions">
-              <button 
+              <button
                 className={`btn-fitte btn-primary w-full ${!file ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={!file}
                 onClick={handleGenerate}

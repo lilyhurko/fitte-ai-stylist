@@ -108,6 +108,7 @@ async function askRAG(query, context) {
   } catch (err) { return "Błąd Fitte AI: " + err.message; }
 }
 
+// --- STATUS ENDPOINT ---
 app.get("/", (req, res) => {
   res.json({
     status: "active",
@@ -117,6 +118,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// --- AUTENTYKACJA ---
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
   try {
@@ -150,7 +152,6 @@ app.post("/api/login", async (req, res) => {
     res.json({ user, token });
   } catch (error) { res.status(500).json({ error: "Błąd logowania." }); }
 });
-
 
 app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (req, res) => {
   try {
@@ -227,7 +228,6 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
 });
 
 // --- ANALIZA ASYSTENTA (RAG) ---
-
 app.post('/api/analyze', authenticateToken, async (req, res) => {
     try {
         const { query } = req.body;
@@ -266,8 +266,35 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
     }
 });
 
-// --- PROFIL ---
+// NOWY ENDPOINT: OCENIANIE DANYCH MODELI (Wymagane przez handleRate na froncie)
+app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { modelType, score } = req.body;
 
+  try {
+    const validModels = ["gemini", "mistral", "rag"];
+    if (!validModels.includes(modelType)) {
+      return res.status(400).json({ error: "Nieprawidłowy typ modelu." });
+    }
+
+    // Dynamicznie mapujemy typ modelu na kolumnę w bazie (np. geminiScore, ragScore)
+    const scoreFieldName = `${modelType}Score`;
+
+    const updatedAnalysis = await prisma.analysis.update({
+      where: { id: id },
+      data: {
+        [scoreFieldName]: parseInt(score, 10)
+      }
+    });
+
+    res.json({ success: true, updatedAnalysis });
+  } catch (error) {
+    console.error("🚨 Błąd podczas zapisywania oceny modelu:", error);
+    res.status(500).json({ error: "Wystąpił błąd serwera podczas zapisywania oceny." });
+  }
+});
+
+// --- PROFIL ---
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -338,6 +365,7 @@ app.post("/api/profile/change-password", authenticateToken, async (req, res) => 
   }
 });
 
+// --- HISTORIA ---
 app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const history = await prisma.analysis.findMany({
@@ -351,6 +379,5 @@ app.get("/api/history", authenticateToken, async (req, res) => {
   }
 });
 
-
-const PORT = 5001;
-app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa na porcie ${PORT}`));
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa stabilnie na porcie ${PORT}`));

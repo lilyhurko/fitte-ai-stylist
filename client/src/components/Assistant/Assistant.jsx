@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Loader2, Star, Sparkles, Brain, Monitor } from "lucide-react";
 import "./Assistant.css";
+import { API_BASE_URL } from "../../config";
 
 const Assistant = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const Assistant = () => {
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
     try {
-      const response = await fetch("http://localhost:5001/api/analyze", {
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,7 +42,7 @@ const Assistant = () => {
   const handleRate = async (modelType, score) => {
     const token = sessionStorage.getItem("fitte_token");
     try {
-      await fetch(`http://localhost:5001/api/analyze/${results.id}/rate`, {
+      await fetch(`${API_BASE_URL}/analyze/${results.id}/rate`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
