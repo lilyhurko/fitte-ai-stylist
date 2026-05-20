@@ -342,6 +342,12 @@ app.get("/api/history", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
   }
 });
+app.get("/api", (req, res) => {
+  res.json({ 
+    status: "success", 
+    message: "Fitte AI API działa poprawnie w chmurze Render!" 
+  });
+});
 
 const PORT = 5001;
 app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa na porcie ${PORT}`));
