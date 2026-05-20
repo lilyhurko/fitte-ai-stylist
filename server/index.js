@@ -108,6 +108,14 @@ async function askRAG(query, context) {
   } catch (err) { return "Błąd Fitte AI: " + err.message; }
 }
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "active",
+    service: "Fitte AI Stylist Backend",
+    academicProject: "Politechnika Lubelska - Praca Magisterska",
+    message: "Serwer działa poprawnie i stabilnie w chmurze!"
+  });
+});
 
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
@@ -342,12 +350,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
   }
 });
-app.get("/api", (req, res) => {
-  res.json({ 
-    status: "success", 
-    message: "Fitte AI API działa poprawnie w chmurze Render!" 
-  });
-});
+
 
 const PORT = 5001;
 app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa na porcie ${PORT}`));
