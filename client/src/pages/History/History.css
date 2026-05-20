@@ -1,0 +1,26 @@
+.history-container {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #3d2a25; 
+}
+
+.history-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.history-card:hover {
+  transform: translateY(-1px);
+}
+
+.history-card pre {
+  font-family: inherit;
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .history-card .flex-1 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

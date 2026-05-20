@@ -16,6 +16,7 @@ import StyleQuiz from "./pages/StyleQuiz/StyleQuiz";
 import Wardrobe from "./pages/Wardrobe/Wardrobe";
 import Login from "./pages/Login/Login";
 import Profile from "./pages/Profile/Profile";
+import History from "./pages/History/History";
 import "./index.css";
 
 function AppContent() {
@@ -44,10 +45,7 @@ if (loading) {
           <Routes>
             <Route path="/" element={<Assistant />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
-            <Route
-              path="/history"
-              element={<div className="p-10">Tu będzie Historia</div>}
-            /> 
+            <Route path="/history" element={<History/>} />
             <Route path="/profile" element={<Profile />} />
             
           </Routes>

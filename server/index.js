@@ -108,7 +108,6 @@ async function askRAG(query, context) {
   } catch (err) { return "Błąd Fitte AI: " + err.message; }
 }
 
-// --- AUTENTYKACJA ---
 
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
@@ -144,7 +143,6 @@ app.post("/api/login", async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Błąd logowania." }); }
 });
 
-// --- WARDROBE (CRUD) ---
 
 app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (req, res) => {
   try {
@@ -329,6 +327,19 @@ app.post("/api/profile/change-password", authenticateToken, async (req, res) => 
     res.json({ success: true, message: "Hasło zostało pomyślnie zmienione." });
   } catch (error) {
     res.status(500).json({ error: "Błąd serwera podczas zmiany hasła." });
+  }
+});
+
+app.get("/api/history", authenticateToken, async (req, res) => {
+  try {
+    const history = await prisma.analysis.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { createdAt: "desc" }, 
+    });
+    res.json(history);
+  } catch (error) {
+    console.error("Błąd pobierania historii analiz:", error);
+    res.status(500).json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
   }
 });
 
