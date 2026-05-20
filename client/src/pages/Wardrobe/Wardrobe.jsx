@@ -3,6 +3,7 @@ import { useWardrobe } from "../../context/WardrobeContext";
 import AddItemModal from "../../components/Wardrobe/AddItemModal";
 import { Trash2, Loader2, Plus } from 'lucide-react'; 
 import "./Wardrobe.css";
+import { API_BASE_URL } from '../../config';
 
 const Wardrobe = () => {
   const { clothes, deleteCloth, loading, fetchClothes } = useWardrobe();
@@ -30,7 +31,7 @@ const Wardrobe = () => {
       formData.append("category", aiResult.category);
       formData.append("style", aiResult.style);
 
-      const response = await fetch("http://localhost:5001/api/wardrobe/add", {
+      const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

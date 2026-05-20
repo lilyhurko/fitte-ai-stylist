@@ -1,5 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
-
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import { API_BASE_URL } from "../config";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -11,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
   const resetInactivityTimer = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     if (user) {
       timeoutRef.current = setTimeout(() => {
         console.log("Sesja wygasła z powodu braku aktywności.");
@@ -22,14 +28,24 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
-      
-      events.forEach((event) => window.addEventListener(event, resetInactivityTimer));
-      resetInactivityTimer(); 
+      const events = [
+        "mousedown",
+        "keydown",
+        "scroll",
+        "touchstart",
+        "mousemove",
+      ];
+
+      events.forEach((event) =>
+        window.addEventListener(event, resetInactivityTimer),
+      );
+      resetInactivityTimer();
 
       return () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        events.forEach((event) => window.removeEventListener(event, resetInactivityTimer));
+        events.forEach((event) =>
+          window.removeEventListener(event, resetInactivityTimer),
+        );
       };
     }
   }, [user]);
@@ -46,8 +62,14 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.setItem("fitte_token", token);
     const processedUser = {
       ...userData,
-      styleTags: typeof userData.styleTags === 'string' ? JSON.parse(userData.styleTags) : userData.styleTags,
-      favoriteColors: typeof userData.favoriteColors === 'string' ? JSON.parse(userData.favoriteColors) : userData.favoriteColors
+      styleTags:
+        typeof userData.styleTags === "string"
+          ? JSON.parse(userData.styleTags)
+          : userData.styleTags,
+      favoriteColors:
+        typeof userData.favoriteColors === "string"
+          ? JSON.parse(userData.favoriteColors)
+          : userData.favoriteColors,
     };
     sessionStorage.setItem("fitte_user", JSON.stringify(processedUser));
     setUser(processedUser);
@@ -55,7 +77,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch("http://localhost:5001/api/login", {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -72,33 +94,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-const register = async (userData) => {
-  try {
-    const response = await fetch("http://localhost:5001/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+  const register = async (userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      saveSession(data.user, data.token); 
-      return { success: true }; 
-    } else {
-      return { success: false, error: data.error || "Błąd rejestracji" }; // Zwracamy błąd
+      if (response.ok) {
+        saveSession(data.user, data.token);
+        return { success: true };
+      } else {
+        return { success: false, error: data.error || "Błąd rejestracji" }; // Zwracamy błąd
+      }
+    } catch (error) {
+      return { success: false, error: "Serwer nie odpowiada." };
     }
-  } catch (error) {
-    return { success: false, error: "Serwer nie odpowiada." };
-  }
-};
+  };
 
   const logout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     sessionStorage.removeItem("fitte_token");
     sessionStorage.removeItem("fitte_user");
     setUser(null);
-
   };
 
   return (
