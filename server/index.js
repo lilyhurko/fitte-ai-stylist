@@ -11,7 +11,8 @@ const cloudinary = require("cloudinary").v2;
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { OpenAI } = require("openai");
-
+const Groq = require("groq-sdk");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const app = express();
 const prisma = new PrismaClient();
 
@@ -89,13 +90,16 @@ async function askGemini(query, context) {
 async function askOllamaLocal(query, context) { 
   try {
     const prompt = getBasePrompt(query, context);
-    const response = await axios.post("http://localhost:11434/api/generate", {
-      model: "mistral",
-      prompt: prompt,
-      stream: false,
+    
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "mixtral-8x7b-32768", 
     });
-    return response.data.response;
-  } catch (err) { return "Błąd Mistral (Ollama): Serwer lokalny nie odpowiada."; }
+
+    return chatCompletion.choices[0]?.message?.content || "Brak odpowiedzi.";
+  } catch (err) { 
+    return "Błąd Mistral (Groq Cloud): " + err.message; 
+  }
 }
 
 async function askRAG(query, context) {

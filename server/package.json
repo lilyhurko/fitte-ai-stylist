@@ -19,6 +19,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "form-data": "^4.0.5",
+    "groq-sdk": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "openai": "^6.35.0"
