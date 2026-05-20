@@ -73,7 +73,7 @@ const Profile = () => {
     const token = sessionStorage.getItem("fitte_token");
 
     try {
-      const response = await fetch("http://localhost:5001/api/profile", {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -126,20 +126,17 @@ const Profile = () => {
     const token = sessionStorage.getItem("fitte_token");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/profile/change-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword: passwordData.currentPassword,
-            newPassword: passwordData.newPassword,
-          }),
+      const response = await fetch(`${API_BASE_URL}/profile/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
       const data = await response.json();
 
       if (response.ok) {
