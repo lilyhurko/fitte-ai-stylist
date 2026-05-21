@@ -67,7 +67,9 @@ const Profile = () => {
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (e) => {
+    if (e) e.preventDefault();
+
     setLoadingProfile(true);
     setProfileMessage({ type: "", text: "" });
     const token = sessionStorage.getItem("fitte_token");
@@ -95,8 +97,8 @@ const Profile = () => {
         storedUser.name = formData.firstName;
         storedUser.gender = formData.gender;
         sessionStorage.setItem("fitte_user", JSON.stringify(storedUser));
+
         await fetchProfileData();
-        
       } else {
         setProfileMessage({
           type: "error",
@@ -261,9 +263,9 @@ const Profile = () => {
               </div>
             )}
             <button
-              onClick={handleSaveProfile}
+              onClick={(e) => handleSaveProfile(e)}
               disabled={loadingProfile}
-              className="w-full bg-fitte-brown-dark text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+              className="w-full bg-fitte-brown-dark text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"
             >
               <Save size={18} />
               {loadingProfile ? "Zapisywanie..." : "Zapisz zmiany"}
