@@ -123,7 +123,6 @@ const Assistant = () => {
             Porównanie inteligentnych propozycji
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* KARTA GEMINI */}
             <div className="ai-result-card bg-white p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase">
@@ -139,7 +138,6 @@ const Assistant = () => {
               </p>
             </div>
 
-            {/* KARTA MISTRAL */}
             <div className="ai-result-card bg-white p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase">
@@ -155,7 +153,6 @@ const Assistant = () => {
               </p>
             </div>
 
-            {/* KARTA RAG - WYRÓŻNIONA */}
             <div className="ai-result-card bg-fitte-brown-dark text-white p-8 rounded-3xl shadow-xl transform scale-105">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">

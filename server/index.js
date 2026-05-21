@@ -65,17 +65,7 @@ const generateContextString = (clothes, user) => {
 };
 
 const getBasePrompt = (query, context) => `
-Jesteś profesjonalnym stylistą mody. 
-INFORMACJE O UŻYTKOWNIKU I SZAFIE:
-${context}
-
-ZASADY ODPOWIEDZI (KRYTYCZNE):
-1. Odpowiedz bardzo zwięźle (maksymalnie 3-4 konkretne zdania).
-2. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
-3. Nie pisz uprzejmościowych wstępów ani podsumowań.
-4. Skup się na dopasowaniu do okazji i stylu użytkownika.
-
-PYTANIE: ${query}
+Szybki test chmury numer 999
 `;
 
 async function askGemini(query, context) {
