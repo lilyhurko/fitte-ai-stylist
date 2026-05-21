@@ -12,12 +12,13 @@ const cloudinary = require("cloudinary").v2;
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { OpenAI } = require("openai");
 const Groq = require("groq-sdk");
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
 const app = express();
 const prisma = new PrismaClient();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -32,8 +33,8 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  api_key: process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 });
 
 const authenticateToken = (req, res, next) => {
@@ -87,7 +88,7 @@ async function askGemini(query, context) {
   } catch (err) { return "Błąd Gemini: " + err.message; }
 }
 
-async function askOllamaLocal(query, context) { 
+async function askMistralCloud(query, context) { 
   try {
     const prompt = getBasePrompt(query, context);
     
@@ -96,7 +97,7 @@ async function askOllamaLocal(query, context) {
       model: "mixtral-8x7b-32768", 
     });
 
-    return chatCompletion.choices[0]?.message?.content || "Brak odpowiedzi.";
+    return chatCompletion.choices[0]?.message?.content || "Brak odpowiedzi ze strony chmury Mistral.";
   } catch (err) { 
     return "Błąd Mistral (Groq Cloud): " + err.message; 
   }
@@ -112,7 +113,6 @@ async function askRAG(query, context) {
   } catch (err) { return "Błąd Fitte AI: " + err.message; }
 }
 
-// --- STATUS ENDPOINT ---
 app.get("/", (req, res) => {
   res.json({
     status: "active",
@@ -122,7 +122,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// --- AUTENTYKACJA ---
 app.post("/api/register", async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
   try {
@@ -231,7 +230,6 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// --- ANALIZA ASYSTENTA (RAG) ---
 app.post('/api/analyze', authenticateToken, async (req, res) => {
     try {
         const { query } = req.body;
@@ -243,12 +241,11 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
         ]);
 
         const wardrobeContext = generateContextString(clothes, user); 
-
         console.log("🚀 Wysyłam do AI kontekst:", wardrobeContext);
 
         const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
             askGemini(query, wardrobeContext),     
-            askOllamaLocal(query, wardrobeContext), 
+            askMistralCloud(query, wardrobeContext), 
             askRAG(query, wardrobeContext)      
         ]);
 
@@ -270,7 +267,6 @@ app.post('/api/analyze', authenticateToken, async (req, res) => {
     }
 });
 
-// NOWY ENDPOINT: OCENIANIE DANYCH MODELI (Wymagane przez handleRate na froncie)
 app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { modelType, score } = req.body;
@@ -281,7 +277,6 @@ app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Nieprawidłowy typ modelu." });
     }
 
-    // Dynamicznie mapujemy typ modelu na kolumnę w bazie (np. geminiScore, ragScore)
     const scoreFieldName = `${modelType}Score`;
 
     const updatedAnalysis = await prisma.analysis.update({
@@ -298,7 +293,6 @@ app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
   }
 });
 
-// --- PROFIL ---
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
