@@ -65,7 +65,18 @@ const generateContextString = (clothes, user) => {
 };
 
 const getBasePrompt = (query, context) => `
-Szybki test chmury numer 999
+Jesteś profesjonalnym stylistą mody. 
+INFORMACJE O UŻYTKOWNIKU I SZAFIE:
+${context}
+
+ZASADY ODPOWIEDZI (KRYTYCZNE):
+1. Odpowiedz bardzo zwięźle (maksymalnie 3-4 konkretne zdania).
+2. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
+3. Nie pisz uprzejmościowych wstępów ani podsumowań.
+4. Skup się na dopasowaniu do okazji i stylu użytkownika.
+
+PYTANIE: ${query}
+
 `;
 
 async function askGemini(query, context) {
@@ -84,7 +95,7 @@ async function askMistralCloud(query, context) {
     
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "mixtral-8x7b-32768", 
+      model: "llama3-8b-8192", 
     });
 
     return chatCompletion.choices[0]?.message?.content || "Brak odpowiedzi ze strony chmury Mistral.";
