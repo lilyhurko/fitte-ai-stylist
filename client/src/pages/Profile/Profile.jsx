@@ -95,10 +95,8 @@ const Profile = () => {
         storedUser.name = formData.firstName;
         storedUser.gender = formData.gender;
         sessionStorage.setItem("fitte_user", JSON.stringify(storedUser));
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        await fetchProfileData();
+        
       } else {
         setProfileMessage({
           type: "error",
@@ -111,7 +109,6 @@ const Profile = () => {
       setLoadingProfile(false);
     }
   };
-
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordMessage({
