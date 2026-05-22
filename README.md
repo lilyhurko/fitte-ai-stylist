@@ -77,8 +77,8 @@ export const API_BASE_URL = "http://localhost:5001/api";
 npm run dev
 ```
 ## 🌐 Production Deployments & SPA Fallbacks
-* **Live UI Client Web App: Hosted via Vercel**
+* **Live UI Client Web App:** Hosted via Vercel
 
-* **Live API Server Instance: Hosted via Render**
+* **Live API Server Instance:** Hosted via Render
 
 * **Note for Vercel production hosting:** The client application includes a custom vercel.json rewrite policy configured directly at the frontend deployment block to properly route clean SPA view extensions (e.g., /profile, /assistant) directly back into the core application engine. This successfully completely resolves standard routing 404 Not Found hosting errors during deep link page browser reloads.
