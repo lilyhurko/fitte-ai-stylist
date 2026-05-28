@@ -21,8 +21,12 @@ import "./index.css";
 
 function AppContent() {
   const { user, loading } = useAuth();
-if (loading) {
-    return <div className="flex items-center justify-center h-screen">Ładowanie stylu...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Ładowanie stylu...
+      </div>
+    );
   }
   if (!user) {
     return (
@@ -39,15 +43,14 @@ if (loading) {
   return (
     <div className="flex min-h-screen bg-fitte-cream">
       <Sidebar />
-      <div className="flex-1 flex flex-col" style={{ marginLeft: "320px" }}>
+      <div className="flex-1 flex flex-col main-content">
         <Navbar />
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Assistant />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
-            <Route path="/history" element={<History/>} />
+            <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
-            
           </Routes>
         </main>
       </div>

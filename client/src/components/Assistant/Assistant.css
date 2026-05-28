@@ -150,3 +150,63 @@
 .bg-fitte-brown-dark {
   background-color: #3D2B1F;
 }
+
+
+@media (max-width: 768px) {
+  .assistant-container {
+    padding: 16px !important;
+    margin-top: 60px; 
+    margin-left: 0;
+    width: 100% !important;
+  }
+  .input-card {
+    padding: 24px !important;
+    border-radius: 24px !important;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr; 
+    gap: 16px;
+  }
+  .generate-btn {
+    width: 100% !important; 
+    margin-top: 10px; 
+    padding-top: 15px; 
+    padding-bottom: 15px;
+  }
+.generate-btn .gap {
+    gap: 12px; 
+  }
+
+  textarea {
+    padding: 18px !important;
+  }
+
+  .assistant-container {
+    padding: 16px !important; 
+  }
+
+  .input-card {
+    padding: 24px !important; 
+    border-radius: 24px !important; 
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr; 
+    gap: 16px;
+  }
+
+    .transform.scale-105 {
+    transform: scale(1) !important;
+    margin-top: 8px;
+  }
+  
+  .ai-result-card {
+    padding: 20px !important; 
+  }
+
+  .assistant-container header {
+    padding-left: 64px !important; 
+    margin-top: 10px;
+  }
+}

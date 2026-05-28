@@ -1,17 +1,23 @@
 .sidebar {
   width: 320px;
   height: 100vh;
-  background-color: #F8F5F2; 
-  border-right: 1px solid #E8DDD0;
+  background-color: #f8f5f2;
+  border-right: 1px solid #e8ddd0;
   padding: 40px 30px;
   position: fixed;
   left: 0;
   top: 0;
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
+  z-index: 100;
+  transition: transform 0.3s ease;
 }
 
-.sidebar-content {
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .logo {
@@ -21,9 +27,9 @@
 }
 
 .user-card {
-  background-color: #EFE9E1;
+  background-color: #efe9e1;
   padding: 20px;
-  border-radius: 40px; 
+  border-radius: 40px;
   display: flex;
   align-items: center;
   gap: 15px;
@@ -33,7 +39,7 @@
 .avatar {
   width: 60px;
   height: 60px;
-  background-color: #C8B6A6;
+  background-color: #c8b6a6;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -50,31 +56,31 @@
 
 .user-stats {
   font-size: 11px;
-  color: #D38E70; 
+  color: #d38e70;
   font-weight: 700;
 }
 
 .sidebar-section {
-  margin-bottom: 40px; 
+  margin-bottom: 40px;
 }
 
 .section-title {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #3D2B1F;
+  color: #3d2b1f;
   opacity: 0.6;
   margin-bottom: 15px;
 }
 
 .sidebar-footer {
-  margin-top: auto; 
+  margin-top: auto;
   padding-bottom: 10px;
 }
 
 .footer-line {
   border: none;
-  border-top: 1px solid #E8DDD0;
+  border-top: 1px solid #e8ddd0;
   margin-bottom: 25px;
 }
 
@@ -84,7 +90,7 @@
   gap: 15px;
   background: none;
   border: none;
-  color: #3D2B1F;
+  color: #3d2b1f;
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
@@ -99,14 +105,15 @@
 
 .tag-pill {
   display: inline-block;
-  background-color: #3D2B1F;
+  background-color: #3d2b1f;
   color: white;
-  padding: 8px 25px;
+  padding: 6px 16px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-right: 10px;
+  margin-right: 8px;
+  margin-bottom: 8px;
 }
 
 .color-analysis-item {
@@ -116,8 +123,123 @@
   background: white;
   padding: 6px 15px;
   border-radius: 20px;
-  border: 1px solid #E8DDD0;
-  margin-right: 10px;
+  border: 1px solid #e8ddd0;
+  margin-right: 8px;
+  margin-bottom: 8px;
   font-size: 10px;
   font-weight: 700;
+}
+
+.mobile-nav-toggle,
+.mobile-nav-close,
+.sidebar-overlay {
+  display: none;
+}
+
+.sidebar-navigation {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 45px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  font-family: var(--font-dmsans);
+  font-size: 16px;
+  color: #3d2b1f;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.sidebar-nav-item:hover {
+  background-color: #efe9e1;
+  opacity: 1;
+}
+
+.sidebar-nav-item.active {
+  background-color: #3d2b1f;
+  color: #ffffff !important;
+  font-weight: 600;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.05);
+    width: 280px;
+    padding: 30px 20px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: white;
+    border: 1px solid #e8ddd0;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    z-index: 90;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    color: #3d2b1f;
+  }
+
+  .mobile-nav-close {
+    display: flex;
+    position: absolute;
+    top: 24px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #3d2b1f;
+    cursor: pointer;
+  }
+
+  .logo {
+    margin-bottom: 30px;
+    font-size: 28px;
+  }
+
+  .user-card {
+    margin-bottom: 35px;
+    padding: 15px;
+    border-radius: 25px;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(2px);
+    z-index: 95;
+  }
+  .sidebar-navigation {
+    display: flex;
+    margin-top: 10px;
+    margin-bottom: 30px;
+  }
+  header, .wardrobe-header, .assistant-container header {
+    padding-left: 60px !important; 
+    transition: padding-left 0.3s ease;
+  }
 }

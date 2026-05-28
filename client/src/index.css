@@ -26,3 +26,13 @@ body {
   color: var(--text-primary);
   font-family: "DM Sans", sans-serif;
 }
+.main-content {
+  margin-left: 320px; 
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0 !important; 
+  }
+}

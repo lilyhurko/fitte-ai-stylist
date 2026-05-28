@@ -4,7 +4,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: transparent; /* Tło bierze z kontenera głównego */
+  background-color: transparent;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -20,7 +20,7 @@
   text-decoration: none;
   font-family: var(--font-dmsans);
   font-size: 14px;
-  color: #8E8E8E; /* Szary dla nieaktywnych */
+  color: #8E8E8E; 
   font-weight: 500;
   transition: all 0.3s ease;
   padding: 5px 0;
@@ -34,4 +34,10 @@
   color: var(--color-fitte-brown-dark);
   font-weight: 600;
   border-bottom: 1px solid var(--color-fitte-brown-dark);
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    display: none !important;
+  }
 }
