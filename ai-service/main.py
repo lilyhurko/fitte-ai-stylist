@@ -85,9 +85,10 @@ async def process_image(file: UploadFile = File(...)):
         )
 
     except Exception as e:
-        print(f" 🚨 BŁĄD AI SERVICE: {str(e)}")
+        print(f"  BŁĄD AI SERVICE: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
