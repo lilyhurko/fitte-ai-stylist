@@ -162,22 +162,30 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-    console.log(" [Backend]: Otrzymałem plik z frontu. Przekierowuję do Hugging Face...");
+    console.log(" [Backend Proxy]: Przetwarzam plik dla Hugging Face...");
 
-    const hfForm = new FormData();
-    hfForm.append("file", req.file.buffer, { filename: "upload.png" });
+    
+    const nativeForm = new scala.FormData() || new FormData(); 
+    
+    const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    
+    nativeForm.append("file", fileBlob, "upload.png");
 
-    const hfResponse = await axios.post("https://lilyhurko-fitte-ai-service.hf.space/process-image", hfForm, {
-      headers: { ...hfForm.getHeaders() },
+    console.log("📡 [Backend Proxy]: Wysyłam żądanie HTTP do Hugging Face...");
+
+    const hfResponse = await axios.post("https://lilyhurko-fitte-ai-service.hf.space/process-image", nativeForm, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
       responseType: "arraybuffer", 
-      timeout: 90000,
+      timeout: 120000,
     });
 
     const aiAnalysisRaw = hfResponse.headers["x-ai-analysis"];
     if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka X-AI-Analysis");
     
     const aiAnalysis = JSON.parse(aiAnalysisRaw);
-    console.log(" [Backend]: Hugging Face pomyślnie przeanalizował ubranie:", aiAnalysis);
+    console.log("🎉 [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
 
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
@@ -185,12 +193,11 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
           { folder: "fitte_wardrobe" },
           (err, result) => err ? reject(err) : resolve(result.secure_url)
         );
-        stream.end(hfResponse.data); 
+        stream.end(hfResponse.data);
       });
     };
 
     const imageUrl = await uploadToCloudinary();
-    console.log("[Backend]: Zdjęcie zapisane na Cloudinary pod URL:", imageUrl);
 
     const newCloth = await prisma.cloth.create({
       data: {
@@ -203,11 +210,14 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
       },
     });
 
-    console.log("💾 [Backend]: Sukces! Rekord zapisany w MongoDB z ID:", newCloth.id);
     res.json({ success: true, item: newCloth });
 
   } catch (error) {
-    console.error(" [Backend Error]:", error);
+    console.error(" KRYTYCZNY BŁĄD PROXY:", error.message);
+
+    if (error.response && error.response.data) {
+      console.error("Szczegóły błędu z Hugging Face:", error.response.data.toString());
+    }
     res.status(500).json({ 
       error: "Błąd serwera podczas przetwarzania i zapisu", 
       details: error.message 
