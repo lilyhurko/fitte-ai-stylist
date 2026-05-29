@@ -165,7 +165,7 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     console.log(" [Backend Proxy]: Przetwarzam plik dla Hugging Face...");
 
     
-    const nativeForm = new scala.FormData() || new FormData(); 
+    const nativeForm = new FormData(); 
     
     const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     
