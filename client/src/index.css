@@ -7,7 +7,8 @@
   --color-fitte-brown-light: #9C7E6A;
   --color-fitte-brown-dark: #3D2B1F;
   --color-fitte-terracotta: #C17F5A;
-
+--color-fitte-terracotta-soft: rgba(226, 114, 91, 0.04); 
+  --color-fitte-brown-glow: rgba(61, 43, 31, 0.02);
   --font-playfair: "Playfair Display", serif;
   --font-dmsans: "DM Sans", sans-serif;
 }

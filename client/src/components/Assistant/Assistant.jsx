@@ -57,7 +57,8 @@ const Assistant = () => {
   };
 
   return (
-    <main className="assistant-container pt-4 px-4 md:px-12 pb-12 bg-fitte-cream min-h-screen">
+    <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
+      {" "}
       <header className="mb-6 mt-2">
         <h2 className="font-playfair text-3xl md:text-5xl font-light">
           Co dziś <span className="italic text-fitte-terracotta">założyć?</span>
@@ -66,7 +67,6 @@ const Assistant = () => {
           Dostosuję propozycje do Twojego stylu.
         </p>
       </header>
-
       <section className="input-card bg-white rounded-[30px] md:rounded-[40px] p-6 md:p-10 border border-fitte-sand shadow-sm">
         <div className="mb-6">
           <span className="text-[10px] font-bold tracking-widest text-fitte-brown-dark">
@@ -121,7 +121,6 @@ const Assistant = () => {
           </div>
         </div>
       </section>
-
       {results && (
         <section className="mt-12 md:mt-16 animate-fade-in">
           <h3 className="font-playfair text-xl md:text-2xl mb-6 md:mb-8">
