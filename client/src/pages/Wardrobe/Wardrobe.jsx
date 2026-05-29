@@ -21,23 +21,19 @@ const Wardrobe = () => {
       ? clothes
       : clothes.filter((c) => c.category === activeTab);
 
-const handleItemAdded = async (aiResult) => {
+  const handleItemAdded = async (aiResult) => {
     const token = sessionStorage.getItem("fitte_token");
 
     try {
-      console.log("Dane odebrane z AI Modal:", aiResult); // Do debugowania
+      console.log("Dane przekazywane z Modala do zapisu Proxy:", aiResult);
 
       const formData = new FormData();
       
-      // 💡 NAJPIERW TEKST (Dzięki temu backend natychmiast zobaczy req.body)
-      formData.append("name", aiResult.name || "Nienazwane ubranie");
-      formData.append("category", aiResult.category || "Góra");
-      formData.append("style", aiResult.style || "Classic");
-      formData.append("color", aiResult.color || "Wykryty przez AI"); 
-
-      // 🔥 PLIK NA SAMYM KOŃCU (Koniecznie z trzecim parametrem - nazwą pliku!)
       if (aiResult.imageBlob) {
         formData.append("image", aiResult.imageBlob, "cloth.png");
+      } else {
+        alert("Brak pliku obrazu do przetworzenia.");
+        return;
       }
 
       const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
@@ -53,13 +49,15 @@ const handleItemAdded = async (aiResult) => {
         setIsModalOpen(false);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Błąd serwera:", errorData);
-        alert("Serwer odrzucił żądanie zapisu. Sprawdź backend.");
+        console.error("🚨 Błąd serwera podczas zapisu proxy:", errorData);
+        alert(`Serwer odrzucił żądanie. Powód: ${errorData.details || errorData.error || "Błąd zapisu"}`);
       }
     } catch (error) {
-      console.error("Błąd podczas dodawania ubrania:", error);
+      console.error("Błąd sieci podczas dodawania ubrania:", error);
+      alert("Wystąpił błąd sieci. Upewnij się, że serwer Node.js działa.");
     }
   };
+
   return (
     <div className="wardrobe-content p-10">
       <header className="flex justify-between items-end mb-12">

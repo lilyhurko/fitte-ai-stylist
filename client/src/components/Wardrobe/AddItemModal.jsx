@@ -36,6 +36,11 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
   };
+ const handleClose = () => {
+    setFile(null);
+    setPreview(null);
+    onClose();
+  };
 
   const handleGenerate = async () => {
     if (!file) return;
@@ -43,47 +48,24 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     setIsProcessing(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(`${AI_BACKEND_URL}/process-image`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Błąd serwera AI");
-
-      const analysisRaw = response.headers.get("X-AI-Analysis");
-      const analysisData = JSON.parse(analysisRaw);
-
-      const imageBlob = await response.blob();
-
-      const processedImageUrl = URL.createObjectURL(imageBlob);
-
-      console.log("AI Analysis:", analysisData);
-      console.log("Processed Image URL:", processedImageUrl);
-
+      
       onAddSuccess({
-        ...analysisData,
-        imageBlob: imageBlob,
-        imageUrl: processedImageUrl,
+        imageBlob: file, 
+        name: "Analiza AI w toku...",
+        category: "Góra",
+        style: "Classic",
       });
 
       handleClose();
     } catch (error) {
       console.error("AI Error:", error);
-      alert("Wystąpił błąd podczas analizy AI. Sprawdź konsolę.");
+      alert("Wystąpił błąd podczas przekazywania zdjęcia.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleClose = () => {
-    setFile(null);
-    setPreview(null);
-    onClose();
-  };
-
+ 
   return (
     <div className="modal-overlay">
       <div className="modal-content apple-card">

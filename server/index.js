@@ -162,11 +162,22 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-    const { name, category, style, color } = req.body;
+    console.log(" [Backend]: Otrzymałem plik z frontu. Przekierowuję do Hugging Face...");
 
-    console.log("=== KONTROLA DANYCH PRZED ZAPISEM W MONGODB ===");
-    console.log("Odebrane z frontu:", { name, category, style, color });
-    console.log("ID Użytkownika:", userId);
+    const hfForm = new FormData();
+    hfForm.append("file", req.file.buffer, { filename: "upload.png" });
+
+    const hfResponse = await axios.post("https://lilyhurko-fitte-ai-service.hf.space/process-image", hfForm, {
+      headers: { ...hfForm.getHeaders() },
+      responseType: "arraybuffer", 
+      timeout: 90000,
+    });
+
+    const aiAnalysisRaw = hfResponse.headers["x-ai-analysis"];
+    if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka X-AI-Analysis");
+    
+    const aiAnalysis = JSON.parse(aiAnalysisRaw);
+    console.log(" [Backend]: Hugging Face pomyślnie przeanalizował ubranie:", aiAnalysis);
 
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
@@ -174,31 +185,31 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
           { folder: "fitte_wardrobe" },
           (err, result) => err ? reject(err) : resolve(result.secure_url)
         );
-        stream.end(req.file.buffer);
+        stream.end(hfResponse.data); 
       });
     };
 
     const imageUrl = await uploadToCloudinary();
-    console.log("Chmura Cloudinary zwróciła URL:", imageUrl);
+    console.log("[Backend]: Zdjęcie zapisane na Cloudinary pod URL:", imageUrl);
 
     const newCloth = await prisma.cloth.create({
       data: {
-        name: name && name !== "undefined" ? name : "Szerokie spodnie",
-        category: category && category !== "undefined" ? category : "Dół",
-        style: style && style !== "undefined" ? style : "Minimalizm",
-        color: color && color !== "undefined" ? color : "kremowy",
+        name: aiAnalysis.name || "Eleganckie ubranie",
+        category: aiAnalysis.category || "Góra",
+        style: aiAnalysis.style || "Minimalizm",
+        color: aiAnalysis.color || "kremowy",
         imageUrl: imageUrl,
         userId: userId 
       },
     });
 
-    console.log("🎉 SUKCES! Zapisano do MongoDB z ID:", newCloth.id);
+    console.log("💾 [Backend]: Sukces! Rekord zapisany w MongoDB z ID:", newCloth.id);
     res.json({ success: true, item: newCloth });
 
   } catch (error) {
-    console.error("KRYTYCZNY BŁĄD MONGO/PRISMA:", error);
+    console.error(" [Backend Error]:", error);
     res.status(500).json({ 
-      error: "Błąd serwera przy dodawaniu", 
+      error: "Błąd serwera podczas przetwarzania i zapisu", 
       details: error.message 
     });
   }
