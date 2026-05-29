@@ -162,40 +162,46 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-    const form = new FormData();
-    form.append("file", req.file.buffer, { filename: "upload.png" });
+    const { name, category, style, color } = req.body;
 
-    const aiResponse = await axios.post("http://localhost:8000/process-image", form, {
-      headers: { ...form.getHeaders() },
-      responseType: "arraybuffer",
-      timeout: 300000,
-    });
+    console.log("=== KONTROLA DANYCH PRZED ZAPISEM W MONGODB ===");
+    console.log("Odebrane z frontu:", { name, category, style, color });
+    console.log("ID Użytkownika:", userId);
 
-    const aiAnalysis = JSON.parse(aiResponse.headers["x-ai-analysis"]);
-    
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "fitte_wardrobe" },
-          (err, res) => err ? reject(err) : resolve(res.secure_url)
+          (err, result) => err ? reject(err) : resolve(result.secure_url)
         );
-        stream.end(aiResponse.data);
+        stream.end(req.file.buffer);
       });
     };
 
     const imageUrl = await uploadToCloudinary();
+    console.log("Chmura Cloudinary zwróciła URL:", imageUrl);
+
     const newCloth = await prisma.cloth.create({
       data: {
-        name: aiAnalysis.name,
-        category: aiAnalysis.category,
-        style: aiAnalysis.style,
-        color: aiAnalysis.color || "Nieokreślony",
-        imageUrl,
-        userId,
+        name: name && name !== "undefined" ? name : "Szerokie spodnie",
+        category: category && category !== "undefined" ? category : "Dół",
+        style: style && style !== "undefined" ? style : "Minimalizm",
+        color: color && color !== "undefined" ? color : "kremowy",
+        imageUrl: imageUrl,
+        userId: userId 
       },
     });
+
+    console.log("🎉 SUKCES! Zapisano do MongoDB z ID:", newCloth.id);
     res.json({ success: true, item: newCloth });
-  } catch (error) { res.status(500).json({ error: "Błąd serwera przy dodawaniu" }); }
+
+  } catch (error) {
+    console.error("KRYTYCZNY BŁĄD MONGO/PRISMA:", error);
+    res.status(500).json({ 
+      error: "Błąd serwera przy dodawaniu", 
+      details: error.message 
+    });
+  }
 });
 
 app.get("/api/wardrobe", authenticateToken, async (req, res) => {

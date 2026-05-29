@@ -21,15 +21,24 @@ const Wardrobe = () => {
       ? clothes
       : clothes.filter((c) => c.category === activeTab);
 
-  const handleItemAdded = async (aiResult) => {
+const handleItemAdded = async (aiResult) => {
     const token = sessionStorage.getItem("fitte_token");
 
     try {
+      console.log("Dane odebrane z AI Modal:", aiResult); // Do debugowania
+
       const formData = new FormData();
-      formData.append("image", aiResult.imageBlob); 
-      formData.append("name", aiResult.name);
-      formData.append("category", aiResult.category);
-      formData.append("style", aiResult.style);
+      
+      // 💡 NAJPIERW TEKST (Dzięki temu backend natychmiast zobaczy req.body)
+      formData.append("name", aiResult.name || "Nienazwane ubranie");
+      formData.append("category", aiResult.category || "Góra");
+      formData.append("style", aiResult.style || "Classic");
+      formData.append("color", aiResult.color || "Wykryty przez AI"); 
+
+      // 🔥 PLIK NA SAMYM KOŃCU (Koniecznie z trzecim parametrem - nazwą pliku!)
+      if (aiResult.imageBlob) {
+        formData.append("image", aiResult.imageBlob, "cloth.png");
+      }
 
       const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: "POST",
@@ -43,13 +52,14 @@ const Wardrobe = () => {
         await fetchClothes();
         setIsModalOpen(false);
       } else {
-        console.error("Błąd zapisu w MongoDB");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Błąd serwera:", errorData);
+        alert("Serwer odrzucił żądanie zapisu. Sprawdź backend.");
       }
     } catch (error) {
       console.error("Błąd podczas dodawania ubrania:", error);
     }
   };
-
   return (
     <div className="wardrobe-content p-10">
       <header className="flex justify-between items-end mb-12">

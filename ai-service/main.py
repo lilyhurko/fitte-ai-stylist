@@ -13,7 +13,7 @@ from pillow_heif import register_heif_opener
 register_heif_opener()
 load_dotenv(dotenv_path="../server/.env")
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"), transport='rest')
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI()
 
@@ -36,7 +36,7 @@ def get_available_model():
     except Exception: return "models/gemini-1.5-flash"
 
 AVAILABLE_MODEL = get_available_model()
-print(f" Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
+print(f" 🚀 Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
 
 @app.post("/process-image")
 async def process_image(file: UploadFile = File(...)):
@@ -47,7 +47,7 @@ async def process_image(file: UploadFile = File(...)):
         output_image = remove(input_image)
 
         ai_image = output_image.convert("RGB")
-        ai_image.thumbnail((1024, 1024)) 
+        ai_image.thumbnail((600, 600)) 
         
         model = genai.GenerativeModel(AVAILABLE_MODEL)
         prompt = """
@@ -60,19 +60,23 @@ async def process_image(file: UploadFile = File(...)):
         {"name": "...", "category": "...", "style": "...", "color": "..."}
         """
         
-        response = model.generate_content([prompt, ai_image])
+      
+        response = model.generate_content(
+            [prompt, ai_image],
+            request_options={"timeout": 120.0}
+        )
         
         raw_text = response.text.strip().replace("```json", "").replace("```", "")        
         try:
             parsed_json = json.loads(raw_text)
             safe_json = json.dumps(parsed_json, ensure_ascii=True)
         except:
-            safe_json = json.dumps({"name": "Nowe ubranie", "category": "Góra", "style": "Classic"})
+            safe_json = json.dumps({"name": "Nowe ubranie", "category": "Góra", "style": "Classic", "color": "Nieokreślony"})
 
-        print(f" AI przeanalizowało: {safe_json}")
+        print(f" AI przeanalizowało pomyślnie: {safe_json}")
 
         img_output = io.BytesIO()
-        output_image.save(img_output, format='PNG')
+        output_image.save(img_output, format='PNG', optimize=True)
         img_output.seek(0)
 
         return StreamingResponse(
@@ -82,7 +86,7 @@ async def process_image(file: UploadFile = File(...)):
         )
 
     except Exception as e:
-        print(f" BŁĄD AI SERVICE: {str(e)}")
+        print(f" 🚨 BŁĄD AI SERVICE: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":

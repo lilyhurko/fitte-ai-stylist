@@ -43,7 +43,7 @@ model Cloth {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   category  String
-  color     String   
+  color     String?   
   style     String? 
   imageUrl  String?
   userId    String   @db.ObjectId
