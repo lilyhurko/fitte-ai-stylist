@@ -44,8 +44,7 @@ async def process_image(file: UploadFile = File(...)):
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
         
-        output_image = remove(input_image)
-
+        output_image = remove(input_image, model_name="u2netp")
         ai_image = output_image.convert("RGB")
         ai_image.thumbnail((600, 600)) 
         
