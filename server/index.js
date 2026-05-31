@@ -5,7 +5,6 @@ const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
-const axios = require("axios");
 const cloudinary = require("cloudinary").v2;
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
