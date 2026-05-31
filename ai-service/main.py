@@ -6,14 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from rembg import remove, new_session 
 from PIL import Image
-import google.generativeai as genai
+from google import genai  
 from dotenv import load_dotenv
 from pillow_heif import register_heif_opener
 
 register_heif_opener()
 load_dotenv(dotenv_path="../server/.env")
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client()
 
 app = FastAPI()
 
@@ -31,16 +31,17 @@ SESSION_REMBG = new_session(model_name="u2netp")
 
 def get_available_model():
     try:
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        priority_list = ["gemini-1.5-flash", "gemini-flash-latest"]
+        models = [m.name for m in client.models.list() if 'generateContent' in m.supported_actions]
+        priority_list = ["gemini-2.5-flash", "gemini-1.5-flash"]
         for priority in priority_list:
             for m in models:
                 if priority in m: return m
-        return models[0] if models else "models/gemini-1.5-flash"
-    except Exception: return "models/gemini-1.5-flash"
+        return "gemini-2.5-flash"
+    except Exception: 
+        return "gemini-2.5-flash"
 
 AVAILABLE_MODEL = get_available_model()
-print(f" 🚀 Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
+print(f" Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
 
 @app.post("/process-image")
 async def process_image(file: UploadFile = File(...)):
@@ -53,7 +54,6 @@ async def process_image(file: UploadFile = File(...)):
         ai_image = output_image.convert("RGB")
         ai_image.thumbnail((600, 600)) 
         
-        model = genai.GenerativeModel(AVAILABLE_MODEL)
         prompt = """
         Analizuj to ubranie na obrazku (który ma usunięte tło). 
         Podaj krótką nazwę, kategorię (Góra, Dół, Sukienki, Obuwie), 
@@ -64,9 +64,9 @@ async def process_image(file: UploadFile = File(...)):
         {"name": "...", "category": "...", "style": "...", "color": "..."}
         """
         
-        response = model.generate_content(
-            [prompt, ai_image],
-            request_options={"timeout": 120.0}
+        response = client.models.generate_content(
+            model=AVAILABLE_MODEL,
+            contents=[prompt, ai_image]
         )
         
         raw_text = response.text.strip().replace("```json", "").replace("```", "")        
@@ -93,6 +93,10 @@ async def process_image(file: UploadFile = File(...)):
     except Exception as e:
         print(f"  BŁĄD AI SERVICE: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/")
+def health_check():
+    return {"status": "healthy", "service": "Fitte AI Service"}
 
 if __name__ == "__main__":
     import uvicorn

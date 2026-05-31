@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 rembg[cpu]
-google-generativeai
+google-genai
 python-multipart
 pillow
 python-dotenv
