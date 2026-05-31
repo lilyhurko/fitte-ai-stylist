@@ -164,9 +164,7 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     console.log("[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą natywnego fetch...");
 
     const nativeForm = new FormData();
-    
     const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    
     nativeForm.append("file", fileBlob, "upload.png");
 
     console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
@@ -184,7 +182,8 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const aiAnalysisRaw = hfResponse.headers.get("x-ai-analysis");
     if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka x-ai-analysis");
     
-    const aiAnalysis = JSON.parse(aiAnalysisRaw);
+    const decodedAnalysis = Buffer.from(aiAnalysisRaw, 'latin1').toString('utf8');
+    const aiAnalysis = JSON.parse(decodedAnalysis);
     console.log(" [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
 
     const imageBuffer = await hfResponse.arrayBuffer();

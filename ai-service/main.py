@@ -4,7 +4,7 @@ import json
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from rembg import remove
+from rembg import remove, new_session 
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -23,7 +23,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-AI-Analysis"] 
 )
+
+print(" Ładowanie modelu u2netp dla rembg...")
+SESSION_REMBG = new_session(model_name="u2netp") 
 
 def get_available_model():
     try:
@@ -44,7 +48,8 @@ async def process_image(file: UploadFile = File(...)):
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
         
-        output_image = remove(input_image, model_name="u2netp")
+        output_image = remove(input_image, session=SESSION_REMBG)
+        
         ai_image = output_image.convert("RGB")
         ai_image.thumbnail((600, 600)) 
         
@@ -59,7 +64,6 @@ async def process_image(file: UploadFile = File(...)):
         {"name": "...", "category": "...", "style": "...", "color": "..."}
         """
         
-      
         response = model.generate_content(
             [prompt, ai_image],
             request_options={"timeout": 120.0}
@@ -68,9 +72,9 @@ async def process_image(file: UploadFile = File(...)):
         raw_text = response.text.strip().replace("```json", "").replace("```", "")        
         try:
             parsed_json = json.loads(raw_text)
-            safe_json = json.dumps(parsed_json, ensure_ascii=True)
+            safe_json = json.dumps(parsed_json, ensure_ascii=False)
         except:
-            safe_json = json.dumps({"name": "Nowe ubranie", "category": "Góra", "style": "Classic", "color": "Nieokreślony"})
+            safe_json = json.dumps({"name": "Nowe ubranie", "category": "Góra", "style": "Classic", "color": "Nieokreślony"}, ensure_ascii=False)
 
         print(f" AI przeanalizowało pomyślnie: {safe_json}")
 
@@ -78,10 +82,12 @@ async def process_image(file: UploadFile = File(...)):
         output_image.save(img_output, format='PNG', optimize=True)
         img_output.seek(0)
 
+        safe_json_encoded = safe_json.encode('utf-8').decode('latin-1')
+
         return StreamingResponse(
             img_output, 
             media_type="image/png", 
-            headers={"X-AI-Analysis": safe_json}
+            headers={"X-AI-Analysis": safe_json_encoded}
         )
 
     except Exception as e:
@@ -90,5 +96,5 @@ async def process_image(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 10000))
+    port = int(os.getenv("PORT", 7860)) 
     uvicorn.run(app, host="0.0.0.0", port=port)
