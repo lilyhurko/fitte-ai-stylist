@@ -6,7 +6,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const axios = require("axios");
-const FormData = require("form-data");
 const cloudinary = require("cloudinary").v2;
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -162,11 +161,12 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-    console.log("[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą fetch...");
+    console.log("[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą natywnego fetch...");
 
     const nativeForm = new FormData();
     
     const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    
     nativeForm.append("file", fileBlob, "upload.png");
 
     console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
