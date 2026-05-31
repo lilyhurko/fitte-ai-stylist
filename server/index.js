@@ -162,30 +162,32 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
     const userId = req.user.userId;
     if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-    console.log(" [Backend Proxy]: Przetwarzam plik dla Hugging Face...");
+    console.log("[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą fetch...");
 
-    
-    const nativeForm = new FormData(); 
+    const nativeForm = new FormData();
     
     const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    
     nativeForm.append("file", fileBlob, "upload.png");
 
-    console.log("📡 [Backend Proxy]: Wysyłam żądanie HTTP do Hugging Face...");
+    console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
 
-    const hfResponse = await axios.post("https://lilyhurko-fitte-ai-service.hf.space/process-image", nativeForm, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      responseType: "arraybuffer", 
-      timeout: 120000,
+    const hfResponse = await fetch("https://lilyhurko-fitte-ai-service.hf.space/process-image", {
+      method: "POST",
+      body: nativeForm, 
     });
 
-    const aiAnalysisRaw = hfResponse.headers["x-ai-analysis"];
-    if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka X-AI-Analysis");
+    if (!hfResponse.ok) {
+      const errText = await hfResponse.text();
+      throw new Error(`Hugging Face odpowiedział statusem ${hfResponse.status}: ${errText}`);
+    }
+
+    const aiAnalysisRaw = hfResponse.headers.get("x-ai-analysis");
+    if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka x-ai-analysis");
     
     const aiAnalysis = JSON.parse(aiAnalysisRaw);
-    console.log("🎉 [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
+    console.log(" [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
+
+    const imageBuffer = await hfResponse.arrayBuffer();
 
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
@@ -193,11 +195,12 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
           { folder: "fitte_wardrobe" },
           (err, result) => err ? reject(err) : resolve(result.secure_url)
         );
-        stream.end(hfResponse.data);
+        stream.end(Buffer.from(imageBuffer));
       });
     };
 
     const imageUrl = await uploadToCloudinary();
+    console.log("[Backend Proxy]: Zdjęcie zapisane na Cloudinary:", imageUrl);
 
     const newCloth = await prisma.cloth.create({
       data: {
@@ -210,14 +213,11 @@ app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (
       },
     });
 
+    console.log("[Backend Proxy]: Sukces! Rekord zapisany w MongoDB.");
     res.json({ success: true, item: newCloth });
 
   } catch (error) {
-    console.error(" KRYTYCZNY BŁĄD PROXY:", error.message);
-
-    if (error.response && error.response.data) {
-      console.error("Szczegóły błędu z Hugging Face:", error.response.data.toString());
-    }
+    console.error(" [KRYTYCZNY BŁĄD PROXY]:", error.message);
     res.status(500).json({ 
       error: "Błąd serwera podczas przetwarzania i zapisu", 
       details: error.message 
