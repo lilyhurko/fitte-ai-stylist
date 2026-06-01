@@ -18,6 +18,7 @@ import Login from "./pages/Login/Login";
 import Profile from "./pages/Profile/Profile";
 import History from "./pages/History/History";
 import {CalendarProvider} from "./context/CalendarContext"
+import Calendar from "./pages/Calendar/Calendar";
 import "./index.css";
 
 
@@ -51,6 +52,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Assistant />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
           </Routes>
