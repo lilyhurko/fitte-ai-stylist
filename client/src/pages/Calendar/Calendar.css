@@ -1,0 +1,76 @@
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .calendar-grid {
+    grid-template-columns: 350px 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-col: column;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a1a1aa;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(220, 212, 203, 0.4);
+  background: #fdfdfd;
+  font-size: 0.9rem;
+  color: #4a3728;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #4a3728;
+  box-shadow: 0 0 0 3px rgba(74, 55, 40, 0.05);
+}
+
+.event-row {
+  background: white;
+  border: 1px solid rgba(220, 212, 203, 0.2);
+}
+
+.calendar-badge {
+  background: #fdfaf6;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 212, 203, 0.4);
+}
+
+.tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.tag-occasion {
+  background: #f5efe6;
+  color: #705335;
+}
+
+.tag-formality {
+  background: #f0f4f8;
+  color: #2b4c7e;
+}

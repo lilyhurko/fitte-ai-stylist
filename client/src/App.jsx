@@ -17,7 +17,9 @@ import Wardrobe from "./pages/Wardrobe/Wardrobe";
 import Login from "./pages/Login/Login";
 import Profile from "./pages/Profile/Profile";
 import History from "./pages/History/History";
+import {CalendarProvider} from "./context/CalendarContext"
 import "./index.css";
+
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -62,9 +64,11 @@ function App() {
   return (
     <AuthProvider>
       <WardrobeProvider>
+        <CalendarProvider>
         <Router>
           <AppContent />
         </Router>
+        </CalendarProvider>
       </WardrobeProvider>
     </AuthProvider>
   );
