@@ -11,7 +11,7 @@ export const CalendarProvider = ({ children }) => {
     const token = sessionStorage.getItem("fitte_token");
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
+      const response = await fetch(`${API_BASE_URL}/events`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -28,7 +28,7 @@ export const CalendarProvider = ({ children }) => {
   const addEvent = async (eventData) => {
     const token = sessionStorage.getItem("fitte_token");
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
+      const response = await fetch(`${API_BASE_URL}/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -49,7 +49,7 @@ export const CalendarProvider = ({ children }) => {
   const deleteEvent = async (id) => {
     const token = sessionStorage.getItem("fitte_token");
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/events/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
