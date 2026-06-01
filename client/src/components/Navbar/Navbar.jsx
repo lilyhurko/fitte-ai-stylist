@@ -12,6 +12,9 @@ const Navbar = () => {
         <NavLink to="/wardrobe" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
           Moja garderoba
         </NavLink>
+        <NavLink to="/calendar" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+          Planer
+        </NavLink>
         <NavLink to="/history" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
           Historia
         </NavLink>

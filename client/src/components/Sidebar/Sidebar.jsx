@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
-import { LogOut, Menu, X, Sparkles, Shirt, History, User } from "lucide-react";
+import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar } from "lucide-react";
 import "./Sidebar.css";
 
 const Sidebar = () => {
@@ -101,6 +101,16 @@ const Sidebar = () => {
               <Shirt size={18} /> <span>Moja garderoba</span>
             </NavLink>
 
+              <NavLink
+              to="/calendar"
+              onClick={() => setIsOpen(false)}
+              className={({ isActive }) =>
+                isActive ? "sidebar-nav-item active" : "sidebar-nav-item"
+              }
+            >
+              <Calendar size={18} /> <span>Planer</span>
+            </NavLink>
+            
             <NavLink
               to="/history"
               onClick={() => setIsOpen(false)}
