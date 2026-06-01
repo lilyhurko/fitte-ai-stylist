@@ -32,11 +32,12 @@ model User {
   name           String
   gender         String?
   password       String
-  styleTags      String   
-  favoriteColors String
+  styleTags      String?   
+  favoriteColors String?
   clothes        Cloth[]
   analyses       Analysis[]  
   createdAt      DateTime   @default(now())
+  events         Event[]
 }
 
 model Cloth {
@@ -49,4 +50,20 @@ model Cloth {
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model Event {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String   
+  date        DateTime 
+  occasion    String   
+  formality   String  
+  
+  outfitIds   String[] @db.ObjectId 
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -251,7 +251,7 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
     await prisma.cloth.delete({ where: { id } });
     res.json({ success: true, message: "Ubranie zostało pomyślnie usunięte z garderoby." });
   } catch (error) {
-    console.error("🚨 Błąd podczas usuwania ubrania:", error);
+    console.error(" Błąd podczas usuwania ubrania:", error);
     res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
   }
 });
@@ -314,7 +314,7 @@ app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
 
     res.json({ success: true, updatedAnalysis });
   } catch (error) {
-    console.error("🚨 Błąd podczas zapisywania oceny modelu:", error);
+    console.error("Błąd podczas zapisywania oceny modelu:", error);
     res.status(500).json({ error: "Wystąpił błąd serwera podczas zapisywania oceny." });
   }
 });
@@ -389,7 +389,6 @@ app.post("/api/profile/change-password", authenticateToken, async (req, res) => 
   }
 });
 
-// --- HISTORIA ---
 app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const history = await prisma.analysis.findMany({
@@ -403,5 +402,69 @@ app.get("/api/history", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/api/events", authenticateToken, async (req, res) => {
+  try {
+    const events = await prisma.event.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { date: "asc" }, 
+    });
+    res.json({ events });
+  } catch (error) {
+    console.error("Błąd pobierania kalendarza:", error);
+    res.status(500).json({ error: "Wystąpił błąd podczas pobierania harmonogramu." });
+  }
+});
+
+app.post("/api/events", authenticateToken, async (req, res) => {
+  const { title, date, occasion, formality, outfitIds } = req.body;
+  const userId = req.user.userId;
+
+  if (!title || !date || !occasion || !formality) {
+    return res.status(400).json({ error: "Wszystkie pola (title, date, occasion, formality) są wymagane." });
+  }
+
+  try {
+    const newEvent = await prisma.event.create({
+      data: {
+        title,
+        date: new Date(date), 
+        occasion,
+        formality,
+        outfitIds: outfitIds || [], 
+        userId,
+      },
+    });
+
+    console.log(`Dodano nowe wydarzenie dla użytkownika ${userId}:`, newEvent.title);
+    res.json({ success: true, event: newEvent });
+  } catch (error) {
+    console.error(" Błąd dodawania wydarzenia:", error);
+    res.status(500).json({ error: "Nie udało się zapisać wydarzenia w kalendarzu." });
+  }
+});
+
+app.delete("/api/events/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    const event = await prisma.event.findUnique({ where: { id } });
+
+    if (!event) {
+      return res.status(404).json({ error: "Nie znaleziono takiego wydarzenia." });
+    }
+
+    if (event.userId !== userId) {
+      return res.status(403).json({ error: "Brak uprawnień do usunięcia tego wydarzenia." });
+    }
+
+    await prisma.event.delete({ where: { id } });
+    res.json({ success: true, message: "Wydarzenie zostało usunięte z harmonogramu." });
+  } catch (error) {
+    console.error(" Błąd podczas usuwania wydarzenia:", error);
+    res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
+  }
+});
+
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Serwer Fitte działa stabilnie na porcie ${PORT}`));
+app.listen(PORT, () => console.log(` Serwer Fitte działa stabilnie na porcie ${PORT}`));
