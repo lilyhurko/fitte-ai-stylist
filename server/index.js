@@ -32,7 +32,8 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
+  api_secret:
+    process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 });
 
 const authenticateToken = (req, res, next) => {
@@ -41,24 +42,25 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: "Sesja wygasła" });
-    req.user = decoded; 
+    req.user = decoded;
     next();
   });
 };
 
 const generateContextString = (clothes, user) => {
-  const gender = user?.gender || 'osoba';
-  const styles = user?.styleTags || 'brak sprecyzowanego stylu';
-  
+  const gender = user?.gender || "osoba";
+  const styles = user?.styleTags || "brak sprecyzowanego stylu";
+
   let context = `Użytkownik to ${gender}. Preferowany styl: ${styles}. \n`;
-  
-  if (!clothes || clothes.length === 0) return context + "Szafa jest obecnie pusta.";
-  
+
+  if (!clothes || clothes.length === 0)
+    return context + "Szafa jest obecnie pusta.";
+
   context += "Ubrania w szafie:\n";
   context += clothes
     .map((c, i) => `- ${c.name} (Kategoria: ${c.category}, Kolor: ${c.color})`)
     .join("\n");
-    
+
   return context;
 };
 
@@ -81,35 +83,59 @@ async function askGemini(query, context) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context);
-    
+
     const result = await model.generateContent(prompt);
     return result.response.text();
-  } catch (err) { return "Błąd Gemini: " + err.message; }
+  } catch (err) {
+    return "Błąd Gemini: " + err.message;
+  }
 }
 
-async function askMistralCloud(query, context) { 
+async function askMistralCloud(query, context) {
   try {
     const prompt = getBasePrompt(query, context);
-    
+
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile", 
+      model: "llama-3.3-70b-versatile",
     });
 
-    return chatCompletion.choices[0]?.message?.content || "Brak odpowiedzi ze strony chmury Mistral.";
-  } catch (err) { 
-    return "Błąd Mistral (Groq Cloud): " + err.message; 
+    return (
+      chatCompletion.choices[0]?.message?.content ||
+      "Brak odpowiedzi ze strony chmury Mistral."
+    );
+  } catch (err) {
+    return "Błąd Mistral (Groq Cloud): " + err.message;
   }
 }
 
 async function askRAG(query, context) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context);
 
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (err) { return "Błąd Fitte AI: " + err.message; }
+    const chatCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Jesteś mózgiem autorskiego systemu Fitte AI RAG. Analizujesz rzeczywisty kontekst bazy danych i podejmujesz deterministyczne decyzje stylizacyjne.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+    });
+
+    return (
+      chatCompletion.choices[0]?.message?.content ||
+      "Brak odpowiedzi ze strony systemu RAG (GPT)."
+    );
+  } catch (err) {
+    return "Błąd Autorskiego Systemu RAG (GPT): " + err.message;
+  }
 }
 
 app.get("/", (req, res) => {
@@ -117,7 +143,7 @@ app.get("/", (req, res) => {
     status: "active",
     service: "Fitte AI Stylist Backend",
     academicProject: "Politechnika Lubelska - Praca Magisterska",
-    message: "Serwer działa poprawnie i stabilnie w chmurze!"
+    message: "Serwer działa poprawnie i stabilnie w chmurze!",
   });
 });
 
@@ -138,9 +164,13 @@ app.post("/api/register", async (req, res) => {
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
     res.json({ user, token });
-  } catch (error) { res.status(500).json({ error: "Błąd rejestracji." }); }
+  } catch (error) {
+    res.status(500).json({ error: "Błąd rejestracji." });
+  }
 });
 
 app.post("/api/login", async (req, res) => {
@@ -150,78 +180,96 @@ app.post("/api/login", async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: "Błędne dane logowania" });
     }
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
     res.json({ user, token });
-  } catch (error) { res.status(500).json({ error: "Błąd logowania." }); }
-});
-
-app.post("/api/wardrobe/add", authenticateToken, upload.single("image"), async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
-
-    console.log("[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą natywnego fetch...");
-
-    const nativeForm = new FormData();
-    const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    nativeForm.append("file", fileBlob, "upload.png");
-
-    console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
-
-    const hfResponse = await fetch("https://lilyhurko-fitte-ai-service.hf.space/process-image", {
-      method: "POST",
-      body: nativeForm, 
-    });
-
-    if (!hfResponse.ok) {
-      const errText = await hfResponse.text();
-      throw new Error(`Hugging Face odpowiedział statusem ${hfResponse.status}: ${errText}`);
-    }
-
-    const aiAnalysisRaw = hfResponse.headers.get("x-ai-analysis");
-    if (!aiAnalysisRaw) throw new Error("Hugging Face nie zwrócił nagłówka x-ai-analysis");
-    
-    const decodedAnalysis = Buffer.from(aiAnalysisRaw, 'latin1').toString('utf8');
-    const aiAnalysis = JSON.parse(decodedAnalysis);
-    console.log(" [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
-
-    const imageBuffer = await hfResponse.arrayBuffer();
-
-    const uploadToCloudinary = () => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "fitte_wardrobe" },
-          (err, result) => err ? reject(err) : resolve(result.secure_url)
-        );
-        stream.end(Buffer.from(imageBuffer));
-      });
-    };
-
-    const imageUrl = await uploadToCloudinary();
-    console.log("[Backend Proxy]: Zdjęcie zapisane na Cloudinary:", imageUrl);
-
-    const newCloth = await prisma.cloth.create({
-      data: {
-        name: aiAnalysis.name || "Eleganckie ubranie",
-        category: aiAnalysis.category || "Góra",
-        style: aiAnalysis.style || "Minimalizm",
-        color: aiAnalysis.color || "kremowy",
-        imageUrl: imageUrl,
-        userId: userId 
-      },
-    });
-
-    console.log("[Backend Proxy]: Sukces! Rekord zapisany w MongoDB.");
-    res.json({ success: true, item: newCloth });
-
   } catch (error) {
-    console.error(" [KRYTYCZNY BŁĄD PROXY]:", error.message);
-    res.status(500).json({ 
-      error: "Błąd serwera podczas przetwarzania i zapisu", 
-      details: error.message 
-    });
+    res.status(500).json({ error: "Błąd logowania." });
   }
 });
+
+app.post(
+  "/api/wardrobe/add",
+  authenticateToken,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
+
+      console.log(
+        "[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą natywnego fetch...",
+      );
+
+      const nativeForm = new FormData();
+      const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+      nativeForm.append("file", fileBlob, "upload.png");
+
+      console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
+
+      const hfResponse = await fetch(
+        "https://lilyhurko-fitte-ai-service.hf.space/process-image",
+        {
+          method: "POST",
+          body: nativeForm,
+        },
+      );
+
+      if (!hfResponse.ok) {
+        const errText = await hfResponse.text();
+        throw new Error(
+          `Hugging Face odpowiedział statusem ${hfResponse.status}: ${errText}`,
+        );
+      }
+
+      const aiAnalysisRaw = hfResponse.headers.get("x-ai-analysis");
+      if (!aiAnalysisRaw)
+        throw new Error("Hugging Face nie zwrócił nagłówka x-ai-analysis");
+
+      const decodedAnalysis = Buffer.from(aiAnalysisRaw, "latin1").toString(
+        "utf8",
+      );
+      const aiAnalysis = JSON.parse(decodedAnalysis);
+      console.log(" [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
+
+      const imageBuffer = await hfResponse.arrayBuffer();
+
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "fitte_wardrobe" },
+            (err, result) => (err ? reject(err) : resolve(result.secure_url)),
+          );
+          stream.end(Buffer.from(imageBuffer));
+        });
+      };
+
+      const imageUrl = await uploadToCloudinary();
+      console.log("[Backend Proxy]: Zdjęcie zapisane na Cloudinary:", imageUrl);
+
+      const newCloth = await prisma.cloth.create({
+        data: {
+          name: aiAnalysis.name || "Eleganckie ubranie",
+          category: aiAnalysis.category || "Góra",
+          style: aiAnalysis.style || "Minimalizm",
+          color: aiAnalysis.color || "kremowy",
+          imageUrl: imageUrl,
+          userId: userId,
+        },
+      });
+
+      console.log("[Backend Proxy]: Sukces! Rekord zapisany w MongoDB.");
+      res.json({ success: true, item: newCloth });
+    } catch (error) {
+      console.error(" [KRYTYCZNY BŁĄD PROXY]:", error.message);
+      res.status(500).json({
+        error: "Błąd serwera podczas przetwarzania i zapisu",
+        details: error.message,
+      });
+    }
+  },
+);
 
 app.get("/api/wardrobe", authenticateToken, async (req, res) => {
   try {
@@ -230,7 +278,9 @@ app.get("/api/wardrobe", authenticateToken, async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
     res.json({ clothes });
-  } catch (error) { res.status(500).json({ error: "Błąd pobierania szafy" }); }
+  } catch (error) {
+    res.status(500).json({ error: "Błąd pobierania szafy" });
+  }
 });
 
 app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
@@ -239,58 +289,81 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
 
   try {
     const cloth = await prisma.cloth.findUnique({ where: { id } });
-    
+
     if (!cloth) {
       return res.status(404).json({ error: "Nie znaleziono takiego ubrania." });
     }
-    
+
     if (cloth.userId !== userId) {
-      return res.status(403).json({ error: "Brak uprawnień do usunięcia tego ubrania." });
+      return res
+        .status(403)
+        .json({ error: "Brak uprawnień do usunięcia tego ubrania." });
     }
 
     await prisma.cloth.delete({ where: { id } });
-    res.json({ success: true, message: "Ubranie zostało pomyślnie usunięte z garderoby." });
+    res.json({
+      success: true,
+      message: "Ubranie zostało pomyślnie usunięte z garderoby.",
+    });
   } catch (error) {
     console.error(" Błąd podczas usuwania ubrania:", error);
     res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
   }
 });
 
-app.post('/api/analyze', authenticateToken, async (req, res) => {
-    try {
-        const { query } = req.body;
-        const userId = req.user.userId;
+app.post("/api/analyze", authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user.userId;
 
-        const [user, clothes] = await Promise.all([
-            prisma.user.findUnique({ where: { id: userId } }),
-            prisma.cloth.findMany({ where: { userId } })
-        ]);
+    const [user, clothes, events] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.cloth.findMany({ where: { userId } }),
+      prisma.event.findMany({
+        where: { userId },
+        orderBy: { date: "asc" },
+        take: 3,
+      }),
+    ]);
 
-        const wardrobeContext = generateContextString(clothes, user); 
-        console.log("🚀 Wysyłam do AI kontekst:", wardrobeContext);
-
-        const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
-            askGemini(query, wardrobeContext),     
-            askMistralCloud(query, wardrobeContext), 
-            askRAG(query, wardrobeContext)      
-        ]);
-
-        const analysisRecord = await prisma.analysis.create({
-            data: {
-                 query,
-                 geminiResponse: geminiOdp,
-                 mistralResponse: mistralOdp,
-                 ragResponse: ragOdp,
-                 contextUsed: wardrobeContext,
-                 userId
-            }
-        });
-
-        res.json(analysisRecord);
-    } catch (error) {
-        console.error("Błąd analizy:", error);
-        res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
+    const wardrobeContext = generateContextString(clothes, user);
+    console.log(" Wysyłam do AI kontekst:", wardrobeContext);
+    if (events && events.length > 0) {
+      wardrobeContext += "\nNADCHODZĄCE WYDARZENIA W KALENDARZU UŻYTKOWNIKA:\n";
+      wardrobeContext += events
+        .map(
+          (e) =>
+            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`,
+        )
+        .join("\n");
     }
+
+    console.log(
+      " [RAG Engine]: Przekazuję pełny kontekst do wielomodelowego testu:",
+      wardrobeContext,
+    );
+    const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
+      askGemini(query, wardrobeContext),
+      askMistralCloud(query, wardrobeContext),
+      askRAG(query, wardrobeContext),
+    ]);
+
+    const analysisRecord = await prisma.analysis.create({
+      data: {
+        query,
+        geminiResponse: geminiOdp,
+        mistralResponse: mistralOdp,
+        ragResponse: ragOdp,
+        contextUsed: wardrobeContext,
+        userId,
+      },
+    });
+
+    res.json(analysisRecord);
+  } catch (error) {
+    console.error("Błąd analizy:", error);
+    res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
+  }
 });
 
 app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
@@ -308,14 +381,16 @@ app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
     const updatedAnalysis = await prisma.analysis.update({
       where: { id: id },
       data: {
-        [scoreFieldName]: parseInt(score, 10)
-      }
+        [scoreFieldName]: parseInt(score, 10),
+      },
     });
 
     res.json({ success: true, updatedAnalysis });
   } catch (error) {
     console.error("Błąd podczas zapisywania oceny modelu:", error);
-    res.status(500).json({ error: "Wystąpił błąd serwera podczas zapisywania oceny." });
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd serwera podczas zapisywania oceny." });
   }
 });
 
@@ -327,14 +402,14 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
         email: true,
         gender: true,
         styleTags: true,
-        name: true 
-      }
+        name: true,
+      },
     });
     if (!user) return res.status(404).json({ error: "Nie znaleziono profilu" });
-    
+
     res.json({
       ...user,
-      firstName: user.name
+      firstName: user.name,
     });
   } catch (error) {
     console.error(" Błąd pobierania profilu:", error);
@@ -348,17 +423,19 @@ app.patch("/api/profile", authenticateToken, async (req, res) => {
     if (email) {
       const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser && existingUser.id !== req.user.userId) {
-        return res.status(400).json({ error: "Ten adres e-mail jest już zajęty." });
+        return res
+          .status(400)
+          .json({ error: "Ten adres e-mail jest już zajęty." });
       }
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.userId },
       data: {
-        name: firstName, 
+        name: firstName,
         email,
-        gender
-      }
+        gender,
+      },
     });
     res.json(updatedUser);
   } catch (error) {
@@ -367,38 +444,51 @@ app.patch("/api/profile", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/profile/change-password", authenticateToken, async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-    
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: "Obecne hasło jest nieprawidłowe." });
+app.post(
+  "/api/profile/change-password",
+  authenticateToken,
+  async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+      });
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res
+          .status(400)
+          .json({ error: "Obecne hasło jest nieprawidłowe." });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { password: hashedPassword },
+      });
+
+      res.json({
+        success: true,
+        message: "Hasło zostało pomyślnie zmienione.",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Błąd serwera podczas zmiany hasła." });
     }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { id: req.user.userId },
-      data: { password: hashedPassword }
-    });
-
-    res.json({ success: true, message: "Hasło zostało pomyślnie zmienione." });
-  } catch (error) {
-    res.status(500).json({ error: "Błąd serwera podczas zmiany hasła." });
-  }
-});
+  },
+);
 
 app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const history = await prisma.analysis.findMany({
       where: { userId: req.user.userId },
-      orderBy: { createdAt: "desc" }, 
+      orderBy: { createdAt: "desc" },
     });
     res.json(history);
   } catch (error) {
     console.error("Błąd pobierania historii analiz:", error);
-    res.status(500).json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
   }
 });
 
@@ -406,12 +496,14 @@ app.get("/api/events", authenticateToken, async (req, res) => {
   try {
     const events = await prisma.event.findMany({
       where: { userId: req.user.userId },
-      orderBy: { date: "asc" }, 
+      orderBy: { date: "asc" },
     });
     res.json({ events });
   } catch (error) {
     console.error("Błąd pobierania kalendarza:", error);
-    res.status(500).json({ error: "Wystąpił błąd podczas pobierania harmonogramu." });
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas pobierania harmonogramu." });
   }
 });
 
@@ -420,26 +512,35 @@ app.post("/api/events", authenticateToken, async (req, res) => {
   const userId = req.user.userId;
 
   if (!title || !date || !occasion || !formality) {
-    return res.status(400).json({ error: "Wszystkie pola (title, date, occasion, formality) są wymagane." });
+    return res
+      .status(400)
+      .json({
+        error: "Wszystkie pola (title, date, occasion, formality) są wymagane.",
+      });
   }
 
   try {
     const newEvent = await prisma.event.create({
       data: {
         title,
-        date: new Date(date), 
+        date: new Date(date),
         occasion,
         formality,
-        outfitIds: outfitIds || [], 
+        outfitIds: outfitIds || [],
         userId,
       },
     });
 
-    console.log(`Dodano nowe wydarzenie dla użytkownika ${userId}:`, newEvent.title);
+    console.log(
+      `Dodano nowe wydarzenie dla użytkownika ${userId}:`,
+      newEvent.title,
+    );
     res.json({ success: true, event: newEvent });
   } catch (error) {
     console.error(" Błąd dodawania wydarzenia:", error);
-    res.status(500).json({ error: "Nie udało się zapisać wydarzenia w kalendarzu." });
+    res
+      .status(500)
+      .json({ error: "Nie udało się zapisać wydarzenia w kalendarzu." });
   }
 });
 
@@ -451,15 +552,22 @@ app.delete("/api/events/:id", authenticateToken, async (req, res) => {
     const event = await prisma.event.findUnique({ where: { id } });
 
     if (!event) {
-      return res.status(404).json({ error: "Nie znaleziono takiego wydarzenia." });
+      return res
+        .status(404)
+        .json({ error: "Nie znaleziono takiego wydarzenia." });
     }
 
     if (event.userId !== userId) {
-      return res.status(403).json({ error: "Brak uprawnień do usunięcia tego wydarzenia." });
+      return res
+        .status(403)
+        .json({ error: "Brak uprawnień do usunięcia tego wydarzenia." });
     }
 
     await prisma.event.delete({ where: { id } });
-    res.json({ success: true, message: "Wydarzenie zostało usunięte z harmonogramu." });
+    res.json({
+      success: true,
+      message: "Wydarzenie zostało usunięte z harmonogramu.",
+    });
   } catch (error) {
     console.error(" Błąd podczas usuwania wydarzenia:", error);
     res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
@@ -467,4 +575,6 @@ app.delete("/api/events/:id", authenticateToken, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(` Serwer Fitte działa stabilnie na porcie ${PORT}`));
+app.listen(PORT, () =>
+  console.log(` Serwer Fitte działa stabilnie na porcie ${PORT}`),
+);
