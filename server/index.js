@@ -322,31 +322,34 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       prisma.event.findMany({
         where: { userId },
         orderBy: { date: "asc" },
-        take: 3,
+        take: 3, 
       }),
     ]);
 
-    const wardrobeContext = generateContextString(clothes, user);
-    console.log(" Wysyłam do AI kontekst:", wardrobeContext);
+    let wardrobeContext = generateContextString(clothes, user);
+
     if (events && events.length > 0) {
       wardrobeContext += "\nNADCHODZĄCE WYDARZENIA W KALENDARZU UŻYTKOWNIKA:\n";
       wardrobeContext += events
         .map(
           (e) =>
-            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`,
+            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`
         )
         .join("\n");
     }
 
-    console.log(
-      " [RAG Engine]: Przekazuję pełny kontekst do wielomodelowego testu:",
-      wardrobeContext,
+    console.log("📡 [RAG Engine]: Próba równoległego odpytania silników AI...");
+    const geminiOdp = await askGemini(query, wardrobeContext).catch(
+      (err) => "Błąd krytyczny Gemini: " + err.message
     );
-    const [geminiOdp, mistralOdp, ragOdp] = await Promise.all([
-      askGemini(query, wardrobeContext),
-      askMistralCloud(query, wardrobeContext),
-      askRAG(query, wardrobeContext),
-    ]);
+    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(
+      (err) => "Błąd krytyczny Mistral: " + err.message
+    );
+    const ragOdp = await askRAG(query, wardrobeContext).catch(
+      (err) => "Błąd krytyczny Fitte RAG (GPT): " + err.message
+    );
+
+    console.log(" [RAG Engine]: Zapisuję wyniki analizy w bazie danych...");
 
     const analysisRecord = await prisma.analysis.create({
       data: {
@@ -359,10 +362,15 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       },
     });
 
+    console.log("[RAG Engine]: Sukces! Zwracam wyniki do frontendu.");
     res.json(analysisRecord);
+
   } catch (error) {
-    console.error("Błąd analizy:", error);
-    res.status(500).json({ error: "Błąd podczas generowania porównania AI" });
+    console.error(" [KRYTYCZNY BŁĄD ENPOINTU ANALIZY]:", error);
+    res.status(500).json({
+      error: "Błąd podczas generowania porównania AI",
+      details: error.message,
+    });
   }
 });
 
