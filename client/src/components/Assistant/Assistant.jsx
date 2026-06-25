@@ -58,7 +58,6 @@ const Assistant = () => {
 
   return (
     <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
-      {" "}
       <header className="mb-6 mt-2">
         <h2 className="font-playfair text-3xl md:text-5xl font-light">
           Co dziś <span className="italic text-fitte-terracotta">założyć?</span>
@@ -67,6 +66,7 @@ const Assistant = () => {
           Dostosuję propozycje do Twojego stylu.
         </p>
       </header>
+
       <section className="input-card bg-white rounded-[30px] md:rounded-[40px] p-6 md:p-10 border border-fitte-sand shadow-sm">
         <div className="mb-6">
           <span className="text-[10px] font-bold tracking-widest text-fitte-brown-dark">
@@ -99,10 +99,11 @@ const Assistant = () => {
 
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mt-6">
             <div className="flex flex-wrap gap-3 items-center text-[9px] font-bold opacity-50">
-              <span>AKTYWNE SILNIKI:</span>
-              <span>GPT-4o (RAG)</span>
-              <span>GEMINI</span>
-              <span>MISTRAL</span>
+              <span>AKTYWNE SILNIKI BADAWCZE:</span>
+              {/* 🔥 Zaktualizowane etykiety pod Twój aktualny stos technologiczny backendu */}
+              <span>GEMINI 2.5</span>
+              <span>LLAMA 3.3 (70B)</span>
+              <span>FITTE HYBRID RAG</span>
             </div>
             <button
               onClick={handleGenerate}
@@ -121,6 +122,7 @@ const Assistant = () => {
           </div>
         </div>
       </section>
+
       {results && (
         <section className="mt-12 md:mt-16 animate-fade-in">
           <h3 className="font-playfair text-xl md:text-2xl mb-6 md:mb-8">
@@ -128,10 +130,11 @@ const Assistant = () => {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* KARTA 1: GEMINI */}
             <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase">
-                  <Sparkles size={14} /> Gemini 1.5
+                  <Sparkles size={14} /> Gemini 2.5 Flash
                 </div>
                 <Rating
                   stars={results.geminiScore}
@@ -143,10 +146,11 @@ const Assistant = () => {
               </p>
             </div>
 
+            {/* KARTA 2: MISTRAL CLOUD / LLAMA */}
             <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase">
-                  <Monitor size={14} /> Mistral (Local)
+                  <Monitor size={14} /> Llama 3.3 (Cloud)
                 </div>
                 <Rating
                   stars={results.mistralScore}
@@ -158,10 +162,11 @@ const Assistant = () => {
               </p>
             </div>
 
+            {/* KARTA 3: TWÓJ AUTORSKI SYSTEM (RAG + ALGORYTM) */}
             <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">
-                  <Brain size={14} /> Fitte AI (RAG)
+                  <Brain size={14} /> Fitte AI (Hybrid RAG)
                 </div>
                 <Rating
                   stars={results.ragScore}
@@ -173,7 +178,7 @@ const Assistant = () => {
                 {results.ragResponse}
               </p>
               <div className="mt-auto pt-6 border-t border-white/10 text-[9px] uppercase tracking-widest opacity-60">
-                Analiza Twojej garderoby zakończona
+                Deterministyczna analiza garderoby adaptacyjnej
               </div>
             </div>
           </div>
@@ -190,7 +195,13 @@ const Rating = ({ stars, onRate, isDark }) => (
         key={s}
         size={14}
         onClick={() => onRate(s)}
-        className={`cursor-pointer transition-colors ${s <= (stars || 0) ? "fill-current text-yellow-500" : isDark ? "text-white/20" : "text-gray-200"}`}
+        className={`cursor-pointer transition-colors ${
+          s <= (stars || 0)
+            ? "fill-current text-yellow-500"
+            : isDark
+            ? "text-white/20"
+            : "text-gray-200"
+        }`}
       />
     ))}
   </div>

@@ -34,6 +34,8 @@ model User {
   password       String
   styleTags      String?   
   favoriteColors String?
+  styleWeights    String? 
+  colorWeights    String?
   clothes        Cloth[]
   analyses       Analysis[]  
   createdAt      DateTime   @default(now())
@@ -66,4 +68,15 @@ model Event {
 
   userId      String   @db.ObjectId
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OutfitRecommendation {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  clothIds     String[] @db.ObjectId 
+  score        Float    
+  scoreDetails String  
+  explanation  String  
+  status       String   @default("PENDING") 
+  createdAt    DateTime @default(now())
 }

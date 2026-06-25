@@ -8,17 +8,16 @@ const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { OpenAI } = require("openai");
-const Groq = require("groq-sdk");
+const { Groq = require("groq-sdk") } = require("groq-sdk");
 
 const app = express();
 const prisma = new PrismaClient();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const { generateBestOutfits } = require("./outfitEngine");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -58,7 +57,10 @@ const generateContextString = (clothes, user) => {
 
   context += "Ubrania w szafie:\n";
   context += clothes
-    .map((c, i) => `- ${c.name} (Kategoria: ${c.category}, Kolor: ${c.color})`)
+    .map(
+      (c) =>
+        `- ${c.name} (Kategoria: ${c.category}, Kolor: ${c.color}, Styl: ${c.style})`,
+    )
     .join("\n");
 
   return context;
@@ -76,14 +78,12 @@ ZASADY ODPOWIEDZI (KRYTYCZNE):
 4. Skup się na dopasowaniu do okazji i stylu użytkownika.
 
 PYTANIE: ${query}
-
 `;
 
 async function askGemini(query, context) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context);
-
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) {
@@ -94,12 +94,10 @@ async function askGemini(query, context) {
 async function askMistralCloud(query, context) {
   try {
     const prompt = getBasePrompt(query, context);
-
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
     });
-
     return (
       chatCompletion.choices[0]?.message?.content ||
       "Brak odpowiedzi ze strony chmury Mistral."
@@ -109,41 +107,55 @@ async function askMistralCloud(query, context) {
   }
 }
 
-async function askRAG(query, context) {
+async function askRAG(query, clothes, user, currentEvent) {
   try {
-    const prompt = getBasePrompt(query, context);
+    const topRecommendations = generateBestOutfits(clothes, user, currentEvent);
 
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Jesteś mózgiem autorskiego systemu Fitte AI RAG. Analizujesz rzeczywisty kontekst bazy danych i podejmujesz deterministyczne decyzje stylizacyjne.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.3,
+    if (!topRecommendations || topRecommendations.length === 0) {
+      return "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.";
+    }
+
+    const bestSet = topRecommendations[0];
+    const itemsDescription = bestSet.outfit
+      .map((i) => `${i.name} (Styl: ${i.style}, Kolor: ${i.color})`)
+      .join(" oraz ");
+
+    const explanationPrompt = `
+      Jesteś warstwą wyjaśniającą autorskiego systemu rekomendacji Fitte AI.
+      Nasz deterministyczny algorytm oceny (scoring) wybrał dla użytkownika następujący idealny zestaw ubrań: ${itemsDescription}.
+      Zestaw ten uzyskał ocenę: ${bestSet.totalScore} punktów.
+      Zapytanie użytkownika: "${query}"
+      Okazja z kalendarza: ${currentEvent ? currentEvent.title + " (Formalność: " + currentEvent.formality + ")" : "Brak"}.
+
+      Wygeneruj bardzo zwięzłe (maksymalnie 3 zdania), profesjonalne uzasadnienie dla użytkownika, dlaczego ten MATEMATYCZNIE wybrany przez nasz algorytm zestaw jest dla niego najlepszy pod kątem dress code'u i jego wag preferencji. Odpowiedz po polsku.
+    `;
+
+    const chatCompletion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: explanationPrompt }],
+      temperature: 0.2,
     });
 
-    return (
-      chatCompletion.choices[0]?.message?.content ||
-      "Brak odpowiedzi ze strony systemu RAG (GPT)."
-    );
+    const newRec = await prisma.outfitRecommendation.create({
+      data: {
+        userId: user.id,
+        clothIds: bestSet.outfit.map((i) => i.id),
+        score: bestSet.totalScore,
+        scoreDetails: JSON.stringify(bestSet.details),
+        explanation: chatCompletion.choices[0]?.message?.content || "",
+      },
+    });
+
+    return `[ID: ${newRec.id} | Wynik algorytmu Fitte: ${bestSet.totalScore} pkt] ${chatCompletion.choices[0]?.message?.content}`;
   } catch (err) {
-    return "Błąd Autorskiego Systemu RAG (GPT): " + err.message;
+    return "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message;
   }
 }
-
 app.get("/", (req, res) => {
   res.json({
     status: "active",
-    service: "Fitte AI Stylist Backend",
+    service: "Fitte Adaptive AI Stylist Backend",
     academicProject: "Politechnika Lubelska - Praca Magisterska",
-    message: "Serwer działa poprawnie i stabilnie w chmurze!",
   });
 });
 
@@ -198,15 +210,9 @@ app.post(
       const userId = req.user.userId;
       if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
 
-      console.log(
-        "[Backend Proxy]: Przetwarzam plik dla Hugging Face za pomocą natywnego fetch...",
-      );
-
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
       nativeForm.append("file", fileBlob, "upload.png");
-
-      console.log(" [Backend Proxy]: Wysyłam żądanie do Hugging Face...");
 
       const hfResponse = await fetch(
         "https://lilyhurko-fitte-ai-service.hf.space/process-image",
@@ -216,37 +222,25 @@ app.post(
         },
       );
 
-      if (!hfResponse.ok) {
-        const errText = await hfResponse.text();
-        throw new Error(
-          `Hugging Face odpowiedział statusem ${hfResponse.status}: ${errText}`,
-        );
-      }
+      if (!hfResponse.ok)
+        throw new Error(`Hugging Face błąd: ${hfResponse.status}`);
 
       const aiAnalysisRaw = hfResponse.headers.get("x-ai-analysis");
-      if (!aiAnalysisRaw)
-        throw new Error("Hugging Face nie zwrócił nagłówka x-ai-analysis");
+      if (!aiAnalysisRaw) throw new Error("Brak nagłówka analizy AI");
 
       const decodedAnalysis = Buffer.from(aiAnalysisRaw, "latin1").toString(
         "utf8",
       );
       const aiAnalysis = JSON.parse(decodedAnalysis);
-      console.log(" [Backend Proxy]: Sukces analizy AI:", aiAnalysis);
 
       const imageBuffer = await hfResponse.arrayBuffer();
-
-      const uploadToCloudinary = () => {
-        return new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "fitte_wardrobe" },
-            (err, result) => (err ? reject(err) : resolve(result.secure_url)),
-          );
-          stream.end(Buffer.from(imageBuffer));
-        });
-      };
-
-      const imageUrl = await uploadToCloudinary();
-      console.log("[Backend Proxy]: Zdjęcie zapisane na Cloudinary:", imageUrl);
+      const imageUrl = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "fitte_wardrobe" },
+          (err, res) => (err ? reject(err) : resolve(res.secure_url)),
+        );
+        stream.end(Buffer.from(imageBuffer));
+      });
 
       const newCloth = await prisma.cloth.create({
         data: {
@@ -259,14 +253,14 @@ app.post(
         },
       });
 
-      console.log("[Backend Proxy]: Sukces! Rekord zapisany w MongoDB.");
       res.json({ success: true, item: newCloth });
     } catch (error) {
-      console.error(" [KRYTYCZNY BŁĄD PROXY]:", error.message);
-      res.status(500).json({
-        error: "Błąd serwera podczas przetwarzania i zapisu",
-        details: error.message,
-      });
+      res
+        .status(500)
+        .json({
+          error: "Błąd serwera podczas dodawania ubrania",
+          details: error.message,
+        });
     }
   },
 );
@@ -285,29 +279,15 @@ app.get("/api/wardrobe", authenticateToken, async (req, res) => {
 
 app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
-
   try {
     const cloth = await prisma.cloth.findUnique({ where: { id } });
-
-    if (!cloth) {
-      return res.status(404).json({ error: "Nie znaleziono takiego ubrania." });
-    }
-
-    if (cloth.userId !== userId) {
-      return res
-        .status(403)
-        .json({ error: "Brak uprawnień do usunięcia tego ubrania." });
-    }
+    if (!cloth || cloth.userId !== req.user.userId)
+      return res.status(403).json({ error: "Brak uprawnień" });
 
     await prisma.cloth.delete({ where: { id } });
-    res.json({
-      success: true,
-      message: "Ubranie zostało pomyślnie usunięte z garderoby.",
-    });
+    res.json({ success: true, message: "Ubranie usunięte." });
   } catch (error) {
-    console.error(" Błąd podczas usuwania ubrania:", error);
-    res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
+    res.status(500).json({ error: "Błąd usuwania." });
   }
 });
 
@@ -322,7 +302,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       prisma.event.findMany({
         where: { userId },
         orderBy: { date: "asc" },
-        take: 3, 
+        take: 3,
       }),
     ]);
 
@@ -333,95 +313,140 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       wardrobeContext += events
         .map(
           (e) =>
-            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`
+            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`,
         )
         .join("\n");
     }
 
-    console.log("📡 [RAG Engine]: Próba równoległego odpytania silników AI...");
-    const geminiOdp = await askGemini(query, wardrobeContext).catch(
-      (err) => "Błąd krytyczny Gemini: " + err.message
-    );
-    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(
-      (err) => "Błąd krytyczny Mistral: " + err.message
-    );
-    const ragOdp = await askRAG(query, wardrobeContext).catch(
-      (err) => "Błąd krytyczny Fitte RAG (GPT): " + err.message
+    console.log(
+      " [RAG Engine]: Odpytuję silniki AI równolegle z pomiarem opóźnień...",
     );
 
-    console.log(" [RAG Engine]: Zapisuję wyniki analizy w bazie danych...");
+    const startGemini = Date.now();
+    const geminiOdp = await askGemini(query, wardrobeContext).catch(
+      (err) => "Błąd Gemini: " + err.message,
+    );
+    const latGemini = Date.now() - startGemini;
+
+    const startMistral = Date.now();
+    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(
+      (err) => "Błąd Mistral: " + err.message,
+    );
+    const latMistral = Date.now() - startMistral;
+
+    const startRag = Date.now();
+    const currentEvent = events[0] || null;
+    const ragOdp = await askRAG(query, clothes, user, currentEvent).catch(
+      (err) => "Błąd Fitte RAG: " + err.message,
+    );
+    const latRag = Date.now() - startRag;
+
+    console.log(
+      `⏱️ Opóźnienia: Gemini: ${latGemini}ms | Mistral: ${latMistral}ms | Fitte RAG: ${latRag}ms`,
+    );
 
     const analysisRecord = await prisma.analysis.create({
       data: {
         query,
-        geminiResponse: geminiOdp,
-        mistralResponse: mistralOdp,
-        ragResponse: ragOdp,
+        geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
+        mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
+        ragResponse: `${ragOdp} (Czas: ${latRag}ms)`,
         contextUsed: wardrobeContext,
         userId,
       },
     });
 
-    console.log("[RAG Engine]: Sukces! Zwracam wyniki do frontendu.");
     res.json(analysisRecord);
-
   } catch (error) {
     console.error(" [KRYTYCZNY BŁĄD ENPOINTU ANALIZY]:", error);
-    res.status(500).json({
-      error: "Błąd podczas generowania porównania AI",
-      details: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        error: "Błąd podczas generowania porównania AI",
+        details: error.message,
+      });
   }
 });
 
 app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { modelType, score } = req.body;
-
   try {
     const validModels = ["gemini", "mistral", "rag"];
-    if (!validModels.includes(modelType)) {
-      return res.status(400).json({ error: "Nieprawidłowy typ modelu." });
-    }
-
-    const scoreFieldName = `${modelType}Score`;
+    if (!validModels.includes(modelType))
+      return res.status(400).json({ error: "Nieprawidłowy typ." });
 
     const updatedAnalysis = await prisma.analysis.update({
       where: { id: id },
-      data: {
-        [scoreFieldName]: parseInt(score, 10),
-      },
+      data: { [`${modelType}Score`]: parseInt(score, 10) },
     });
-
     res.json({ success: true, updatedAnalysis });
   } catch (error) {
-    console.error("Błąd podczas zapisywania oceny modelu:", error);
-    res
-      .status(500)
-      .json({ error: "Wystąpił błąd serwera podczas zapisywania oceny." });
+    res.status(500).json({ error: "Błąd zapisu oceny." });
   }
 });
+
+app.post(
+  "/api/recommendations/:id/feedback",
+  authenticateToken,
+  async (req, res) => {
+    const { id } = req.params;
+    const { feedback } = req.body;
+    const userId = req.user.userId;
+
+    try {
+      const rec = await prisma.outfitRecommendation.findUnique({
+        where: { id },
+      });
+      if (!rec)
+        return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
+      let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
+      const clothes = await prisma.cloth.findMany({
+        where: { id: { in: rec.clothIds } },
+      });
+
+      const factor = feedback === "LIKE" ? 0.1 : -0.1;
+      clothes.forEach((item) => {
+        if (item.style)
+          styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
+        if (item.color)
+          colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
+      });
+
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            styleWeights: JSON.stringify(styleWeights),
+            colorWeights: JSON.stringify(colorWeights),
+          },
+        }),
+        prisma.outfitRecommendation.update({
+          where: { id },
+          data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
+        }),
+      ]);
+
+      res.json({ success: true, styleWeights, colorWeights });
+    } catch (error) {
+      res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
+    }
+  },
+);
 
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: {
-        email: true,
-        gender: true,
-        styleTags: true,
-        name: true,
-      },
+      select: { email: true, gender: true, styleTags: true, name: true },
     });
-    if (!user) return res.status(404).json({ error: "Nie znaleziono profilu" });
-
-    res.json({
-      ...user,
-      firstName: user.name,
-    });
+    res.json({ ...user, firstName: user.name });
   } catch (error) {
-    console.error(" Błąd pobierania profilu:", error);
-    res.status(500).json({ error: "Błąd pobierania profilu" });
+    res.status(500).json({ error: "Błąd profilu" });
   }
 });
 
@@ -430,25 +455,16 @@ app.patch("/api/profile", authenticateToken, async (req, res) => {
   try {
     if (email) {
       const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser && existingUser.id !== req.user.userId) {
-        return res
-          .status(400)
-          .json({ error: "Ten adres e-mail jest już zajęty." });
-      }
+      if (existingUser && existingUser.id !== req.user.userId)
+        return res.status(400).json({ error: "E-mail zajęty." });
     }
-
     const updatedUser = await prisma.user.update({
       where: { id: req.user.userId },
-      data: {
-        name: firstName,
-        email,
-        gender,
-      },
+      data: { name: firstName, email, gender },
     });
     res.json(updatedUser);
   } catch (error) {
-    console.error(" Błąd aktualizacji profilu:", error);
-    res.status(500).json({ error: "Błąd aktualizacji profilu" });
+    res.status(500).json({ error: "Błąd aktualizacji" });
   }
 });
 
@@ -461,26 +477,16 @@ app.post(
       const user = await prisma.user.findUnique({
         where: { id: req.user.userId },
       });
+      if (!(await bcrypt.compare(currentPassword, user.password)))
+        return res.status(400).json({ error: "Błędne hasło." });
 
-      const isMatch = await bcrypt.compare(currentPassword, user.password);
-      if (!isMatch) {
-        return res
-          .status(400)
-          .json({ error: "Obecne hasło jest nieprawidłowe." });
-      }
-
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
       await prisma.user.update({
         where: { id: req.user.userId },
-        data: { password: hashedPassword },
+        data: { password: await bcrypt.hash(newPassword, 10) },
       });
-
-      res.json({
-        success: true,
-        message: "Hasło zostało pomyślnie zmienione.",
-      });
+      res.json({ success: true, message: "Hasło zmienione." });
     } catch (error) {
-      res.status(500).json({ error: "Błąd serwera podczas zmiany hasła." });
+      res.status(500).json({ error: "Błąd zmiany hasła." });
     }
   },
 );
@@ -493,10 +499,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
     });
     res.json(history);
   } catch (error) {
-    console.error("Błąd pobierania historii analiz:", error);
-    res
-      .status(500)
-      .json({ error: "Wystąpił błąd serwera podczas pobierania historii." });
+    res.status(500).json({ error: "Błąd historii." });
   }
 });
 
@@ -508,26 +511,15 @@ app.get("/api/events", authenticateToken, async (req, res) => {
     });
     res.json({ events });
   } catch (error) {
-    console.error("Błąd pobierania kalendarza:", error);
-    res
-      .status(500)
-      .json({ error: "Wystąpił błąd podczas pobierania harmonogramu." });
+    res.status(500).json({ error: "Błąd pobierania wydarzeń." });
   }
 });
 
 app.post("/api/events", authenticateToken, async (req, res) => {
   const { title, date, occasion, formality, outfitIds } = req.body;
-  const userId = req.user.userId;
-
-  if (!title || !date || !occasion || !formality) {
-    return res
-      .status(400)
-      .json({
-        error: "Wszystkie pola (title, date, occasion, formality) są wymagane.",
-      });
-  }
-
   try {
+    if (!title || !date || !occasion || !formality)
+      return res.status(400).json({ error: "Wszystkie pola są wymagane." });
     const newEvent = await prisma.event.create({
       data: {
         title,
@@ -535,54 +527,31 @@ app.post("/api/events", authenticateToken, async (req, res) => {
         occasion,
         formality,
         outfitIds: outfitIds || [],
-        userId,
+        userId: req.user.userId,
       },
     });
-
-    console.log(
-      `Dodano nowe wydarzenie dla użytkownika ${userId}:`,
-      newEvent.title,
-    );
     res.json({ success: true, event: newEvent });
   } catch (error) {
-    console.error(" Błąd dodawania wydarzenia:", error);
-    res
-      .status(500)
-      .json({ error: "Nie udało się zapisać wydarzenia w kalendarzu." });
+    res.status(500).json({ error: "Błąd zapisu wydarzenia." });
   }
 });
 
 app.delete("/api/events/:id", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.userId;
-
   try {
-    const event = await prisma.event.findUnique({ where: { id } });
-
-    if (!event) {
-      return res
-        .status(404)
-        .json({ error: "Nie znaleziono takiego wydarzenia." });
-    }
-
-    if (event.userId !== userId) {
-      return res
-        .status(403)
-        .json({ error: "Brak uprawnień do usunięcia tego wydarzenia." });
-    }
-
-    await prisma.event.delete({ where: { id } });
-    res.json({
-      success: true,
-      message: "Wydarzenie zostało usunięte z harmonogramu.",
+    const event = await prisma.event.findUnique({
+      where: { id: req.params.id },
     });
+    if (!event || event.userId !== req.user.userId)
+      return res.status(403).json({ error: "Brak uprawnień" });
+
+    await prisma.event.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: "Wydarzenie usunięte." });
   } catch (error) {
-    console.error(" Błąd podczas usuwania wydarzenia:", error);
-    res.status(500).json({ error: "Wystąpił błąd serwera podczas usuwania." });
+    res.status(500).json({ error: "Błąd usuwania wydarzenia." });
   }
 });
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () =>
-  console.log(` Serwer Fitte działa stabilnie na porcie ${PORT}`),
+  console.log(`🚀 Serwer Fitte działa stabilnie na porcie ${PORT}`),
 );
