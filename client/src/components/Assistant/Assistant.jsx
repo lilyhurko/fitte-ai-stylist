@@ -13,48 +13,60 @@ const Assistant = () => {
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
-  const handleGenerate = async () => {
-    if (!prompt && !selectedOccasion) return;
-    setLoading(true);
-    const token = sessionStorage.getItem("fitte_token");
+const handleGenerate = async () => {
+  if (!prompt && !selectedOccasion) return;
 
-    const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
+  setLoading(true);
+  setResults(null);
+  
+  const token = sessionStorage.getItem("fitte_token");
+  const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query: fullQuery }),
-      });
+  try {
+    const response = await fetch(`${API_BASE_URL}/analyze`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ query: fullQuery }),
+    });
 
-      const data = await response.json();
-      if (response.ok) setResults(data);
-    } catch (error) {
-      console.error("Błąd asystenta:", error);
-    } finally {
-      setLoading(false);
+    const data = await response.json();
+    if (response.ok) {
+      setResults(data);
     }
-  };
+  } catch (error) {
+    console.error("Błąd asystenta:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleRate = async (modelType, score) => {
-    const token = sessionStorage.getItem("fitte_token");
-    try {
-      await fetch(`${API_BASE_URL}/analyze/${results.id}/rate`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ modelType, score }),
-      });
-      setResults((prev) => ({ ...prev, [`${modelType}Score`]: score }));
-    } catch (error) {
-      console.error("Błąd oceniania:", error);
-    }
-  };
+const handleRate = async (modelType, score) => {
+  const token = sessionStorage.getItem("fitte_token");
+  
+  const analysisId = results._id || results.id;
+  
+  if (!analysisId) {
+    console.error("Brak poprawnego identyfikatora analizy do wystawienia oceny.");
+    return;
+  }
+
+  try {
+    await fetch(`${API_BASE_URL}/analyze/${analysisId}/rate`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ modelType, score }),
+    });
+    setResults((prev) => ({ ...prev, [`${modelType}Score`]: score }));
+  } catch (error) {
+    console.error("Błąd oceniania:", error);
+  }
+};
 
   return (
     <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
@@ -100,7 +112,6 @@ const Assistant = () => {
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mt-6">
             <div className="flex flex-wrap gap-3 items-center text-[9px] font-bold opacity-50">
               <span>AKTYWNE SILNIKI BADAWCZE:</span>
-              {/* 🔥 Zaktualizowane etykiety pod Twój aktualny stos technologiczny backendu */}
               <span>GEMINI 2.5</span>
               <span>LLAMA 3.3 (70B)</span>
               <span>FITTE HYBRID RAG</span>
@@ -130,7 +141,6 @@ const Assistant = () => {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            {/* KARTA 1: GEMINI */}
             <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase">
@@ -146,7 +156,6 @@ const Assistant = () => {
               </p>
             </div>
 
-            {/* KARTA 2: MISTRAL CLOUD / LLAMA */}
             <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase">
@@ -162,7 +171,6 @@ const Assistant = () => {
               </p>
             </div>
 
-            {/* KARTA 3: TWÓJ AUTORSKI SYSTEM (RAG + ALGORYTM) */}
             <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">
