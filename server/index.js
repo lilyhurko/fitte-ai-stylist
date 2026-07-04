@@ -146,7 +146,7 @@ async function askRAG(query, clothes, user, currentEvent) {
       },
     });
 
-    return `[ID: ${newRec.id} | Wynik algorytmu Fitte: ${bestSet.totalScore} pkt] ${chatCompletion.choices[0]?.message?.content}`;
+    return chatCompletion.choices[0]?.message?.content || "";
   } catch (err) {
     return "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message;
   }
@@ -255,12 +255,10 @@ app.post(
 
       res.json({ success: true, item: newCloth });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          error: "Błąd serwera podczas dodawania ubrania",
-          details: error.message,
-        });
+      res.status(500).json({
+        error: "Błąd serwera podczas dodawania ubrania",
+        details: error.message,
+      });
     }
   },
 );
@@ -342,7 +340,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const latRag = Date.now() - startRag;
 
     console.log(
-      `⏱️ Opóźnienia: Gemini: ${latGemini}ms | Mistral: ${latMistral}ms | Fitte RAG: ${latRag}ms`,
+      `Opóźnienia: Gemini: ${latGemini}ms | Mistral: ${latMistral}ms | Fitte RAG: ${latRag}ms`,
     );
 
     const analysisRecord = await prisma.analysis.create({
@@ -359,12 +357,10 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     res.json(analysisRecord);
   } catch (error) {
     console.error(" [KRYTYCZNY BŁĄD ENPOINTU ANALIZY]:", error);
-    res
-      .status(500)
-      .json({
-        error: "Błąd podczas generowania porównania AI",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "Błąd podczas generowania porównania AI",
+      details: error.message,
+    });
   }
 });
 
