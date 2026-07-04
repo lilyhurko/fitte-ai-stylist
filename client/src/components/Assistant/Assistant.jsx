@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Loader2, Star, Sparkles, Brain, Monitor } from "lucide-react";
+import { Loader2, Star, Sparkles, Brain, Monitor, ThumbsUp, ThumbsDown } from "lucide-react";
 import "./Assistant.css";
 import { API_BASE_URL } from "../../config";
 
@@ -10,63 +10,90 @@ const Assistant = () => {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [feedbackStatus, setFeedbackStatus] = useState(null); 
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
-const handleGenerate = async () => {
-  if (!prompt && !selectedOccasion) return;
+  const handleGenerate = async () => {
+    if (!prompt && !selectedOccasion) return;
 
-  setLoading(true);
-  setResults(null);
-  
-  const token = sessionStorage.getItem("fitte_token");
-  const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
+    setLoading(true);
+    setResults(null);
+    setFeedbackStatus(null); 
+    
+    const token = sessionStorage.getItem("fitte_token");
+    const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ query: fullQuery }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query: fullQuery }),
+      });
 
-    const data = await response.json();
-    if (response.ok) {
-      setResults(data);
+      const data = await response.json();
+      if (response.ok) {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error("Błąd asystenta:", error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Błąd asystenta:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-const handleRate = async (modelType, score) => {
-  const token = sessionStorage.getItem("fitte_token");
-  
-  const analysisId = results._id || results.id;
-  
-  if (!analysisId) {
-    console.error("Brak poprawnego identyfikatora analizy do wystawienia oceny.");
-    return;
-  }
+  const handleRate = async (modelType, score) => {
+    const token = sessionStorage.getItem("fitte_token");
+    const analysisId = results._id || results.id;
+    
+    if (!analysisId) {
+      console.error("Brak poprawnego identyfikatora analizy do wystawienia oceny.");
+      return;
+    }
 
-  try {
-    await fetch(`${API_BASE_URL}/analyze/${analysisId}/rate`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ modelType, score }),
-    });
-    setResults((prev) => ({ ...prev, [`${modelType}Score`]: score }));
-  } catch (error) {
-    console.error("Błąd oceniania:", error);
-  }
-};
+    try {
+      await fetch(`${API_BASE_URL}/analyze/${analysisId}/rate`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ modelType, score }),
+      });
+      setResults((prev) => ({ ...prev, [`${modelType}Score`]: score }));
+    } catch (error) {
+      console.error("Błąd oceniania:", error);
+    }
+  };
+
+  const handleFeedback = async (feedbackType) => {
+    if (!results?.recommendationId) {
+      alert("Brak powiązanego identyfikatora rekomendacji do przesłania feedbacku.");
+      return;
+    }
+
+    const token = sessionStorage.getItem("fitte_token");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ feedback: feedbackType }), // Przekazuje 'LIKE' lub 'DISLIKE'
+      });
+
+      if (response.ok) {
+        setFeedbackStatus(feedbackType === "LIKE" ? "LIKED" : "DISLIKED");
+      }
+    } catch (error) {
+      console.error("Błąd podczas wysyłania informacji zwrotnej:", error);
+    }
+  };
 
   return (
     <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
@@ -171,23 +198,60 @@ const handleRate = async (modelType, score) => {
               </p>
             </div>
 
-            <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">
-                  <Brain size={14} /> Fitte AI (Hybrid RAG)
+            <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">
+                    <Brain size={14} /> Fitte AI (Hybrid RAG)
+                  </div>
+                  <Rating
+                    stars={results.ragScore}
+                    onRate={(s) => handleRate("rag", s)}
+                    isDark
+                  />
                 </div>
-                <Rating
-                  stars={results.ragScore}
-                  onRate={(s) => handleRate("rag", s)}
-                  isDark
-                />
+                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium">
+                  {results.ragResponse}
+                </p>
               </div>
-              <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium">
-                {results.ragResponse}
-              </p>
-              <div className="mt-auto pt-6 border-t border-white/10 text-[9px] uppercase tracking-widest opacity-60">
-                Deterministyczna analiza garderoby adaptacyjnej
+
+              <div className="mt-6 pt-4 border-t border-white/10 flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-fitte-beige/60 tracking-wider uppercase">
+                    Czy to udana stylizacja?
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleFeedback("LIKE")}
+                      disabled={feedbackStatus !== null}
+                      className={`p-2 rounded-xl transition-all ${
+                        feedbackStatus === "LIKED"
+                          ? "bg-green-600 text-white scale-105"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      } disabled:cursor-not-allowed`}
+                      title="Podoba mi się, podbij wagi ubrań"
+                    >
+                      <ThumbsUp size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleFeedback("DISLIKE")}
+                      disabled={feedbackStatus !== null}
+                      className={`p-2 rounded-xl transition-all ${
+                        feedbackStatus === "DISLIKED"
+                          ? "bg-red-600 text-white scale-105"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      } disabled:cursor-not-allowed`}
+                      title="Nie mój styl, obniż wagi ubrań"
+                    >
+                      <ThumbsDown size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-[9px] uppercase tracking-widest opacity-60">
+                  Deterministyczna analiza garderoby adaptacyjnej
+                </div>
               </div>
+
             </div>
           </div>
         </section>

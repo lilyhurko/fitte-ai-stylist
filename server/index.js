@@ -107,12 +107,16 @@ async function askMistralCloud(query, context) {
   }
 }
 
-async function askRAG(query, clothes, user, currentEvent) {
+async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
   try {
-    const topRecommendations = generateBestOutfits(clothes, user, currentEvent);
+    const topRecommendations = generateBestOutfits(clothes, user, currentEvent, selectedOccasion);
 
     if (!topRecommendations || topRecommendations.length === 0) {
-      return "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.";
+      return {
+        explanation:
+          "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
+        recommendationId: null,
+      };
     }
 
     const bestSet = topRecommendations[0];
@@ -146,9 +150,18 @@ async function askRAG(query, clothes, user, currentEvent) {
       },
     });
 
-    return chatCompletion.choices[0]?.message?.content || "";
+    return {
+      explanation:
+        chatCompletion.choices[0]?.message?.content ||
+        "Brak uzasadnienia silnika.",
+      recommendationId: newRec.id,
+    };
   } catch (err) {
-    return "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message;
+    return {
+      explanation:
+        "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
+      recommendationId: null,
+    };
   }
 }
 app.get("/", (req, res) => {
@@ -294,6 +307,14 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const { query } = req.body;
     const userId = req.user.userId;
 
+    // --- AUTOMATYCZNE WYCIĄGANIE OKAZJI Z TEKSTU QUERY VIA REGEX ---
+    // Ponieważ frontend wysyła string: "Okazja: Randka. Szczegóły: ..."
+    let selectedOccasion = "Casual"; // domyślny fallback
+    const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
+    if (occasionMatch && occasionMatch[1]) {
+      selectedOccasion = occasionMatch[1].trim();
+    }
+
     const [user, clothes, events] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.cloth.findMany({ where: { userId } }),
@@ -334,9 +355,18 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
 
     const startRag = Date.now();
     const currentEvent = events[0] || null;
-    const ragOdp = await askRAG(query, clothes, user, currentEvent).catch(
-      (err) => "Błąd Fitte RAG: " + err.message,
-    );
+
+    // Teraz selectedOccasion jest już poprawnie zdefiniowane!
+    const ragResult = await askRAG(
+      query,
+      clothes,
+      user,
+      currentEvent,
+      selectedOccasion,
+    ).catch((err) => ({
+      explanation: "Błąd Fitte RAG: " + err.message,
+      recommendationId: null,
+    }));
     const latRag = Date.now() - startRag;
 
     console.log(
@@ -348,13 +378,16 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
         query,
         geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
         mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
-        ragResponse: `${ragOdp} (Czas: ${latRag}ms)`,
+        ragResponse: `${ragResult.explanation} (Czas: ${latRag}ms)`,
         contextUsed: wardrobeContext,
         userId,
       },
     });
 
-    res.json(analysisRecord);
+    res.json({
+      ...analysisRecord,
+      recommendationId: ragResult.recommendationId,
+    });
   } catch (error) {
     console.error(" [KRYTYCZNY BŁĄD ENPOINTU ANALIZY]:", error);
     res.status(500).json({
@@ -363,25 +396,6 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     });
   }
 });
-
-app.patch("/api/analyze/:id/rate", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const { modelType, score } = req.body;
-  try {
-    const validModels = ["gemini", "mistral", "rag"];
-    if (!validModels.includes(modelType))
-      return res.status(400).json({ error: "Nieprawidłowy typ." });
-
-    const updatedAnalysis = await prisma.analysis.update({
-      where: { id: id },
-      data: { [`${modelType}Score`]: parseInt(score, 10) },
-    });
-    res.json({ success: true, updatedAnalysis });
-  } catch (error) {
-    res.status(500).json({ error: "Błąd zapisu oceny." });
-  }
-});
-
 app.post(
   "/api/recommendations/:id/feedback",
   authenticateToken,
@@ -549,5 +563,5 @@ app.delete("/api/events/:id", authenticateToken, async (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () =>
-  console.log(`🚀 Serwer Fitte działa stabilnie na porcie ${PORT}`),
+  console.log(`Serwer Fitte działa stabilnie na porcie ${PORT}`),
 );
