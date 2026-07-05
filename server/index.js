@@ -164,6 +164,7 @@ async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
     };
   }
 }
+
 app.get("/", (req, res) => {
   res.json({
     status: "active",
@@ -307,9 +308,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const { query } = req.body;
     const userId = req.user.userId;
 
-    // --- AUTOMATYCZNE WYCIĄGANIE OKAZJI Z TEKSTU QUERY VIA REGEX ---
-    // Ponieważ frontend wysyła string: "Okazja: Randka. Szczegóły: ..."
-    let selectedOccasion = "Casual"; // domyślny fallback
+    let selectedOccasion = "Casual"; 
     const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
     if (occasionMatch && occasionMatch[1]) {
       selectedOccasion = occasionMatch[1].trim();
@@ -356,7 +355,6 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const startRag = Date.now();
     const currentEvent = events[0] || null;
 
-    // Teraz selectedOccasion jest już poprawnie zdefiniowane!
     const ragResult = await askRAG(
       query,
       clothes,
@@ -396,57 +394,84 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     });
   }
 });
-app.post(
-  "/api/recommendations/:id/feedback",
-  authenticateToken,
-  async (req, res) => {
-    const { id } = req.params;
-    const { feedback } = req.body;
-    const userId = req.user.userId;
 
-    try {
-      const rec = await prisma.outfitRecommendation.findUnique({
-        where: { id },
-      });
-      if (!rec)
-        return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
+// --- NOWY ENDPOINT: BINARNY FEEDBACK DLA SILNIKÓW GEMINI ORAZ LLAMA (MISTRAL) ---
+app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { modelType, feedback } = req.body; // modelType: 'gemini' | 'llama', feedback: 'LIKE' | 'DISLIKE'
 
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-
-      let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
-      let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
-      const clothes = await prisma.cloth.findMany({
-        where: { id: { in: rec.clothIds } },
-      });
-
-      const factor = feedback === "LIKE" ? 0.1 : -0.1;
-      clothes.forEach((item) => {
-        if (item.style)
-          styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
-        if (item.color)
-          colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
-      });
-
-      await prisma.$transaction([
-        prisma.user.update({
-          where: { id: userId },
-          data: {
-            styleWeights: JSON.stringify(styleWeights),
-            colorWeights: JSON.stringify(colorWeights),
-          },
-        }),
-        prisma.outfitRecommendation.update({
-          where: { id },
-          data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
-        }),
-      ]);
-
-      res.json({ success: true, styleWeights, colorWeights });
-    } catch (error) {
-      res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
+  try {
+    const scoreValue = feedback === "LIKE" ? 1 : 0;
+    
+    let updateData = {};
+    if (modelType === "gemini") {
+      updateData.geminiScore = scoreValue;
+    } else if (modelType === "llama") {
+      updateData.mistralScore = scoreValue; 
+    } else {
+      return res.status(400).json({ error: "Nieprawidłowy typ modelu" });
     }
-  },
-);
+
+    const updatedAnalysis = await prisma.analysis.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({ success: true, updatedAnalysis });
+  } catch (error) {
+    res.status(500).json({ error: "Błąd podczas zapisu feedbacku: " + error.message });
+  }
+});
+
+app.post("/api/recommendations/:id/feedback", authenticateToken, async (req, res) => {
+  const { id } = req.params; 
+  const { feedback, analysisId } = req.body; 
+  const userId = req.user.userId;
+
+  try {
+    const rec = await prisma.outfitRecommendation.findUnique({ where: { id } });
+    if (!rec) return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
+    let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
+    const clothes = await prisma.cloth.findMany({ where: { id: { in: rec.clothIds } } });
+
+    const factor = feedback === "LIKE" ? 0.1 : -0.1;
+    clothes.forEach((item) => {
+      if (item.style) styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
+      if (item.color) colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
+    });
+
+    const operations = [
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          styleWeights: JSON.stringify(styleWeights),
+          colorWeights: JSON.stringify(colorWeights),
+        },
+      }),
+      prisma.outfitRecommendation.update({
+        where: { id },
+        data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
+      }),
+    ];
+
+    if (analysisId) {
+      operations.push(
+        prisma.analysis.update({
+          where: { id: analysisId },
+          data: { ragScore: feedback === "LIKE" ? 1 : 0 }
+        })
+      );
+    }
+
+    await prisma.$transaction(operations);
+    res.json({ success: true, styleWeights, colorWeights });
+  } catch (error) {
+    res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
+  }
+});
 
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {

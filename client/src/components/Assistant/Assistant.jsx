@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Loader2, Star, Sparkles, Brain, Monitor, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Brain,
+  Monitor,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import "./Assistant.css";
 import { API_BASE_URL } from "../../config";
 
@@ -10,7 +17,10 @@ const Assistant = () => {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
-  const [feedbackStatus, setFeedbackStatus] = useState(null); 
+
+  const [geminiFeedback, setGeminiFeedback] = useState(null);
+  const [llamaFeedback, setLlamaFeedback] = useState(null);
+  const [ragFeedback, setRagFeedback] = useState(null);
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
@@ -19,8 +29,11 @@ const Assistant = () => {
 
     setLoading(true);
     setResults(null);
-    setFeedbackStatus(null); 
-    
+
+    setGeminiFeedback(null);
+    setLlamaFeedback(null);
+    setRagFeedback(null);
+
     const token = sessionStorage.getItem("fitte_token");
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
@@ -45,56 +58,63 @@ const Assistant = () => {
     }
   };
 
-  const handleRate = async (modelType, score) => {
+  const handleModelFeedback = async (modelType, feedbackType) => {
     const token = sessionStorage.getItem("fitte_token");
     const analysisId = results._id || results.id;
-    
-    if (!analysisId) {
-      console.error("Brak poprawnego identyfikatora analizy do wystawienia oceny.");
-      return;
-    }
+
+    if (!analysisId) return;
 
     try {
-      await fetch(`${API_BASE_URL}/analyze/${analysisId}/rate`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${API_BASE_URL}/analyze/${analysisId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ modelType, feedback: feedbackType }),
         },
-        body: JSON.stringify({ modelType, score }),
-      });
-      setResults((prev) => ({ ...prev, [`${modelType}Score`]: score }));
-    } catch (error) {
-      console.error("Błąd oceniania:", error);
-    }
-  };
-
-  const handleFeedback = async (feedbackType) => {
-    if (!results?.recommendationId) {
-      alert("Brak powiązanego identyfikatora rekomendacji do przesłania feedbacku.");
-      return;
-    }
-
-    const token = sessionStorage.getItem("fitte_token");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ feedback: feedbackType }), // Przekazuje 'LIKE' lub 'DISLIKE'
-      });
+      );
 
       if (response.ok) {
-        setFeedbackStatus(feedbackType === "LIKE" ? "LIKED" : "DISLIKED");
+        if (modelType === "gemini") setGeminiFeedback(feedbackType);
+        if (modelType === "llama") setLlamaFeedback(feedbackType);
       }
     } catch (error) {
-      console.error("Błąd podczas wysyłania informacji zwrotnej:", error);
+      console.error(`Błąd feedbacku dla ${modelType}:`, error);
     }
   };
 
+  const handleRagFeedback = async (feedbackType) => {
+    if (!results?.recommendationId) return;
+
+    const token = sessionStorage.getItem("fitte_token");
+    const analysisId = results.id || results._id;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            feedback: feedbackType,
+            analysisId: analysisId,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setRagFeedback(feedbackType);
+      }
+    } catch (error) {
+      console.error("Błąd feedbacku RAG:", error);
+    }
+  };
   return (
     <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
       <header className="mb-6 mt-2">
@@ -152,8 +172,7 @@ const Assistant = () => {
                 <Loader2 className="animate-spin" size={18} />
               ) : (
                 <>
-                  <Sparkles size={18} />
-                  Generuj propozycje
+                  <Sparkles size={18} /> Generuj propozycje
                 </>
               )}
             </button>
@@ -168,53 +187,80 @@ const Assistant = () => {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase">
+            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand flex flex-col justify-between min-h-[380px]">
+              <div>
+                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-4">
                   <Sparkles size={14} /> Gemini 2.5 Flash
                 </div>
-                <Rating
-                  stars={results.geminiScore}
-                  onRate={(s) => handleRate("gemini", s)}
-                />
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {results.geminiResponse}
+                </p>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {results.geminiResponse}
-              </p>
+              <div className="mt-6 pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+                <span className="text-[10px] text-gray-400 tracking-wider uppercase">
+                  Trafiona stylizacja?
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleModelFeedback("gemini", "LIKE")}
+                    disabled={geminiFeedback !== null}
+                    className={`p-2 rounded-xl border transition-all ${geminiFeedback === "LIKE" ? "bg-green-50 text-green-600 border-green-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                  >
+                    <ThumbsUp size={15} />
+                  </button>
+                  <button
+                    onClick={() => handleModelFeedback("gemini", "DISLIKE")}
+                    disabled={geminiFeedback !== null}
+                    className={`p-2 rounded-xl border transition-all ${geminiFeedback === "DISLIKE" ? "bg-red-50 text-red-600 border-red-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                  >
+                    <ThumbsDown size={15} />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase">
+            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand flex flex-col justify-between min-h-[380px]">
+              <div>
+                <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-4">
                   <Monitor size={14} /> Llama 3.3 (Cloud)
                 </div>
-                <Rating
-                  stars={results.mistralScore}
-                  onRate={(s) => handleRate("mistral", s)}
-                />
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {results.mistralResponse}
+                </p>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {results.mistralResponse}
-              </p>
+              <div className="mt-6 pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+                <span className="text-[10px] text-gray-400 tracking-wider uppercase">
+                  Trafiona stylizacja?
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleModelFeedback("llama", "LIKE")}
+                    disabled={llamaFeedback !== null}
+                    className={`p-2 rounded-xl border transition-all ${llamaFeedback === "LIKE" ? "bg-green-50 text-green-600 border-green-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                  >
+                    <ThumbsUp size={15} />
+                  </button>
+                  <button
+                    onClick={() => handleModelFeedback("llama", "DISLIKE")}
+                    disabled={llamaFeedback !== null}
+                    className={`p-2 rounded-xl border transition-all ${llamaFeedback === "DISLIKE" ? "bg-red-50 text-red-600 border-red-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                  >
+                    <ThumbsDown size={15} />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105 flex flex-col justify-between">
+            {/* KOLUMNA 3: FITTE AI (HYBRID RAG) */}
+            <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105 flex flex-col justify-between min-h-[390px]">
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase">
-                    <Brain size={14} /> Fitte AI (Hybrid RAG)
-                  </div>
-                  <Rating
-                    stars={results.ragScore}
-                    onRate={(s) => handleRate("rag", s)}
-                    isDark
-                  />
+                <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-4">
+                  <Brain size={14} /> Fitte AI (Hybrid RAG)
                 </div>
                 <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium">
                   {results.ragResponse}
                 </p>
               </div>
-
               <div className="mt-6 pt-4 border-t border-white/10 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] text-fitte-beige/60 tracking-wider uppercase">
@@ -222,28 +268,18 @@ const Assistant = () => {
                   </span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleFeedback("LIKE")}
-                      disabled={feedbackStatus !== null}
-                      className={`p-2 rounded-xl transition-all ${
-                        feedbackStatus === "LIKED"
-                          ? "bg-green-600 text-white scale-105"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      } disabled:cursor-not-allowed`}
-                      title="Podoba mi się, podbij wagi ubrań"
+                      onClick={() => handleRagFeedback("LIKE")}
+                      disabled={ragFeedback !== null}
+                      className={`p-2 rounded-xl transition-all ${ragFeedback === "LIKE" ? "bg-green-600 text-white scale-105" : "bg-white/10 text-white hover:bg-white/20"}`}
                     >
-                      <ThumbsUp size={16} />
+                      <ThumbsUp size={15} />
                     </button>
                     <button
-                      onClick={() => handleFeedback("DISLIKE")}
-                      disabled={feedbackStatus !== null}
-                      className={`p-2 rounded-xl transition-all ${
-                        feedbackStatus === "DISLIKED"
-                          ? "bg-red-600 text-white scale-105"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      } disabled:cursor-not-allowed`}
-                      title="Nie mój styl, obniż wagi ubrań"
+                      onClick={() => handleRagFeedback("DISLIKE")}
+                      disabled={ragFeedback !== null}
+                      className={`p-2 rounded-xl transition-all ${ragFeedback === "DISLIKE" ? "bg-red-600 text-white scale-105" : "bg-white/10 text-white hover:bg-white/20"}`}
                     >
-                      <ThumbsDown size={16} />
+                      <ThumbsDown size={15} />
                     </button>
                   </div>
                 </div>
@@ -251,7 +287,6 @@ const Assistant = () => {
                   Deterministyczna analiza garderoby adaptacyjnej
                 </div>
               </div>
-
             </div>
           </div>
         </section>
@@ -259,24 +294,5 @@ const Assistant = () => {
     </main>
   );
 };
-
-const Rating = ({ stars, onRate, isDark }) => (
-  <div className="flex gap-1">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s}
-        size={14}
-        onClick={() => onRate(s)}
-        className={`cursor-pointer transition-colors ${
-          s <= (stars || 0)
-            ? "fill-current text-yellow-500"
-            : isDark
-            ? "text-white/20"
-            : "text-gray-200"
-        }`}
-      />
-    ))}
-  </div>
-);
 
 export default Assistant;
