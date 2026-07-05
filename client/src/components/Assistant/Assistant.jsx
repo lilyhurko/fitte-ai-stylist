@@ -186,9 +186,11 @@ const Assistant = () => {
             Porównanie inteligentnych propozycji
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand flex flex-col justify-between min-h-[380px]">
-              <div>
+          <div className="results-grid">
+            
+            {/* KOLUMNA 1: GEMINI */}
+            <div className="ai-result-card">
+              <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-4">
                   <Sparkles size={14} /> Gemini 2.5 Flash
                 </div>
@@ -196,7 +198,7 @@ const Assistant = () => {
                   {results.geminiResponse}
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+              <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
                   Trafiona stylizacja?
                 </span>
@@ -219,8 +221,9 @@ const Assistant = () => {
               </div>
             </div>
 
-            <div className="ai-result-card bg-white p-6 md:p-8 rounded-3xl border border-fitte-sand flex flex-col justify-between min-h-[380px]">
-              <div>
+            {/* KOLUMNA 2: LLAMA */}
+            <div className="ai-result-card">
+              <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-4">
                   <Monitor size={14} /> Llama 3.3 (Cloud)
                 </div>
@@ -228,7 +231,7 @@ const Assistant = () => {
                   {results.mistralResponse}
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+              <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
                   Trafiona stylizacja?
                 </span>
@@ -252,8 +255,8 @@ const Assistant = () => {
             </div>
 
             {/* KOLUMNA 3: FITTE AI (HYBRID RAG) */}
-            <div className="ai-result-card bg-fitte-brown-dark text-white p-6 md:p-8 rounded-3xl shadow-xl transform md:scale-105 flex flex-col justify-between min-h-[390px]">
-              <div>
+            <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
+              <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-4">
                   <Brain size={14} /> Fitte AI (Hybrid RAG)
                 </div>
@@ -261,7 +264,7 @@ const Assistant = () => {
                   {results.ragResponse}
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/10 flex flex-col gap-3">
+              <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] text-fitte-beige/60 tracking-wider uppercase">
                     Czy to udana stylizacja?
@@ -288,6 +291,7 @@ const Assistant = () => {
                 </div>
               </div>
             </div>
+
           </div>
         </section>
       )}
