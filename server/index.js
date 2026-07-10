@@ -47,21 +47,31 @@ const authenticateToken = (req, res, next) => {
 };
 function findMatchingClothes(llmResponse, clothes) {
   if (!llmResponse || !clothes || clothes.length === 0) return [];
-  
+
   const text = llmResponse.toLowerCase();
   let matched = [];
 
-  clothes.forEach(cloth => {
-    const nameLower = cloth.name.toLowerCase(); 
-    const categoryLower = cloth.category.toLowerCase(); 
+  clothes.forEach((cloth) => {
+    const nameLower = cloth.name.toLowerCase();
+    const categoryLower = cloth.category.toLowerCase();
 
-    const jestKoszulą = nameLower.includes("koszul") || nameLower.includes("t-shirt") || nameLower.includes("top");
-    const jestMarynarką = nameLower.includes("marynark") || nameLower.includes("żakiet");
-    const jestSpodniami = nameLower.includes("jeans") || nameLower.includes("spodn");
-    const jestSukienką = categoryLower.includes("sukienk") || nameLower.includes("sukienk");
+    const jestKoszulą =
+      nameLower.includes("koszul") ||
+      nameLower.includes("t-shirt") ||
+      nameLower.includes("top");
+    const jestMarynarką =
+      nameLower.includes("marynark") || nameLower.includes("żakiet");
+    const jestSpodniami =
+      nameLower.includes("jeans") || nameLower.includes("spodn");
+    const jestSukienką =
+      categoryLower.includes("sukienk") || nameLower.includes("sukienk");
 
-    const aiPiszeOKoszuli = text.includes("koszul") || text.includes("t-shirt") || text.includes("top");
-    const aiPiszeOMarynarce = text.includes("marynark") || text.includes("żakiet");
+    const aiPiszeOKoszuli =
+      text.includes("koszul") ||
+      text.includes("t-shirt") ||
+      text.includes("top");
+    const aiPiszeOMarynarce =
+      text.includes("marynark") || text.includes("żakiet");
     const aiPiszeOSpodniach = text.includes("jeans") || text.includes("spodn");
     const aiPiszeOSukience = text.includes("sukienk");
 
@@ -71,7 +81,7 @@ function findMatchingClothes(llmResponse, clothes) {
       (jestSpodniami && aiPiszeOSpodniach) ||
       (jestSukienką && aiPiszeOSukience)
     ) {
-      if (!matched.some(m => m.id === cloth.id)) {
+      if (!matched.some((m) => m.id === cloth.id)) {
         matched.push(cloth);
       }
     }
@@ -79,7 +89,6 @@ function findMatchingClothes(llmResponse, clothes) {
 
   return matched.slice(0, 3);
 }
-
 
 const generateContextString = (clothes, user) => {
   const gender = user?.gender || "osoba";
@@ -100,25 +109,64 @@ const generateContextString = (clothes, user) => {
 
   return context;
 };
+async function getLiveWeather(lat, lon) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,rain,snow_depth`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Błąd pobierania pogody");
 
-const getBasePrompt = (query, context) => `
-Jesteś profesjonalnym stylistą mody. 
+    const data = await response.json();
+    const temp = data.current.temperature_2m;
+    const rain = data.current.rain;
+    const snow = data.current.snow_depth;
+
+    console.log(
+      `[Weather API Live @ GPS ${lat}, ${lon}]: Temperatura: ${temp}°C, Opady: ${rain}mm`,
+    );
+
+    if (rain > 0.1 || snow > 0) return "Rain";
+    if (temp >= 24) return "Hot";
+    if (temp <= 10) return "Cold";
+
+    return "Clear";
+  } catch (error) {
+    console.error(
+      " Problem z Weather API, zwracam domyślne Clear:",
+      error.message,
+    );
+    return "Clear";
+  }
+}
+const getBasePrompt = (query, context, weatherType = "Clear") => {
+  let opisPogody = "Słonecznie i przyjemnie";
+  if (weatherType === "Rain") opisPogody = "Pada deszcz / ulewa (jest mokro)";
+  if (weatherType === "Hot")
+    opisPogody = "Jest bardzo gorąco, upał (powyżej 24°C)";
+  if (weatherType === "Cold")
+    opisPogody = "Jest zimno / chłodno (poniżej 14°C)";
+
+  return `
+Jesteś profesjonalnym osobistym stylistą mody. 
+
+AKTUALNE WARUNKI POGODOWE:
+-> Stan pogody: ${opisPogody} (Weź to bezwzględnie pod uwagę przy doborze warstw ubrań!)
+
 INFORMACJE O UŻYTKOWNIKU I SZAFIE:
 ${context}
 
 ZASADY ODPOWIEDZI (KRYTYCZNE):
-1. Odpowiedz bardzo zwięźle (maksymalnie 3-4 konkretne zdania).
-2. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
-3. Nie pisz uprzejmościowych wstępów ani podsumowań.
-4. Skup się na dopasowaniu do okazji i stylu użytkownika.
+1. Odpowiedz bardzo zwięźle (maksymalnie 2 konkretne zdania).
+2. Dopasuj ubiór adekwatnie do aktualnej pogody (np. nie proponuj lekkich sukienek lub krótkich rękawów, gdy jest zimno/pada deszcz!).
+3. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
+4. Nie pisz uprzejmościowych wstępów ani podsumowań.
 
-PYTANIE: ${query}
+PYTANIE UŻYTKOWNIKA: ${query}
 `;
-
-async function askGemini(query, context) {
+};
+async function askGemini(query, context, weatherType) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = getBasePrompt(query, context);
+    const prompt = getBasePrompt(query, context, weatherType); // <-- Dodane
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) {
@@ -126,9 +174,9 @@ async function askGemini(query, context) {
   }
 }
 
-async function askMistralCloud(query, context) {
+async function askMistralCloud(query, context, weatherType) {
   try {
-    const prompt = getBasePrompt(query, context);
+    const prompt = getBasePrompt(query, context, weatherType); // <-- Dodane
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
@@ -141,16 +189,29 @@ async function askMistralCloud(query, context) {
     return "Błąd Mistral (Groq Cloud): " + err.message;
   }
 }
-
-async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
+async function askRAG(
+  query,
+  clothes,
+  user,
+  currentEvent,
+  selectedOccasion,
+  weatherType,
+) {
   try {
-    const topRecommendations = generateBestOutfits(clothes, user, currentEvent, selectedOccasion);
+    const topRecommendations = generateBestOutfits(
+      clothes,
+      user,
+      currentEvent,
+      selectedOccasion,
+      weatherType,
+    );
 
     if (!topRecommendations || topRecommendations.length === 0) {
       return {
-        explanation: "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
+        explanation:
+          "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
         recommendationId: null,
-        ragItems: []
+        ragItems: [],
       };
     }
 
@@ -189,25 +250,33 @@ async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
     });
 
     return {
-      explanation: chatCompletion.choices[0]?.message?.content || "Zestaw dopasowany do Twoich preferencji.",
+      explanation:
+        chatCompletion.choices[0]?.message?.content ||
+        "Zestaw dopasowany do Twoich preferencji.",
       recommendationId: newRec.id,
-      ragItems: bestSet.outfit 
+      ragItems: bestSet.outfit,
     };
   } catch (err) {
     return {
-      explanation: "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
+      explanation:
+        "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
       recommendationId: null,
-      ragItems: []
+      ragItems: [],
     };
   }
 }
 
 app.post("/api/analyze", authenticateToken, async (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, latitude = 51.2465, longitude = 22.5684 } = req.body;
     const userId = req.user.userId;
 
-    let selectedOccasion = "Casual"; 
+    const weatherType = await getLiveWeather(latitude, longitude);
+    console.log(
+      `\n[Weather Engine]: Dynamiczna geopozycja GPS [${latitude}, ${longitude}] zmapowana na stan -> ${weatherType}`,
+    );
+
+    let selectedOccasion = "Casual";
     const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
     if (occasionMatch && occasionMatch[1]) {
       selectedOccasion = occasionMatch[1].trim();
@@ -224,16 +293,25 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     ]);
 
     const textLower = query.toLowerCase();
-    const czyUzytkownikZmieniaTemat = textLower.includes("spacer") || textLower.includes("kino") || textLower.includes("impreza") || textLower.includes("sport") || textLower.includes("zajęć") || textLower.includes("uczeln");
+    const czyUzytkownikZmieniaTemat =
+      textLower.includes("spacer") ||
+      textLower.includes("kino") ||
+      textLower.includes("impreza") ||
+      textLower.includes("sport") ||
+      textLower.includes("zajęć") ||
+      textLower.includes("uczeln");
 
-    const dzis = new Date().toISOString().split('T')[0];
-    let currentEvent = events.find(e => {
-      const eventDate = new Date(e.date).toISOString().split('T')[0];
-      return eventDate === dzis;
-    }) || events[0] || null;
+    const dzis = new Date().toISOString().split("T")[0];
+    let currentEvent =
+      events.find((e) => {
+        const eventDate = new Date(e.date).toISOString().split("T")[0];
+        return eventDate === dzis;
+      }) ||
+      events[0] ||
+      null;
 
     if (czyUzytkownikZmieniaTemat) {
-      currentEvent = null; 
+      currentEvent = null;
     }
 
     let wardrobeContext = generateContextString(clothes, user);
@@ -242,18 +320,35 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       wardrobeContext += `\nAKTYWNE WYDARZENIE Z KALENDARZA: ${currentEvent.title} (Okazja: ${currentEvent.occasion}, Formalność: ${currentEvent.formality})\n`;
     }
 
-    console.log(" [RAG Engine]: Generowanie odpowiedzi...");
+    console.log(
+      "[RAG Engine]: Generowanie odpowiedzi ze wszystkich silników AI...",
+    );
 
     const startGemini = Date.now();
-    const geminiOdp = await askGemini(query, wardrobeContext).catch(err => "Błąd Gemini: " + err.message);
+    const geminiOdp = await askGemini(
+      query,
+      wardrobeContext,
+      weatherType,
+    ).catch((err) => "Błąd Gemini: " + err.message); 
     const latGemini = Date.now() - startGemini;
 
     const startMistral = Date.now();
-    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(err => "Błąd Mistral: " + err.message);
+    const mistralOdp = await askMistralCloud(
+      query,
+      wardrobeContext,
+      weatherType,
+    ).catch((err) => "Błąd Mistral: " + err.message); 
     const latMistral = Date.now() - startMistral;
 
     const startRag = Date.now();
-    const ragResult = await askRAG(query, clothes, user, currentEvent, selectedOccasion);
+    const ragResult = await askRAG(
+      query,
+      clothes,
+      user,
+      currentEvent,
+      selectedOccasion,
+      weatherType,
+    );
     const latRag = Date.now() - startRag;
 
     const geminiItems = findMatchingClothes(geminiOdp, clothes);
@@ -273,9 +368,9 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     res.json({
       ...analysisRecord,
       recommendationId: ragResult.recommendationId,
-      ragItems: ragResult.ragItems, 
-      geminiItems: geminiItems,   
-      llamaItems: llamaItems       
+      ragItems: ragResult.ragItems,
+      geminiItems: geminiItems,
+      llamaItems: llamaItems,
     });
   } catch (error) {
     console.error(" [KRYTYCZNY BŁĄD]:", error);
@@ -421,10 +516,9 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   }
 });
 
-
 app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { modelType, feedback } = req.body; 
+  const { modelType, feedback } = req.body;
 
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
@@ -580,7 +674,6 @@ app.get("/api/history", authenticateToken, async (req, res) => {
 app.get("/api/events", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-
     const [events, user, clothes] = await Promise.all([
       prisma.event.findMany({
         where: { userId: userId },
@@ -590,13 +683,44 @@ app.get("/api/events", authenticateToken, async (req, res) => {
       prisma.cloth.findMany({ where: { userId: userId } }),
     ]);
 
+    let dailyWeatherMap = {};
+    try {
+      const weatherRes = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=51.2465&longitude=22.5684&daily=temperature_2m_max,rain_sum&timezone=auto",
+      );
+      if (weatherRes.ok) {
+        const wData = await weatherRes.json();
+        wData.daily.time.forEach((dateStr, index) => {
+          const maxTemp = wData.daily.temperature_2m_max[index];
+          const rainSum = wData.daily.rain_sum[index];
+
+          let dayStatus = "Clear";
+          if (rainSum > 0.2) dayStatus = "Rain";
+          else if (maxTemp >= 24) dayStatus = "Hot";
+          else if (maxTemp <= 10) dayStatus = "Cold";
+
+          dailyWeatherMap[dateStr] = dayStatus;
+        });
+      }
+    } catch (e) {
+      console.error(
+        "Nie udało się pobrać prognozy dla kalendarza, używam Clear:",
+        e.message,
+      );
+    }
+
     const { generateBestOutfits } = require("./outfitEngine");
+
     const eventsWithOutfits = events.map((event) => {
+      const eventDateStr = new Date(event.date).toISOString().split("T")[0];
+      const forecastedWeather = dailyWeatherMap[eventDateStr] || "Clear";
+
       const topOutfits = generateBestOutfits(
         clothes,
         user,
         event,
         event.occasion,
+        forecastedWeather,
       );
       const bestOutfitItems = topOutfits.length > 0 ? topOutfits[0].outfit : [];
 
@@ -608,10 +732,8 @@ app.get("/api/events", authenticateToken, async (req, res) => {
 
     res.json({ events: eventsWithOutfits });
   } catch (error) {
-    console.error(" BŁĄD PODCZAS GENEROWANIA PREVIEW DLA KALENDARZA:", error);
-    res
-      .status(500)
-      .json({ error: "Błąd pobierania wydarzeń wraz z propozycjami AI." });
+    console.error("Błąd generowania propozycji kalendarza:", error);
+    res.status(500).json({ error: "Błąd serwera." });
   }
 });
 

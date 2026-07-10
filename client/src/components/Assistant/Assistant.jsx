@@ -24,7 +24,7 @@ const Assistant = () => {
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
-  const handleGenerate = async () => {
+const handleGenerate = async () => {
     if (!prompt && !selectedOccasion) return;
 
     setLoading(true);
@@ -37,14 +37,45 @@ const Assistant = () => {
     const token = sessionStorage.getItem("fitte_token");
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
+    const getCoordinates = () => {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          console.log("Geolokalizacja nie jest wspierana, używam fallbacku.");
+          resolve({ latitude: 51.2465, longitude: 22.5684 }); // Lublin
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.log("Błąd GPS lub brak zgody, używam fallbacku na Lublin.", error.message);
+            resolve({ latitude: 51.2465, longitude: 22.5684 });
+          },
+          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 } // Maksymalnie 2 sekundy czekania
+        );
+      });
+    };
+
     try {
+      const coords = await getCoordinates();
+      console.log("Wysyłam współrzędne do API Fitte:", coords);
+
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ query: fullQuery }),
+        body: JSON.stringify({ 
+          query: fullQuery,
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        }),
       });
 
       const data = await response.json();
@@ -52,7 +83,7 @@ const Assistant = () => {
         setResults(data);
       }
     } catch (error) {
-      console.error("Błąd asystenta:", error);
+      console.error("Błąd asystenta podczas wysyłania żądania:", error);
     } finally {
       setLoading(false);
     }

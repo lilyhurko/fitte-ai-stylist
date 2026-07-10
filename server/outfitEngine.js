@@ -7,8 +7,44 @@ const OCCASION_STYLE_MATCH = {
   "Podróż": ["Casual", "Streetwear"]
 };
 
-function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion) {
+const WEATHER_BLACKLIST = {
+  "Rain": {
+    categories: ["Sukienki"], 
+    styles: []
+  },
+  "Hot": {
+    categories: [],
+    styles: ["Classic"] 
+  },
+  "Cold": {
+    categories: ["Sukienki"], 
+    styles: ["Boho"]
+  }
+};
+
+function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
   let score = 50; 
+  
+  if (weatherType && WEATHER_BLACKLIST[weatherType]) {
+    const blacklist = WEATHER_BLACKLIST[weatherType];
+    let czyUbranieZablokowane = false;
+
+    outfit.forEach(item => {
+      const cat = item.category;
+      const st = item.style;
+      
+      if (blacklist.categories.includes(cat) || (st && blacklist.styles.includes(st))) {
+        czyUbranieZablokowane = true;
+      }
+    });
+
+    if (czyUbranieZablokowane) {
+      return {
+        totalScore: -999,
+        details: { message: `Zestaw odrzucony: nieadekwatny do pogody (${weatherType})` }
+      };
+    }
+  }
   
   const userStyleWeights = userProfile.styleWeights ? JSON.parse(userProfile.styleWeights) : {};
   const userColorWeights = userProfile.colorWeights ? JSON.parse(userProfile.colorWeights) : {};
@@ -63,11 +99,13 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
     details: {
       styleWeights: userStyleWeights,
       colorWeights: userColorWeights,
-      appliedOccasion: activeOccasion
+      appliedOccasion: activeOccasion,
+      appliedWeather: weatherType
     }
   };
 }
-function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasion) {
+
+function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
   const goras = clothes.filter(c => c.category === "Góra");
   const dols = clothes.filter(c => c.category === "Dół");
   const sukienki = clothes.filter(c => c.category === "Sukienki");
@@ -77,14 +115,14 @@ function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasio
   goras.forEach(g => {
     dols.forEach(d => {
       const outfit = [g, d];
-      const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion);
+      const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
       combinations.push({ outfit, ...scoring });
     });
   });
 
   sukienki.forEach(s => {
     const outfit = [s];
-    const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion);
+    const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
     combinations.push({ outfit, ...scoring });
   });
 
