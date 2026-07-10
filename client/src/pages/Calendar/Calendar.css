@@ -74,3 +74,35 @@
   background: #f0f4f8;
   color: #2b4c7e;
 }
+
+.calendar-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .calendar-grid {
+    grid-template-columns: 360px 1fr; 
+  }
+}
+
+.calendar-grid-day {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-badge {
+  background: #fdfaf6;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 212, 203, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

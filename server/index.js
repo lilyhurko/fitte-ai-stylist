@@ -109,7 +109,12 @@ async function askMistralCloud(query, context) {
 
 async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
   try {
-    const topRecommendations = generateBestOutfits(clothes, user, currentEvent, selectedOccasion);
+    const topRecommendations = generateBestOutfits(
+      clothes,
+      user,
+      currentEvent,
+      selectedOccasion,
+    );
 
     if (!topRecommendations || topRecommendations.length === 0) {
       return {
@@ -308,7 +313,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const { query } = req.body;
     const userId = req.user.userId;
 
-    let selectedOccasion = "Casual"; 
+    let selectedOccasion = "Casual";
     const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
     if (occasionMatch && occasionMatch[1]) {
       selectedOccasion = occasionMatch[1].trim();
@@ -353,8 +358,18 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const latMistral = Date.now() - startMistral;
 
     const startRag = Date.now();
-    const currentEvent = events[0] || null;
+    const dzis = new Date().toISOString().split("T")[0];
+    const currentEvent =
+      events.find((e) => {
+        const eventDate = new Date(e.date).toISOString().split("T")[0];
+        return eventDate === dzis;
+      }) ||
+      events[0] ||
+      null;
 
+    console.log(
+      `[RAG Context]: Aktywne wydarzenie z kalendarza to: ${currentEvent ? currentEvent.title : "Brak na dziś"}`,
+    );
     const ragResult = await askRAG(
       query,
       clothes,
@@ -402,12 +417,12 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
 
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
-    
+
     let updateData = {};
     if (modelType === "gemini") {
       updateData.geminiScore = scoreValue;
     } else if (modelType === "llama") {
-      updateData.mistralScore = scoreValue; 
+      updateData.mistralScore = scoreValue;
     } else {
       return res.status(400).json({ error: "Nieprawidłowy typ modelu" });
     }
@@ -419,59 +434,72 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
 
     res.json({ success: true, updatedAnalysis });
   } catch (error) {
-    res.status(500).json({ error: "Błąd podczas zapisu feedbacku: " + error.message });
+    res
+      .status(500)
+      .json({ error: "Błąd podczas zapisu feedbacku: " + error.message });
   }
 });
 
-app.post("/api/recommendations/:id/feedback", authenticateToken, async (req, res) => {
-  const { id } = req.params; 
-  const { feedback, analysisId } = req.body; 
-  const userId = req.user.userId;
+app.post(
+  "/api/recommendations/:id/feedback",
+  authenticateToken,
+  async (req, res) => {
+    const { id } = req.params;
+    const { feedback, analysisId } = req.body;
+    const userId = req.user.userId;
 
-  try {
-    const rec = await prisma.outfitRecommendation.findUnique({ where: { id } });
-    if (!rec) return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
-    let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
-    const clothes = await prisma.cloth.findMany({ where: { id: { in: rec.clothIds } } });
-
-    const factor = feedback === "LIKE" ? 0.1 : -0.1;
-    clothes.forEach((item) => {
-      if (item.style) styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
-      if (item.color) colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
-    });
-
-    const operations = [
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          styleWeights: JSON.stringify(styleWeights),
-          colorWeights: JSON.stringify(colorWeights),
-        },
-      }),
-      prisma.outfitRecommendation.update({
+    try {
+      const rec = await prisma.outfitRecommendation.findUnique({
         where: { id },
-        data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
-      }),
-    ];
+      });
+      if (!rec)
+        return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
 
-    if (analysisId) {
-      operations.push(
-        prisma.analysis.update({
-          where: { id: analysisId },
-          data: { ragScore: feedback === "LIKE" ? 1 : 0 }
-        })
-      );
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
+      let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
+      const clothes = await prisma.cloth.findMany({
+        where: { id: { in: rec.clothIds } },
+      });
+
+      const factor = feedback === "LIKE" ? 0.1 : -0.1;
+      clothes.forEach((item) => {
+        if (item.style)
+          styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
+        if (item.color)
+          colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
+      });
+
+      const operations = [
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            styleWeights: JSON.stringify(styleWeights),
+            colorWeights: JSON.stringify(colorWeights),
+          },
+        }),
+        prisma.outfitRecommendation.update({
+          where: { id },
+          data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
+        }),
+      ];
+
+      if (analysisId) {
+        operations.push(
+          prisma.analysis.update({
+            where: { id: analysisId },
+            data: { ragScore: feedback === "LIKE" ? 1 : 0 },
+          }),
+        );
+      }
+
+      await prisma.$transaction(operations);
+      res.json({ success: true, styleWeights, colorWeights });
+    } catch (error) {
+      res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
     }
-
-    await prisma.$transaction(operations);
-    res.json({ success: true, styleWeights, colorWeights });
-  } catch (error) {
-    res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
-  }
-});
+  },
+);
 
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
@@ -540,13 +568,32 @@ app.get("/api/history", authenticateToken, async (req, res) => {
 
 app.get("/api/events", authenticateToken, async (req, res) => {
   try {
-    const events = await prisma.event.findMany({
-      where: { userId: req.user.userId },
-      orderBy: { date: "asc" },
+    const userId = req.user.userId;
+
+    const [events, user, clothes] = await Promise.all([
+      prisma.event.findMany({
+        where: { userId: userId },
+        orderBy: { date: "asc" },
+      }),
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.cloth.findMany({ where: { userId: userId } }),
+    ]);
+
+    const { generateBestOutfits } = require("./outfitEngine");
+    const eventsWithOutfits = events.map((event) => {
+      const topOutfits = generateBestOutfits(clothes, user, event, event.occasion);  
+      const bestOutfitItems = topOutfits.length > 0 ? topOutfits[0].outfit : [];
+
+      return {
+        ...event,
+        aiProposedOutfit: bestOutfitItems 
+      };
     });
-    res.json({ events });
+
+    res.json({ events: eventsWithOutfits });
   } catch (error) {
-    res.status(500).json({ error: "Błąd pobierania wydarzeń." });
+    console.error(" BŁĄD PODCZAS GENEROWANIA PREVIEW DLA KALENDARZA:", error);
+    res.status(500).json({ error: "Błąd pobierania wydarzeń wraz z propozycjami AI." });
   }
 });
 
