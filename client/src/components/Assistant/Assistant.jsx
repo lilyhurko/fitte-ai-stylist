@@ -187,16 +187,28 @@ const Assistant = () => {
           </h3>
 
           <div className="results-grid">
-            
-            {/* KOLUMNA 1: GEMINI */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-4">
                   <Sparkles size={14} /> Gemini 2.5 Flash
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-700 leading-relaxed mb-5">
                   {results.geminiResponse}
                 </p>
+
+                {results.geminiItems && results.geminiItems.length > 0 && (
+                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
+                    {results.geminiItems.map((cloth) => (
+                      <img
+                        key={cloth.id}
+                        src={cloth.imageUrl}
+                        alt={cloth.name}
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        title={cloth.name}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
@@ -221,15 +233,28 @@ const Assistant = () => {
               </div>
             </div>
 
-            {/* KOLUMNA 2: LLAMA */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-4">
                   <Monitor size={14} /> Llama 3.3 (Cloud)
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-700 leading-relaxed mb-5">
                   {results.mistralResponse}
                 </p>
+
+                {results.llamaItems && results.llamaItems.length > 0 && (
+                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
+                    {results.llamaItems.map((cloth) => (
+                      <img
+                        key={cloth.id}
+                        src={cloth.imageUrl}
+                        alt={cloth.name}
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        title={cloth.name}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
@@ -254,15 +279,28 @@ const Assistant = () => {
               </div>
             </div>
 
-            {/* KOLUMNA 3: FITTE AI (HYBRID RAG) */}
             <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-4">
                   <Brain size={14} /> Fitte AI (Hybrid RAG)
                 </div>
-                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium">
+                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-5">
                   {results.ragResponse}
                 </p>
+
+                {results.ragItems && results.ragItems.length > 0 && (
+                  <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 animate-fade-in">
+                    {results.ragItems.map((cloth) => (
+                      <img
+                        key={cloth.id}
+                        src={cloth.imageUrl}
+                        alt={cloth.name}
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        title={cloth.name}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
@@ -291,7 +329,6 @@ const Assistant = () => {
                 </div>
               </div>
             </div>
-
           </div>
         </section>
       )}

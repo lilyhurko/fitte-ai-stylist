@@ -45,6 +45,41 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+function findMatchingClothes(llmResponse, clothes) {
+  if (!llmResponse || !clothes || clothes.length === 0) return [];
+  
+  const text = llmResponse.toLowerCase();
+  let matched = [];
+
+  clothes.forEach(cloth => {
+    const nameLower = cloth.name.toLowerCase(); 
+    const categoryLower = cloth.category.toLowerCase(); 
+
+    const jestKoszulą = nameLower.includes("koszul") || nameLower.includes("t-shirt") || nameLower.includes("top");
+    const jestMarynarką = nameLower.includes("marynark") || nameLower.includes("żakiet");
+    const jestSpodniami = nameLower.includes("jeans") || nameLower.includes("spodn");
+    const jestSukienką = categoryLower.includes("sukienk") || nameLower.includes("sukienk");
+
+    const aiPiszeOKoszuli = text.includes("koszul") || text.includes("t-shirt") || text.includes("top");
+    const aiPiszeOMarynarce = text.includes("marynark") || text.includes("żakiet");
+    const aiPiszeOSpodniach = text.includes("jeans") || text.includes("spodn");
+    const aiPiszeOSukience = text.includes("sukienk");
+
+    if (
+      (jestKoszulą && aiPiszeOKoszuli) ||
+      (jestMarynarką && aiPiszeOMarynarce) ||
+      (jestSpodniami && aiPiszeOSpodniach) ||
+      (jestSukienką && aiPiszeOSukience)
+    ) {
+      if (!matched.some(m => m.id === cloth.id)) {
+        matched.push(cloth);
+      }
+    }
+  });
+
+  return matched.slice(0, 3);
+}
+
 
 const generateContextString = (clothes, user) => {
   const gender = user?.gender || "osoba";
@@ -109,18 +144,13 @@ async function askMistralCloud(query, context) {
 
 async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
   try {
-    const topRecommendations = generateBestOutfits(
-      clothes,
-      user,
-      currentEvent,
-      selectedOccasion,
-    );
+    const topRecommendations = generateBestOutfits(clothes, user, currentEvent, selectedOccasion);
 
     if (!topRecommendations || topRecommendations.length === 0) {
       return {
-        explanation:
-          "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
+        explanation: "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
         recommendationId: null,
+        ragItems: []
       };
     }
 
@@ -129,14 +159,17 @@ async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
       .map((i) => `${i.name} (Styl: ${i.style}, Kolor: ${i.color})`)
       .join(" oraz ");
 
-    const explanationPrompt = `
-      Jesteś warstwą wyjaśniającą autorskiego systemu rekomendacji Fitte AI.
-      Nasz deterministyczny algorytm oceny (scoring) wybrał dla użytkownika następujący idealny zestaw ubrań: ${itemsDescription}.
-      Zestaw ten uzyskał ocenę: ${bestSet.totalScore} punktów.
-      Zapytanie użytkownika: "${query}"
-      Okazja z kalendarza: ${currentEvent ? currentEvent.title + " (Formalność: " + currentEvent.formality + ")" : "Brak"}.
+    const aktywnaOkazja = currentEvent ? currentEvent.title : selectedOccasion;
 
-      Wygeneruj bardzo zwięzłe (maksymalnie 3 zdania), profesjonalne uzasadnienie dla użytkownika, dlaczego ten MATEMATYCZNIE wybrany przez nasz algorytm zestaw jest dla niego najlepszy pod kątem dress code'u i jego wag preferencji. Odpowiedz po polsku.
+    const explanationPrompt = `
+      Jesteś warstwą wyjaśniającą systemu rekomendacji Fitte AI.
+      Algorytm wybrał dla użytkownika zestaw ubrań: ${itemsDescription}.
+      Zapytanie użytkownika: "${query}"
+      Okazja: ${aktywnaOkazja}.
+
+      Napisz maksymalnie 1-2 bardzo krótkie, konkretne zdania uzasadniające, dlaczego ten zestaw pasuje do okazji: ${aktywnaOkazja}. 
+      Nie wspominaj o innych wydarzeniach z kalendarza, jeśli nie są bezpośrednio związane z zapytaniem: "${query}".
+      Odpowiedz wyłącznie czystym uzasadnieniem bez powitań, po polsku.
     `;
 
     const chatCompletion = await groq.chat.completions.create({
@@ -156,19 +189,99 @@ async function askRAG(query, clothes, user, currentEvent, selectedOccasion) {
     });
 
     return {
-      explanation:
-        chatCompletion.choices[0]?.message?.content ||
-        "Brak uzasadnienia silnika.",
+      explanation: chatCompletion.choices[0]?.message?.content || "Zestaw dopasowany do Twoich preferencji.",
       recommendationId: newRec.id,
+      ragItems: bestSet.outfit 
     };
   } catch (err) {
     return {
-      explanation:
-        "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
+      explanation: "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
       recommendationId: null,
+      ragItems: []
     };
   }
 }
+
+app.post("/api/analyze", authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user.userId;
+
+    let selectedOccasion = "Casual"; 
+    const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
+    if (occasionMatch && occasionMatch[1]) {
+      selectedOccasion = occasionMatch[1].trim();
+    }
+
+    const [user, clothes, events] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.cloth.findMany({ where: { userId } }),
+      prisma.event.findMany({
+        where: { userId },
+        orderBy: { date: "asc" },
+        take: 3,
+      }),
+    ]);
+
+    const textLower = query.toLowerCase();
+    const czyUzytkownikZmieniaTemat = textLower.includes("spacer") || textLower.includes("kino") || textLower.includes("impreza") || textLower.includes("sport") || textLower.includes("zajęć") || textLower.includes("uczeln");
+
+    const dzis = new Date().toISOString().split('T')[0];
+    let currentEvent = events.find(e => {
+      const eventDate = new Date(e.date).toISOString().split('T')[0];
+      return eventDate === dzis;
+    }) || events[0] || null;
+
+    if (czyUzytkownikZmieniaTemat) {
+      currentEvent = null; 
+    }
+
+    let wardrobeContext = generateContextString(clothes, user);
+
+    if (currentEvent) {
+      wardrobeContext += `\nAKTYWNE WYDARZENIE Z KALENDARZA: ${currentEvent.title} (Okazja: ${currentEvent.occasion}, Formalność: ${currentEvent.formality})\n`;
+    }
+
+    console.log(" [RAG Engine]: Generowanie odpowiedzi...");
+
+    const startGemini = Date.now();
+    const geminiOdp = await askGemini(query, wardrobeContext).catch(err => "Błąd Gemini: " + err.message);
+    const latGemini = Date.now() - startGemini;
+
+    const startMistral = Date.now();
+    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(err => "Błąd Mistral: " + err.message);
+    const latMistral = Date.now() - startMistral;
+
+    const startRag = Date.now();
+    const ragResult = await askRAG(query, clothes, user, currentEvent, selectedOccasion);
+    const latRag = Date.now() - startRag;
+
+    const geminiItems = findMatchingClothes(geminiOdp, clothes);
+    const llamaItems = findMatchingClothes(mistralOdp, clothes);
+
+    const analysisRecord = await prisma.analysis.create({
+      data: {
+        query,
+        geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
+        mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
+        ragResponse: `${ragResult.explanation} (Czas: ${latRag}ms)`,
+        contextUsed: wardrobeContext,
+        userId,
+      },
+    });
+
+    res.json({
+      ...analysisRecord,
+      recommendationId: ragResult.recommendationId,
+      ragItems: ragResult.ragItems, 
+      geminiItems: geminiItems,   
+      llamaItems: llamaItems       
+    });
+  } catch (error) {
+    console.error(" [KRYTYCZNY BŁĄD]:", error);
+    res.status(500).json({ error: "Błąd serwera podczas analizy AI" });
+  }
+});
 
 app.get("/", (req, res) => {
   res.json({
@@ -308,112 +421,10 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/analyze", authenticateToken, async (req, res) => {
-  try {
-    const { query } = req.body;
-    const userId = req.user.userId;
 
-    let selectedOccasion = "Casual";
-    const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
-    if (occasionMatch && occasionMatch[1]) {
-      selectedOccasion = occasionMatch[1].trim();
-    }
-
-    const [user, clothes, events] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId } }),
-      prisma.cloth.findMany({ where: { userId } }),
-      prisma.event.findMany({
-        where: { userId },
-        orderBy: { date: "asc" },
-        take: 3,
-      }),
-    ]);
-
-    let wardrobeContext = generateContextString(clothes, user);
-
-    if (events && events.length > 0) {
-      wardrobeContext += "\nNADCHODZĄCE WYDARZENIA W KALENDARZU UŻYTKOWNIKA:\n";
-      wardrobeContext += events
-        .map(
-          (e) =>
-            `- ${e.title} (Okazja: ${e.occasion}, Formalność: ${e.formality}, Data: ${new Date(e.date).toLocaleDateString("pl-PL")})`,
-        )
-        .join("\n");
-    }
-
-    console.log(
-      " [RAG Engine]: Odpytuję silniki AI równolegle z pomiarem opóźnień...",
-    );
-
-    const startGemini = Date.now();
-    const geminiOdp = await askGemini(query, wardrobeContext).catch(
-      (err) => "Błąd Gemini: " + err.message,
-    );
-    const latGemini = Date.now() - startGemini;
-
-    const startMistral = Date.now();
-    const mistralOdp = await askMistralCloud(query, wardrobeContext).catch(
-      (err) => "Błąd Mistral: " + err.message,
-    );
-    const latMistral = Date.now() - startMistral;
-
-    const startRag = Date.now();
-    const dzis = new Date().toISOString().split("T")[0];
-    const currentEvent =
-      events.find((e) => {
-        const eventDate = new Date(e.date).toISOString().split("T")[0];
-        return eventDate === dzis;
-      }) ||
-      events[0] ||
-      null;
-
-    console.log(
-      `[RAG Context]: Aktywne wydarzenie z kalendarza to: ${currentEvent ? currentEvent.title : "Brak na dziś"}`,
-    );
-    const ragResult = await askRAG(
-      query,
-      clothes,
-      user,
-      currentEvent,
-      selectedOccasion,
-    ).catch((err) => ({
-      explanation: "Błąd Fitte RAG: " + err.message,
-      recommendationId: null,
-    }));
-    const latRag = Date.now() - startRag;
-
-    console.log(
-      `Opóźnienia: Gemini: ${latGemini}ms | Mistral: ${latMistral}ms | Fitte RAG: ${latRag}ms`,
-    );
-
-    const analysisRecord = await prisma.analysis.create({
-      data: {
-        query,
-        geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
-        mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
-        ragResponse: `${ragResult.explanation} (Czas: ${latRag}ms)`,
-        contextUsed: wardrobeContext,
-        userId,
-      },
-    });
-
-    res.json({
-      ...analysisRecord,
-      recommendationId: ragResult.recommendationId,
-    });
-  } catch (error) {
-    console.error(" [KRYTYCZNY BŁĄD ENPOINTU ANALIZY]:", error);
-    res.status(500).json({
-      error: "Błąd podczas generowania porównania AI",
-      details: error.message,
-    });
-  }
-});
-
-// --- NOWY ENDPOINT: BINARNY FEEDBACK DLA SILNIKÓW GEMINI ORAZ LLAMA (MISTRAL) ---
 app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { modelType, feedback } = req.body; // modelType: 'gemini' | 'llama', feedback: 'LIKE' | 'DISLIKE'
+  const { modelType, feedback } = req.body; 
 
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
@@ -581,19 +592,26 @@ app.get("/api/events", authenticateToken, async (req, res) => {
 
     const { generateBestOutfits } = require("./outfitEngine");
     const eventsWithOutfits = events.map((event) => {
-      const topOutfits = generateBestOutfits(clothes, user, event, event.occasion);  
+      const topOutfits = generateBestOutfits(
+        clothes,
+        user,
+        event,
+        event.occasion,
+      );
       const bestOutfitItems = topOutfits.length > 0 ? topOutfits[0].outfit : [];
 
       return {
         ...event,
-        aiProposedOutfit: bestOutfitItems 
+        aiProposedOutfit: bestOutfitItems,
       };
     });
 
     res.json({ events: eventsWithOutfits });
   } catch (error) {
     console.error(" BŁĄD PODCZAS GENEROWANIA PREVIEW DLA KALENDARZA:", error);
-    res.status(500).json({ error: "Błąd pobierania wydarzeń wraz z propozycjami AI." });
+    res
+      .status(500)
+      .json({ error: "Błąd pobierania wydarzeń wraz z propozycjami AI." });
   }
 });
 
