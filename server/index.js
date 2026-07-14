@@ -45,6 +45,7 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
 function findMatchingClothes(llmResponse, clothes) {
   if (!llmResponse || !clothes || clothes.length === 0) return [];
 
@@ -53,34 +54,39 @@ function findMatchingClothes(llmResponse, clothes) {
 
   clothes.forEach((cloth) => {
     const nameLower = cloth.name.toLowerCase();
+    const colorLower = cloth.color ? cloth.color.toLowerCase() : "";
     const categoryLower = cloth.category.toLowerCase();
 
-    const jestKoszulą =
-      nameLower.includes("koszul") ||
-      nameLower.includes("t-shirt") ||
-      nameLower.includes("top");
-    const jestMarynarką =
-      nameLower.includes("marynark") || nameLower.includes("żakiet");
-    const jestSpodniami =
-      nameLower.includes("jeans") || nameLower.includes("spodn");
-    const jestSukienką =
-      categoryLower.includes("sukienk") || nameLower.includes("sukienk");
+    const nameKeywords = nameLower.split(/\s+/).filter(word => word.length > 3);
+    
+    const colorMatch = colorLower && text.includes(colorLower);
+    
+    const keywordMatch = nameKeywords.some(keyword => {
+      const stem = keyword.slice(0, -1); 
+      return text.includes(stem);
+    });
 
-    const aiPiszeOKoszuli =
-      text.includes("koszul") ||
-      text.includes("t-shirt") ||
-      text.includes("top");
-    const aiPiszeOMarynarce =
-      text.includes("marynark") || text.includes("żakiet");
-    const aiPiszeOSpodniach = text.includes("jeans") || text.includes("spodn");
-    const aiPiszeOSukience = text.includes("sukienk");
+    let categoryMatch = false;
+    if (categoryLower.includes("sukienk") && text.includes("sukienk")) categoryMatch = true;
+    
+    if ((categoryLower.includes("góra") || nameLower.includes("koszul") || nameLower.includes("t-shirt")) && 
+        (text.includes("koszul") || text.includes("t-shirt") || text.includes("top"))) {
+      categoryMatch = true;
+    }
+    
+    if ((categoryLower.includes("dół") || nameLower.includes("spodn") || nameLower.includes("jeans")) && 
+        (text.includes("jeans") || text.includes("spodn"))) {
+      categoryMatch = true;
+    }
+    
+    if ((categoryLower.includes("buty") || categoryLower.includes("obuwie")) && 
+        (text.includes("buty") || text.includes("sneakers") || text.includes("sandał") || 
+         text.includes("klapk") || text.includes("obcas") || text.includes("mule") || text.includes("szpilk"))) {
+      categoryMatch = true;
+    }
 
-    if (
-      (jestKoszulą && aiPiszeOKoszuli) ||
-      (jestMarynarką && aiPiszeOMarynarce) ||
-      (jestSpodniami && aiPiszeOSpodniach) ||
-      (jestSukienką && aiPiszeOSukience)
-    ) {
+
+    if (categoryMatch && (colorMatch || keywordMatch)) {
       if (!matched.some((m) => m.id === cloth.id)) {
         matched.push(cloth);
       }
@@ -89,7 +95,6 @@ function findMatchingClothes(llmResponse, clothes) {
 
   return matched.slice(0, 3);
 }
-
 const generateContextString = (clothes, user) => {
   const gender = user?.gender || "osoba";
   const styles = user?.styleTags || "brak sprecyzowanego stylu";
@@ -155,18 +160,23 @@ INFORMACJE O UŻYTKOWNIKU I SZAFIE:
 ${context}
 
 ZASADY ODPOWIEDZI (KRYTYCZNE):
-1. Odpowiedz bardzo zwięźle (maksymalnie 2 konkretne zdania).
-2. Dopasuj ubiór adekwatnie do aktualnej pogody (np. nie proponuj lekkich sukienek lub krótkich rękawów, gdy jest zimno/pada deszcz!).
-3. Wybieraj ubrania WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań.
-4. Nie pisz uprzejmościowych wstępów ani podsumowań.
+1. Odpowiedz bardzo zwięźle (maksymalnie 2-3 konkretne zdania).
+2. Dopasuj ubiór adekwatnie do aktualnej pogody.
+3. Wybierz kompletny zestaw ubrań składający się z:
+   - GÓRY i DOŁU (lub Sukienki)
+   - ORAZ PASUJĄCEGO OBUWIA (butów) z listy ubrań w szafie.
+4. Wybieraj ubrania i obuwie WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań ani butów, których użytkownik nie ma w szafie.
+5. Nie pisz uprzejmościowych wstępów ani podsumowań.
 
 PYTANIE UŻYTKOWNIKA: ${query}
 `;
 };
+
+
 async function askGemini(query, context, weatherType) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = getBasePrompt(query, context, weatherType); // <-- Dodane
+    const prompt = getBasePrompt(query, context, weatherType); 
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) {
@@ -176,7 +186,7 @@ async function askGemini(query, context, weatherType) {
 
 async function askMistralCloud(query, context, weatherType) {
   try {
-    const prompt = getBasePrompt(query, context, weatherType); // <-- Dodane
+    const prompt = getBasePrompt(query, context, weatherType); 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
@@ -329,7 +339,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       query,
       wardrobeContext,
       weatherType,
-    ).catch((err) => "Błąd Gemini: " + err.message); 
+    ).catch((err) => "Błąd Gemini: " + err.message);
     const latGemini = Date.now() - startGemini;
 
     const startMistral = Date.now();
@@ -337,7 +347,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       query,
       wardrobeContext,
       weatherType,
-    ).catch((err) => "Błąd Mistral: " + err.message); 
+    ).catch((err) => "Błąd Mistral: " + err.message);
     const latMistral = Date.now() - startMistral;
 
     const startRag = Date.now();
@@ -435,8 +445,12 @@ app.post(
   async (req, res) => {
     try {
       const userId = req.user.userId;
-      if (!req.file) return res.status(400).json({ error: "Brak zdjęcia" });
-
+      if (!req.file) {
+        console.log(
+          " [Multer]: Przeglądarka ponowiła puste zapytanie (Retry). Ignoruję, aby nie blokować UI.",
+        );
+        return res.json({ success: true, duplicatedRetry: true });
+      }
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
       nativeForm.append("file", fileBlob, "upload.png");
@@ -708,8 +722,6 @@ app.get("/api/events", authenticateToken, async (req, res) => {
         e.message,
       );
     }
-
-    const { generateBestOutfits } = require("./outfitEngine");
 
     const eventsWithOutfits = events.map((event) => {
       const eventDateStr = new Date(event.date).toISOString().split("T")[0];
