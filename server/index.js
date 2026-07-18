@@ -52,49 +52,65 @@ function findMatchingClothes(llmResponse, clothes) {
   const text = llmResponse.toLowerCase();
   let matched = [];
 
+  const słownikKolorów = {
+    różowa: ["róż", "roz", "pastel"],
+    czarna: ["czarn", "ciemn"],
+    zielona: ["zielon", "wzorzyst", "kwiat"]
+  };
+
   clothes.forEach((cloth) => {
     const nameLower = cloth.name.toLowerCase();
-    const colorLower = cloth.color ? cloth.color.toLowerCase() : "";
     const categoryLower = cloth.category.toLowerCase();
 
-    const nameKeywords = nameLower.split(/\s+/).filter(word => word.length > 3);
-    
-    const colorMatch = colorLower && text.includes(colorLower);
-    
-    const keywordMatch = nameKeywords.some(keyword => {
-      const stem = keyword.slice(0, -1); 
-      return text.includes(stem);
-    });
+    const jestSukienka = categoryLower.includes("sukienk") || nameLower.includes("sukienk");
+    const jestButy = categoryLower.includes("buty") || categoryLower.includes("obuwie") || nameLower.includes("sneakers") || nameLower.includes("mule");
+    const aiPiszeOSukience = text.includes("sukienk");
+    const aiPiszeOButach = text.includes("buty") || text.includes("sneakers") || text.includes("mule") || text.includes("obcas");
 
-    let categoryMatch = false;
-    if (categoryLower.includes("sukienk") && text.includes("sukienk")) categoryMatch = true;
-    
-    if ((categoryLower.includes("góra") || nameLower.includes("koszul") || nameLower.includes("t-shirt")) && 
-        (text.includes("koszul") || text.includes("t-shirt") || text.includes("top"))) {
-      categoryMatch = true;
-    }
-    
-    if ((categoryLower.includes("dół") || nameLower.includes("spodn") || nameLower.includes("jeans")) && 
-        (text.includes("jeans") || text.includes("spodn"))) {
-      categoryMatch = true;
-    }
-    
-    if ((categoryLower.includes("buty") || categoryLower.includes("obuwie")) && 
-        (text.includes("buty") || text.includes("sneakers") || text.includes("sandał") || 
-         text.includes("klapk") || text.includes("obcas") || text.includes("mule") || text.includes("szpilk"))) {
-      categoryMatch = true;
+    if (jestSukienka && aiPiszeOSukience) {
+
+      let dopasowanieCechy = false;
+      
+      if (nameLower.includes("róż") || nameLower.includes("roz")) {
+        if (text.includes("róż") || text.includes("roz") || text.includes("pastel")) dopasowanieCechy = true;
+      }
+      else if (nameLower.includes("czarn")) {
+        if (text.includes("czarn")) dopasowanieCechy = true;
+      }
+      else if (nameLower.includes("zielon")) {
+        if (text.includes("zielon") || text.includes("wzorzyst")) dopasowanieCechy = true;
+      }
+      else {
+        const slowa = nameLower.split(/\s+/).filter(w => w.length > 3);
+        dopasowanieCechy = slowa.some(s => text.includes(s.slice(0, -1)));
+      }
+
+      if (dopasowanieCechy) {
+        matched.push(cloth);
+      }
     }
 
+    if (jestButy && aiPiszeOButach) {
 
-    if (categoryMatch && (colorMatch || keywordMatch)) {
-      if (!matched.some((m) => m.id === cloth.id)) {
+      const slowaButów = nameLower.split(/\s+/).filter(w => w.length > 3);
+      const dopasowanieButów = slowaButów.some(s => text.includes(s.slice(0, -1)));
+      
+      if (dopasowanieButów || text.includes("mule") || text.includes("but")) {
         matched.push(cloth);
       }
     }
   });
 
-  return matched.slice(0, 3);
+  const uniqueMatched = [];
+  matched.forEach(item => {
+    if (!uniqueMatched.some(m => m.id === item.id)) {
+      uniqueMatched.push(item);
+    }
+  });
+
+  return uniqueMatched.slice(0, 3);
 }
+
 const generateContextString = (clothes, user) => {
   const gender = user?.gender || "osoba";
   const styles = user?.styleTags || "brak sprecyzowanego stylu";

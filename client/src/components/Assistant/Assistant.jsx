@@ -211,13 +211,14 @@ const handleGenerate = async () => {
         </div>
       </section>
 
-      {results && (
+{results && (
         <section className="mt-12 md:mt-16 animate-fade-in">
           <h3 className="font-playfair text-xl md:text-2xl mb-6 md:mb-8">
             Porównanie inteligentnych propozycji
           </h3>
 
           <div className="results-grid">
+            {/* COLUMN 1: GEMINI */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-4">
@@ -227,7 +228,7 @@ const handleGenerate = async () => {
                   {results.geminiResponse}
                 </p>
 
-                {results.geminiItems && results.geminiItems.length > 0 && (
+                {results.geminiItems && results.geminiItems.length > 0 ? (
                   <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
                     {results.geminiItems.map((cloth) => (
                       <img
@@ -238,6 +239,10 @@ const handleGenerate = async () => {
                         title={cloth.name}
                       />
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-gray-400 bg-gray-50/50 border border-dashed border-gray-200 p-3 rounded-xl text-center italic mb-4">
+                    Model dopasował ubrania spoza Twojej szafy.
                   </div>
                 )}
               </div>
@@ -264,6 +269,7 @@ const handleGenerate = async () => {
               </div>
             </div>
 
+            {/* COLUMN 2: LLAMA */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-4">
@@ -273,7 +279,7 @@ const handleGenerate = async () => {
                   {results.mistralResponse}
                 </p>
 
-                {results.llamaItems && results.llamaItems.length > 0 && (
+                {results.llamaItems && results.llamaItems.length > 0 ? (
                   <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
                     {results.llamaItems.map((cloth) => (
                       <img
@@ -284,6 +290,10 @@ const handleGenerate = async () => {
                         title={cloth.name}
                       />
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-gray-400 bg-gray-50/50 border border-dashed border-gray-200 p-3 rounded-xl text-center italic mb-4">
+                    Model dopasował ubrania spoza Twojej szafy.
                   </div>
                 )}
               </div>
@@ -310,6 +320,7 @@ const handleGenerate = async () => {
               </div>
             </div>
 
+            {/* COLUMN 3: FITTE HYBRID RAG */}
             <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-4">
