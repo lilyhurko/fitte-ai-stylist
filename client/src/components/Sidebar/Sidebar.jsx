@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
-import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase } from "lucide-react";
+import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package } from "lucide-react";
 import "./Sidebar.css";
 
 const OCCASION_STYLE_MATCH = {
@@ -32,6 +32,8 @@ const Sidebar = () => {
   const { clothes } = useWardrobe();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCapsuleOpen, setIsCapsuleOpen] = useState(false);
+  const [capsuleData, setCapsuleData] = useState(null);
 
   const stats = useMemo(() => {
     if (!clothes || clothes.length === 0) {
@@ -97,6 +99,35 @@ const Sidebar = () => {
   const handleStatsClick = () => {
     setIsOpen(false);
     setIsModalOpen(true);
+  };
+
+  const handleOpenCapsule = async () => {
+    setIsOpen(false);
+    setIsCapsuleOpen(true);
+    const token = sessionStorage.getItem("fitte_token");
+    if (!token) {
+      console.error("Brak tokena — sesja wygasła lub nieprawidłowa.");
+      setIsCapsuleOpen(false);
+      logout();
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:5001/api/capsule", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        console.error("Sesja wygasła, wylogowuję.");
+        setIsCapsuleOpen(false);
+        logout();
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setCapsuleData(data);
+      }
+    } catch (e) {
+      console.error("Błąd pobierania szafy kapsułowej:", e);
+    }
   };
 
   return (
@@ -187,6 +218,31 @@ const Sidebar = () => {
             <BarChart3 size={14} className="text-gray-300 shrink-0" />
           </button>
 
+          <button
+            onClick={handleOpenCapsule}
+            className="w-full flex items-center gap-3 p-3 mb-3 rounded-2xl bg-white/60 border border-[#E8DDD0]/50 shadow-sm hover:bg-white hover:shadow-md transition-all text-left cursor-pointer"
+          >
+            <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 shrink-0">
+              <Package size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-[10px] font-bold text-fitte-brown-dark uppercase tracking-wide">Szafa kapsułowa</span>
+                <span className="text-[11px] font-bold text-indigo-700 shrink-0 ml-1">{Math.min(stats.total, 10)}/10</span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(stats.total, 10) * 10}%`,
+                    background: "linear-gradient(90deg, #818CF8, #4338CA)"
+                  }}
+                ></div>
+              </div>
+            </div>
+            <BarChart3 size={14} className="text-gray-300 shrink-0" />
+          </button>
+
           <hr className="footer-line" />
           <button onClick={logout} className="logout-btn">
             <LogOut size={20} />
@@ -196,6 +252,7 @@ const Sidebar = () => {
       </aside>
 
       <StatsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} stats={stats} />
+      <CapsuleModal isOpen={isCapsuleOpen} onClose={() => setIsCapsuleOpen(false)} data={capsuleData} />
     </>
   );
 };
@@ -340,6 +397,74 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CapsuleModal = ({ isOpen, onClose, data }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 2000 }}>
+      <div className="modal-content apple-card max-w-2xl w-[90%] p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+        <button className="close-btn absolute top-5 right-5 text-gray-400 hover:text-black transition-colors" onClick={onClose}>
+          <X size={22} />
+        </button>
+
+        <h2 className="font-playfair text-2xl mb-1">
+          Algorytmiczna Szafa <span className="italic">Kapsułowa</span>
+        </h2>
+        <p className="text-xs text-gray-400 mb-6">Metoda kombinatoryczna maksymalizacji użyteczności odzieży</p>
+
+        {!data || !data.capsuleItems || data.capsuleItems.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 italic">Dodaj minimum 5 ubrań (w tym buty, góry i doły), aby wygenerować szafę kapsułową.</div>
+        ) : (
+          <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
+
+            <div className="bg-gradient-to-r from-[#8E7A6B] to-[#3D2B1F] p-5 rounded-2xl text-white shadow-sm text-center">
+              <span className="text-[10px] uppercase tracking-widest opacity-70 block mb-1">Wynik Analizy Kombinatorycznej</span>
+              <div className="text-3xl font-playfair font-bold">
+                {data.capsuleItems.length} elementów = {data.totalCombinations} unikalnych stylizacji
+              </div>
+              <p className="text-[10px] opacity-80 mt-1 max-w-md mx-auto">
+                Algorytm wyselekcjonował najbardziej kompatybilne ubrania bazowe, z których wygenerował niezależne, niepowtarzalne zestawy modowe.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Wybrane elementy bazy ({data.capsuleItems.length}/10)</h4>
+              <div className="grid grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-[#E8DDD0]/40">
+                {data.capsuleItems.map((item) => (
+                  <div key={item.id} className="flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 shadow-2xs">
+                    <img src={item.imageUrl} alt={item.name} className="h-14 w-14 object-contain mb-1" />
+                    <span className="text-[8px] font-bold text-gray-500 truncate w-full">{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Przykładowe matematyczne kombinacje zestawów</h4>
+              <div className="flex flex-col gap-2">
+                {data.combinations.slice(0, 5).map((outfit, index) => (
+                  <div key={index} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-[#E8DDD0]/30 shadow-2xs">
+                    <div className="text-[10px] font-bold text-[#8E7A6B] min-w-[60px]">Zestaw #{index + 1}</div>
+                    <div className="flex gap-2">
+                      {outfit.map((cloth) => (
+                        <div key={cloth.id} className="flex items-center gap-1 bg-gray-50/50 px-2 py-1 rounded-lg border border-gray-100">
+                          <img src={cloth.imageUrl} alt={cloth.name} className="h-6 w-6 object-contain" />
+                          <span className="text-[9px] font-medium text-gray-600 max-w-[80px] truncate">{cloth.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

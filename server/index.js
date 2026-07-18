@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
+const { generateCapsuleWardrobe } = require("./capsuleEngine");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
@@ -543,6 +544,17 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
     res.json({ success: true, message: "Ubranie usunięte." });
   } catch (error) {
     res.status(500).json({ error: "Błąd usuwania." });
+  }
+});
+app.get("/api/capsule", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const clothes = await prisma.cloth.findMany({ where: { userId } });
+    
+    const capsuleData = generateCapsuleWardrobe(clothes, "Hot");
+    res.json(capsuleData);
+  } catch (error) {
+    res.status(500).json({ error: "Błąd generowania szafy kapsułowej" });
   }
 });
 
