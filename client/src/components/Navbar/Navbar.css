@@ -4,11 +4,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: transparent;
+  background-color: rgba(253, 251, 249, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 50;
   padding: 0 40px;
+  border-bottom: 1px solid rgba(232, 221, 208, 0.6);
 }
 
 .nav-links {

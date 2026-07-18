@@ -3,7 +3,7 @@
   height: 100vh;
   background-color: #f8f5f2;
   border-right: 1px solid #e8ddd0;
-  padding: 40px 30px;
+  padding: 0 30px 40px;
   position: fixed;
   left: 0;
   top: 0;
@@ -11,6 +11,14 @@
   flex-direction: column;
   z-index: 100;
   transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 50px;
+  flex-shrink: 0;
 }
 
 .dot {
@@ -22,8 +30,9 @@
 
 .logo {
   font-size: 32px;
-  margin-bottom: 50px;
+  margin: 0;
   color: hsl(24, 33%, 18%);
+  line-height: 1;
 }
 
 .user-card {
@@ -183,6 +192,11 @@
     transform: translateX(0);
   }
 
+  .sidebar-header {
+    height: auto;
+    margin-bottom: 30px;
+  }
+
   .mobile-nav-toggle {
     display: flex;
     align-items: center;
@@ -212,7 +226,6 @@
   }
 
   .logo {
-    margin-bottom: 30px;
     font-size: 28px;
   }
 
