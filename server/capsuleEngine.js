@@ -10,8 +10,7 @@ function generateCapsuleWardrobe(clothes, season = "Hot") {
   const sukienki = clothes.filter(c => c.category === "Sukienki");
   const buty = clothes.filter(c => c.category === "Buty" || c.category === "Obuwie");
 
-  // 2. Selekcja ubrań o najwyższej kompatybilności (maksymalnie 10 elementów)
-  // Wybieramy ubrania najbardziej uniwersalne stylistycznie (np. Minimalizm, Classic, Casual)
+
   const scoreItem = (item) => {
     let score = 0;
     if (["Minimalizm", "Classic", "Casual"].includes(item.style)) score += 20;
@@ -26,10 +25,8 @@ function generateCapsuleWardrobe(clothes, season = "Hot") {
 
   const capsuleItems = [...selectedGoras, ...selectedDols, ...selectedSukienki, ...selectedButy];
 
-  // 3. Generowanie matematycznych kombinacji (Kombinatoryka zestawów)
   let combinations = [];
 
-  // Kombinacje: Góra + Dół + Buty
   selectedGoras.forEach(g => {
     selectedDols.forEach(d => {
       selectedButy.forEach(b => {
@@ -38,7 +35,6 @@ function generateCapsuleWardrobe(clothes, season = "Hot") {
     });
   });
 
-  // Kombinacje: Sukienka + Buty
   selectedSukienki.forEach(s => {
     selectedButy.forEach(b => {
       combinations.push([s, b]);
@@ -48,7 +44,7 @@ function generateCapsuleWardrobe(clothes, season = "Hot") {
   return {
     capsuleItems,
     totalCombinations: combinations.length,
-    combinations: combinations.slice(0, 30) // Zwracamy przykładowe kombinacje
+    combinations: combinations.slice(0, 30) 
   };
 }
 
