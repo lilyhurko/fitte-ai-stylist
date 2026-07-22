@@ -1,26 +1,35 @@
 const OCCASION_STYLE_MATCH = {
-  "Randka": ["Chic", "Romantic"], 
-  "Praca": ["Classic", "Minimalizm"], 
-  "Casual": ["Casual", "Streetwear", "Boho"], 
+  "Randka": ["Chic", "Romantic"],
+  "Praca": ["Classic", "Minimalizm"],
+  "Casual": ["Casual", "Streetwear", "Boho"],
   "Impreza": ["Modern", "Streetwear", "Chic"],
-  "Sport": ["Sport", "Streetwear"], 
+  "Sport": ["Sport", "Streetwear"],
   "Podróż": ["Casual", "Streetwear"]
+};
+
+const OCCASION_KEYWORDS = {
+  "Randka": ["sukien", "elegan", "satyn", "koronk", "obcas"],
+  "Praca": ["marynark", "koszul", "garnitur", "biznes", "klasyczn"],
+  "Casual": ["jeans", "t-shirt", "sneakers", "bluz", "codzien"],
+  "Impreza": ["cekin", "błyszcz", "satyn", "wieczorow", "glamour"],
+  "Sport": ["sportow", "dresow", "legginsy", "termoaktyw", "sneakers"],
+  "Podróż": ["wygodn", "sportow", "praktyczn", "casual"]
 };
 
 const WEATHER_BLACKLIST = {
   "Rain": {
-    categories: ["Sukienki", "Sandały"], 
+    categories: ["Sukienki", "Sandały"],
     colors: [],
     forbiddenKeywords: ["sandał", "klapk", "siatkow"]
   },
   "Hot": {
     categories: [],
-    styles: ["Classic"], 
-    colors: ["czarny", "ciemnobrązowy", "granatowy"], 
+    styles: ["Classic"],
+    colors: ["czarny", "ciemnobrązowy", "granatowy"],
     forbiddenKeywords: ["bufiast", "grub", "wełn", "skórz", "kozak", "śniegowc"]
   },
   "Cold": {
-    categories: ["Sukienki", "Sandały"], 
+    categories: ["Sukienki", "Sandały"],
     styles: ["Boho"],
     colors: [],
     forbiddenKeywords: ["cienki", "krótki", "jedwab", "sandał", "klapk", "letni"]
@@ -36,89 +45,123 @@ const COLOR_HARMONIES = {
   "ciemnobrązowy": ["kremowy", "beżowy", "pastelowy róż", "ecru"]
 };
 
+// Ubranie może mieć teraz kilka stylów naraz, zapisanych jako "Classic, Romantic" — ta funkcja
+// zamienia to na tablicę do porównań, zamiast traktować cały string jako jedną wartość.
+function parseStyles(item) {
+  if (!item || !item.style) return [];
+  return String(item.style)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
   let score = 100;
-  
-  const userStyleWeights = userProfile.styleWeights ? JSON.parse(userProfile.styleWeights) : {};
-  const userColorWeights = userProfile.colorWeights ? JSON.parse(userProfile.colorWeights) : {};
+
+  const userStyleWeights = userProfile?.styleWeights
+    ? (typeof userProfile.styleWeights === "string" ? JSON.parse(userProfile.styleWeights) : userProfile.styleWeights)
+    : {};
+  const userColorWeights = userProfile?.colorWeights
+    ? (typeof userProfile.colorWeights === "string" ? JSON.parse(userProfile.colorWeights) : userProfile.colorWeights)
+    : {};
   const activeOccasion = eventContext?.occasion || selectedOccasion;
 
   if (weatherType && WEATHER_BLACKLIST[weatherType]) {
     const blacklist = WEATHER_BLACKLIST[weatherType];
-    let isWeatherIncompatible = false;
+    let hardVeto = false;
+    let weatherStylePenalty = 0;
 
     outfit.forEach(item => {
       const cat = item.category;
-      const st = item.style;
+      const itemStyles = parseStyles(item);
       const col = item.color ? item.color.toLowerCase() : "";
       const name = item.name ? item.name.toLowerCase() : "";
 
-      if (blacklist.categories.includes(cat) || (st && blacklist.styles.includes(st))) {
-        isWeatherIncompatible = true;
+      // Kategoria, kolor i słowa kluczowe to obiektywnie złe dopasowanie do pogody (np. sandały w deszczu) — twarde weto.
+      if (blacklist.categories && blacklist.categories.includes(cat)) {
+        hardVeto = true;
       }
       if (blacklist.colors && blacklist.colors.includes(col)) {
-        isWeatherIncompatible = true;
+        hardVeto = true;
       }
       if (blacklist.forbiddenKeywords) {
         blacklist.forbiddenKeywords.forEach(keyword => {
-          if (name.includes(keyword)) isWeatherIncompatible = true;
+          if (name.includes(keyword)) hardVeto = true;
         });
+      }
+
+      // Styl to za mało precyzyjny sygnał, żeby całkowicie eliminować zestaw (np. "Classic" bywa też lekkie ubrania
+      // biurowe) — więc to tylko kara punktowa, nie automatyczna dyskwalifikacja. Wystarczy, że JEDEN z kilku
+      // przypisanych stylów trafi na czarną listę.
+      if (blacklist.styles && itemStyles.some(st => blacklist.styles.includes(st))) {
+        weatherStylePenalty += 45;
       }
     });
 
-    if (isWeatherIncompatible) {
+    if (hardVeto) {
       return {
         totalScore: -999,
         details: { message: `Zestaw niedostosowany do warunków atmosferycznych (${weatherType})` }
       };
     }
+
+    score -= weatherStylePenalty;
   }
 
   let matchingStylesCount = 0;
   if (activeOccasion && OCCASION_STYLE_MATCH[activeOccasion]) {
     const allowedStyles = OCCASION_STYLE_MATCH[activeOccasion];
-    
+    const occasionKeywords = OCCASION_KEYWORDS[activeOccasion] || [];
+
     outfit.forEach(item => {
-      if (item.style && allowedStyles.includes(item.style)) {
-        score += 35; 
+      const nameLower = item.name ? item.name.toLowerCase() : "";
+      const itemStyles = parseStyles(item);
+      const styleMatches = itemStyles.some(st => allowedStyles.includes(st));
+
+      if (styleMatches) {
+        score += 40;
         matchingStylesCount++;
       } else {
-        score -= 15; 
+        score -= 25;
+      }
+
+      if (occasionKeywords.some(keyword => nameLower.includes(keyword))) {
+        score += 10;
       }
     });
 
     if (matchingStylesCount === 0) {
-      score -= 50; 
+      score -= 70;
     }
   }
 
   if (outfit.length > 1) {
     const color1 = outfit[0].color ? outfit[0].color.toLowerCase() : "";
     const color2 = outfit[1].color ? outfit[1].color.toLowerCase() : "";
-    
-    let baseHarmony = false;
+
     if (color1 && color2) {
       const harmonia1 = COLOR_HARMONIES[color1] && COLOR_HARMONIES[color1].includes(color2);
       const harmonia2 = COLOR_HARMONIES[color2] && COLOR_HARMONIES[color2].includes(color1);
       if (harmonia1 || harmonia2 || color1 === color2) {
         score += 25;
-        baseHarmony = true;
       }
     }
 
     if (outfit.length === 3) {
       const colorShoes = outfit[2].color ? outfit[2].color.toLowerCase() : "";
       if (colorShoes === color1 || colorShoes === color2) {
-        score += 15; 
+        score += 15;
       }
     }
   }
 
   let preferenceScore = 0;
   outfit.forEach(item => {
-    if (item.style && userStyleWeights[item.style]) {
-      preferenceScore += userStyleWeights[item.style] * 12; 
-    }
+    parseStyles(item).forEach(st => {
+      if (userStyleWeights[st]) {
+        preferenceScore += userStyleWeights[st] * 12;
+      }
+    });
     if (item.color && userColorWeights[item.color]) {
       preferenceScore += userColorWeights[item.color] * 8;
     }
@@ -126,13 +169,14 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
   score += preferenceScore;
 
   if (eventContext) {
-    const formalityTarget = eventContext.formality; 
+    const formalityTarget = eventContext.formality;
     outfit.forEach(item => {
-      if (item.style === "Minimalizm" || item.style === "Classic") {
+      const itemStyles = parseStyles(item);
+      if (itemStyles.includes("Minimalizm") || itemStyles.includes("Classic")) {
         if (formalityTarget === "Formal") score += 20;
       }
-      if (item.style === "Streetwear" && formalityTarget === "Formal") {
-        score -= 40; 
+      if (itemStyles.includes("Streetwear") && formalityTarget === "Formal") {
+        score -= 40;
       }
     });
   }
@@ -151,9 +195,8 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
 
 function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
   const goras = clothes.filter(c => c.category === "Góra");
-  const dols = clothes.filter(c => c.filterCategory === "Dół" || c.category === "Dół");
+  const dols = clothes.filter(c => c.category === "Dół");
   const sukienki = clothes.filter(c => c.category === "Sukienki");
-  
   const buty = clothes.filter(c => c.category === "Buty" || c.category === "Obuwie");
 
   let combinations = [];
@@ -193,7 +236,15 @@ function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasio
   }
 
   combinations.sort((a, b) => b.totalScore - a.totalScore);
-  return combinations.slice(0, 3); 
+  return combinations.slice(0, 3);
 }
 
-module.exports = { generateBestOutfits };
+module.exports = {
+  generateBestOutfits,
+  calculateOutfitScore,
+  parseStyles,
+  OCCASION_STYLE_MATCH,
+  OCCASION_KEYWORDS,
+  WEATHER_BLACKLIST,
+  COLOR_HARMONIES
+};

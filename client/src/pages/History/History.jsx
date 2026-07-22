@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Sparkles,
   Shirt,
+  Monitor,
 } from "lucide-react";
 import "./History.css";
 import { API_BASE_URL } from '../../config';
@@ -59,7 +60,7 @@ const History = () => {
         </h2>
         <p className="text-gray-400 text-sm">
           Przeglądaj swoje archiwalne zapytania i generowane przez AI propozycje
-          stylizacji.
+          stylizacji wraz z podglądem ubrań z szafy.
         </p>
       </header>
 
@@ -127,34 +128,61 @@ const History = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* GEMINI COLUMN */}
                       <div className="bg-white rounded-2xl p-5 border border-fitte-sand/20 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between mb-4 pb-2 border-b border-fitte-sand/10">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
-                              Gemini 2.5
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                              <Sparkles size={12} /> Gemini 2.5
                             </span>
                           </div>
-                          <p className="text-xs text-fitte-brown-dark leading-relaxed whitespace-pre-wrap">
-                            {item.geminiResponse ||
-                              "Model nie zwrócił odpowiedzi."}
+                          <p className="text-xs text-fitte-brown-dark leading-relaxed whitespace-pre-wrap mb-4">
+                            {item.geminiResponse || "Model nie zwrócił odpowiedzi."}
                           </p>
                         </div>
+                        {item.geminiItems && item.geminiItems.length > 0 && (
+                          <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto">
+                            {item.geminiItems.map((cloth) => (
+                              <img
+                                key={cloth.id}
+                                src={cloth.imageUrl}
+                                alt={cloth.name}
+                                className="w-12 h-16 object-contain bg-white rounded-lg p-1 shadow-xs"
+                                title={cloth.name}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
 
+                      {/* LLAMA COLUMN */}
                       <div className="bg-white rounded-2xl p-5 border border-fitte-sand/20 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between mb-4 pb-2 border-b border-fitte-sand/10">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md">
-                              Mistral (Local)
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                              <Monitor size={12} /> Llama 3.3 (Cloud)
                             </span>
                           </div>
-                          <p className="text-xs text-fitte-brown-dark leading-relaxed whitespace-pre-wrap">
-                            {item.mistralResponse ||
-                              "Model nie zwrócił odpowiedzi."}
+                          <p className="text-xs text-fitte-brown-dark leading-relaxed whitespace-pre-wrap mb-4">
+                            {item.mistralResponse || "Model nie zwrócił odpowiedzi."}
                           </p>
                         </div>
+                        {item.llamaItems && item.llamaItems.length > 0 && (
+                          <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto">
+                            {item.llamaItems.map((cloth) => (
+                              <img
+                                key={cloth.id}
+                                src={cloth.imageUrl}
+                                alt={cloth.name}
+                                className="w-12 h-16 object-contain bg-white rounded-lg p-1 shadow-xs"
+                                title={cloth.name}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
 
+                      {/* HYBRID RAG COLUMN */}
                       <div className="bg-fitte-brown-dark rounded-2xl p-5 text-white flex flex-col justify-between shadow-sm">
                         <div>
                           <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
@@ -162,11 +190,23 @@ const History = () => {
                               <Sparkles size={10} /> FITTE AI (RAG)
                             </span>
                           </div>
-                          <p className="text-xs text-fitte-cream/90 leading-relaxed whitespace-pre-wrap font-light">
-                            {item.ragResponse ||
-                              "System RAG nie zwrócił odpowiedzi."}
+                          <p className="text-xs text-fitte-cream/90 leading-relaxed whitespace-pre-wrap font-light mb-4">
+                            {item.ragResponse || "System RAG nie zwrócił odpowiedzi."}
                           </p>
                         </div>
+                        {item.ragItems && item.ragItems.length > 0 && (
+                          <div className="flex gap-2 bg-white/10 p-2 rounded-xl justify-center items-center backdrop-blur-sm border border-white/5 mt-auto">
+                            {item.ragItems.map((cloth) => (
+                              <img
+                                key={cloth.id}
+                                src={cloth.imageUrl}
+                                alt={cloth.name}
+                                className="w-12 h-16 object-contain bg-white rounded-lg p-1 shadow-xs"
+                                title={cloth.name}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

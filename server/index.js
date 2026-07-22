@@ -53,63 +53,137 @@ function findMatchingClothes(llmResponse, clothes) {
   const text = llmResponse.toLowerCase();
   let matched = [];
 
-  const słownikKolorów = {
-    różowa: ["róż", "roz", "pastel"],
-    czarna: ["czarn", "ciemn"],
-    zielona: ["zielon", "wzorzyst", "kwiat"]
+  const synonimyKategorii = {
+    gora: ["top", "koszul", "t-shirt", "bluzk", "marynark", "kimono", "żakiet", "kardigan"],
+    dol: ["spodn", "jeans", "dżins", "nogawk", "szort", "spodenk", "spódnic"],
+    buty: ["buty", "sneakers", "mule", "obcas", "sandał", "szpilk", "obuwie"],
+    sukienka: ["sukienk", "tunik", "suknia"]
+  };
+
+  const synonimyKolorow = {
+    kremowy: ["kremow", "beżow", "bial", "biał", "ecru"],
+    beżowy: ["beżow", "kremow", "ecru", "piaskow"],
+    biały: ["biał", "biel", "kremow", "ecru"],
+    czarny: ["czarn", "ciemn", "grafit"],
+    niebieski: ["niebiesk", "błękit", "jeans", "granat", "dżins"]
   };
 
   clothes.forEach((cloth) => {
-    const nameLower = cloth.name.toLowerCase();
-    const categoryLower = cloth.category.toLowerCase();
+    const nameLower = cloth.name ? cloth.name.toLowerCase() : "";
+    const categoryLower = cloth.category ? cloth.category.toLowerCase() : "";
+    const colorLower = cloth.color ? cloth.color.toLowerCase() : "";
 
     const jestSukienka = categoryLower.includes("sukienk") || nameLower.includes("sukienk");
-    const jestButy = categoryLower.includes("buty") || categoryLower.includes("obuwie") || nameLower.includes("sneakers") || nameLower.includes("mule");
-    const aiPiszeOSukience = text.includes("sukienk");
-    const aiPiszeOButach = text.includes("buty") || text.includes("sneakers") || text.includes("mule") || text.includes("obcas");
+    const jestGora = categoryLower.includes("góra") || nameLower.includes("koszul") || nameLower.includes("t-shirt") || nameLower.includes("top") || nameLower.includes("marynark") || nameLower.includes("kardigan");
+    const jestDol = categoryLower.includes("dół") || nameLower.includes("spodn") || nameLower.includes("jeans") || nameLower.includes("dżins") || nameLower.includes("szort") || nameLower.includes("spodenk");
+    const jestButy = categoryLower.includes("buty") || categoryLower.includes("obuwie") || nameLower.includes("sneakers") || nameLower.includes("mule") || nameLower.includes("szpilk");
 
-    if (jestSukienka && aiPiszeOSukience) {
+    const aiPiszeOSukience = synonimyKategorii.sukienka.some(s => text.includes(s));
+    const aiPiszeOGorze = synonimyKategorii.gora.some(s => text.includes(s));
+    const aiPiszeODole = synonimyKategorii.dol.some(s => text.includes(s));
+    const aiPiszeOButach = synonimyKategorii.buty.some(s => text.includes(s));
 
-      let dopasowanieCechy = false;
-      
-      if (nameLower.includes("róż") || nameLower.includes("roz")) {
-        if (text.includes("róż") || text.includes("roz") || text.includes("pastel")) dopasowanieCechy = true;
-      }
-      else if (nameLower.includes("czarn")) {
-        if (text.includes("czarn")) dopasowanieCechy = true;
-      }
-      else if (nameLower.includes("zielon")) {
-        if (text.includes("zielon") || text.includes("wzorzyst")) dopasowanieCechy = true;
-      }
-      else {
-        const slowa = nameLower.split(/\s+/).filter(w => w.length > 3);
-        dopasowanieCechy = slowa.some(s => text.includes(s.slice(0, -1)));
-      }
+    const categoryMatch = 
+      (jestSukienka && aiPiszeOSukience) ||
+      (jestGora && aiPiszeOGorze) ||
+      (jestDol && aiPiszeODole) ||
+      (jestButy && aiPiszeOButach);
 
-      if (dopasowanieCechy) {
-        matched.push(cloth);
-      }
-    }
+if (categoryMatch) {
+  let colorMatch = false;
+  let bazaKolor = colorLower;
 
-    if (jestButy && aiPiszeOButach) {
+  if (bazaKolor === "wykryty przez ai" || !bazaKolor) {
+    if (nameLower.includes("czarn")) bazaKolor = "czarny";
+    else if (nameLower.includes("biał") || nameLower.includes("biel")) bazaKolor = "biały";
+    else if (nameLower.includes("krem")) bazaKolor = "kremowy";
+    else if (nameLower.includes("beż")) bazaKolor = "beżowy";
+    else if (nameLower.includes("zielon")) bazaKolor = "zielony";
+    else if (nameLower.includes("róż")) bazaKolor = "różowy";
+  }
 
-      const slowaButów = nameLower.split(/\s+/).filter(w => w.length > 3);
-      const dopasowanieButów = slowaButów.some(s => text.includes(s.slice(0, -1)));
-      
-      if (dopasowanieButów || text.includes("mule") || text.includes("but")) {
-        matched.push(cloth);
-      }
-    }
+  const oczekiwaneFrazy = synonimyKolorow[bazaKolor] || [bazaKolor];
+  colorMatch = oczekiwaneFrazy.some(fraza => text.includes(fraza));
+
+
+  if (text.includes("róż") && (nameLower.includes("zielon") || colorLower.includes("zielon"))) {
+    colorMatch = false;
+  }
+  if (text.includes("zielon") && (nameLower.includes("róż") || colorLower.includes("róż"))) {
+    colorMatch = false;
+  }
+
+  const slowaNazwy = nameLower.split(/\s+/).filter(w => w.length > 3);
+  const nameKeywordMatch = slowaNazwy.some(s => text.includes(s.slice(0, -1)));
+
+  if (colorMatch || nameKeywordMatch) {
+    matched.push(cloth);
+  }
+}
   });
 
   const uniqueMatched = [];
   matched.forEach(item => {
-    if (!uniqueMatched.some(m => m.id === item.id)) {
+    if (!uniqueMatched.some(m => m.id === item.id || m._id === item._id)) {
       uniqueMatched.push(item);
     }
   });
 
   return uniqueMatched.slice(0, 3);
+}
+
+const normalizeForMatch = (s) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[`'"()]/g, "")
+    .trim();
+
+function extractMarkedItems(rawText, clothes) {
+  if (!rawText) return { cleanText: rawText || "", items: [] };
+
+  const czasMatch = rawText.match(/\s*\(Czas:\s*\d+ms\)\s*$/i);
+  const czasSuffix = czasMatch ? czasMatch[0] : "";
+  const withoutCzas = czasMatch ? rawText.slice(0, czasMatch.index) : rawText;
+
+  const markerRegex = /\n?[ \t]*UBRANIA:\s*([^\n]*)/i;
+  const match = withoutCzas.match(markerRegex);
+
+  if (!match || !clothes || clothes.length === 0) {
+    return { cleanText: rawText.trim(), items: [] };
+  }
+
+  const cleanText = (withoutCzas.replace(markerRegex, "").trim() + czasSuffix).trim();
+
+  const rawNames = match[1]
+    .split("|")
+    .map((n) => normalizeForMatch(n))
+    .filter(Boolean);
+
+  const items = [];
+  rawNames.forEach((target) => {
+    const found =
+      clothes.find((c) => normalizeForMatch(c.name) === target) ||
+      clothes.find(
+        (c) =>
+          normalizeForMatch(c.name).includes(target) ||
+          target.includes(normalizeForMatch(c.name)),
+      );
+    if (found && !items.some((i) => i.id === found.id)) {
+      items.push(found);
+    }
+  });
+
+  return { cleanText, items: items.slice(0, 4) };
+}
+
+function resolveMatchedItems(rawText, clothes) {
+  const { cleanText, items } = extractMarkedItems(rawText, clothes);
+  if (items.length > 0) {
+    return { cleanText, items };
+  }
+  return { cleanText, items: findMatchingClothes(cleanText, clothes) };
 }
 
 const generateContextString = (clothes, user) => {
@@ -184,16 +258,18 @@ ZASADY ODPOWIEDZI (KRYTYCZNE):
    - ORAZ PASUJĄCEGO OBUWIA (butów) z listy ubrań w szafie.
 4. Wybieraj ubrania i obuwie WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań ani butów, których użytkownik nie ma w szafie.
 5. Nie pisz uprzejmościowych wstępów ani podsumowań.
+6. Na samym końcu odpowiedzi, w NOWEJ linii, podaj znacznik w dokładnie takim formacie:
+UBRANIA: [dokładna nazwa 1]|[dokładna nazwa 2]|[dokładna nazwa 3]
+Użyj DOKŁADNIE takich nazw ubrań, jakie widnieją na liście w sekcji "Ubrania w szafie" powyżej (bez odmiany przez przypadki, bez cudzysłowów). Wypisz tylko te ubrania, które faktycznie polecasz w tej odpowiedzi. Ta linia jest wyłącznie do przetworzenia maszynowego.
 
 PYTANIE UŻYTKOWNIKA: ${query}
 `;
 };
 
-
 async function askGemini(query, context, weatherType) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = getBasePrompt(query, context, weatherType); 
+    const prompt = getBasePrompt(query, context, weatherType);
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) {
@@ -203,7 +279,7 @@ async function askGemini(query, context, weatherType) {
 
 async function askMistralCloud(query, context, weatherType) {
   try {
-    const prompt = getBasePrompt(query, context, weatherType); 
+    const prompt = getBasePrompt(query, context, weatherType);
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
@@ -378,8 +454,8 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     );
     const latRag = Date.now() - startRag;
 
-    const geminiItems = findMatchingClothes(geminiOdp, clothes);
-    const llamaItems = findMatchingClothes(mistralOdp, clothes);
+    const geminiResolved = resolveMatchedItems(geminiOdp, clothes);
+    const llamaResolved = resolveMatchedItems(mistralOdp, clothes);
 
     const analysisRecord = await prisma.analysis.create({
       data: {
@@ -394,10 +470,12 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
 
     res.json({
       ...analysisRecord,
+      geminiResponse: `${geminiResolved.cleanText} (Czas: ${latGemini}ms)`,
+      mistralResponse: `${llamaResolved.cleanText} (Czas: ${latMistral}ms)`,
       recommendationId: ragResult.recommendationId,
       ragItems: ragResult.ragItems,
-      geminiItems: geminiItems,
-      llamaItems: llamaItems,
+      geminiItems: geminiResolved.items,
+      llamaItems: llamaResolved.items,
     });
   } catch (error) {
     console.error(" [KRYTYCZNY BŁĄD]:", error);
@@ -546,14 +624,53 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Błąd usuwania." });
   }
 });
+
+app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { name, category, style, color } = req.body;
+
+  try {
+    const cloth = await prisma.cloth.findUnique({ where: { id } });
+    if (!cloth || cloth.userId !== req.user.userId)
+      return res.status(403).json({ error: "Brak uprawnień" });
+
+    const updateData = {};
+    if (typeof name === "string" && name.trim()) updateData.name = name.trim();
+    if (typeof category === "string" && category.trim()) updateData.category = category.trim();
+    if (typeof style === "string" && style.trim()) updateData.style = style.trim();
+    if (typeof color === "string" && color.trim()) updateData.color = color.trim();
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "Brak danych do aktualizacji." });
+    }
+
+    const updatedCloth = await prisma.cloth.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({ success: true, item: updatedCloth });
+  } catch (error) {
+    res.status(500).json({ error: "Błąd aktualizacji ubrania." });
+  }
+});
 app.get("/api/capsule", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const clothes = await prisma.cloth.findMany({ where: { userId } });
-    
-    const capsuleData = generateCapsuleWardrobe(clothes, "Hot");
+    const latitude = parseFloat(req.query.latitude) || 51.2465;
+    const longitude = parseFloat(req.query.longitude) || 22.5684;
+
+    const [user, clothes] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.cloth.findMany({ where: { userId } }),
+    ]);
+
+    const weatherType = await getLiveWeather(latitude, longitude);
+
+    const capsuleData = generateCapsuleWardrobe(clothes, user, weatherType);
     res.json(capsuleData);
   } catch (error) {
+    console.error("Błąd generowania szafy kapsułowej:", error);
     res.status(500).json({ error: "Błąd generowania szafy kapsułowej" });
   }
 });
@@ -703,13 +820,60 @@ app.post(
 
 app.get("/api/history", authenticateToken, async (req, res) => {
   try {
-    const history = await prisma.analysis.findMany({
-      where: { userId: req.user.userId },
-      orderBy: { createdAt: "desc" },
+    const userId = req.user.userId;
+
+    // 1. Pobieramy historię analiz, rekomendacje ubrań RAG oraz całą szafę
+    const [history, recommendations, clothes] = await Promise.all([
+      prisma.analysis.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.outfitRecommendation.findMany({
+        where: { userId },
+      }),
+      prisma.cloth.findMany({
+        where: { userId }
+      })
+    ]);
+
+    const clothesMap = new Map(clothes.map(c => [c.id, c]));
+
+    const richHistory = history.map(item => {
+      const geminiRaw = item.geminiResponse || "";
+      const mistralRaw = item.mistralResponse || "";
+
+      const geminiResolved = resolveMatchedItems(geminiRaw, clothes);
+      const llamaResolved = resolveMatchedItems(mistralRaw, clothes);
+
+      const matchingRec = recommendations.find(r => r.analysisId === item.id || r.id === item.recommendationId);
+      
+      let ragItems = [];
+      if (matchingRec && matchingRec.clothIds) {
+        const ids = Array.isArray(matchingRec.clothIds) 
+          ? matchingRec.clothIds 
+          : JSON.parse(matchingRec.clothIds || "[]");
+        
+        ragItems = ids.map(id => clothesMap.get(id)).filter(Boolean);
+      } 
+      
+      if (ragItems.length === 0) {
+        ragItems = findMatchingClothes(item.ragResponse || "", clothes);
+      }
+
+      return {
+        ...item,
+        geminiResponse: geminiResolved.cleanText,
+        mistralResponse: llamaResolved.cleanText,
+        geminiItems: geminiResolved.items,
+        llamaItems: llamaResolved.items,
+        ragItems: ragItems 
+      };
     });
-    res.json(history);
+
+    res.json(richHistory);
   } catch (error) {
-    res.status(500).json({ error: "Błąd historii." });
+    console.error("Błąd w endpointcie historii:", error);
+    res.status(500).json({ error: "Błąd pobierania bogatej historii." });
   }
 });
 

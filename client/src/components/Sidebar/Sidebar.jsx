@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
-import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package } from "lucide-react";
+import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package, Plus } from "lucide-react";
 import "./Sidebar.css";
 
 const OCCASION_STYLE_MATCH = {
@@ -52,24 +52,31 @@ const Sidebar = () => {
     clothes.forEach((item) => {
       const nameLower = item.name?.toLowerCase() || "";
       const colorLower = item.color?.toLowerCase() || "";
-      const styleLower = item.style?.toLowerCase() || "";
+      const itemStyles = (item.style || "").split(",").map((s) => s.trim()).filter(Boolean);
+      const stylesLower = itemStyles.map((s) => s.toLowerCase());
       const catLower = item.category?.toLowerCase() || "";
 
-      if (item.style) styleCount[item.style] = (styleCount[item.style] || 0) + 1;
+      itemStyles.forEach((st) => {
+        styleCount[st] = (styleCount[st] || 0) + 1;
+      });
       if (item.color) colorCount[item.color] = (colorCount[item.color] || 0) + 1;
 
-      if (OCCASION_STYLE_MATCH["Randka"].includes(styleLower)) {
+      if (stylesLower.some((s) => OCCASION_STYLE_MATCH["Randka"].includes(s))) {
         dateValid++;
       }
 
-      if (OCCASION_STYLE_MATCH["Praca"].includes(styleLower)) {
+      if (stylesLower.some((s) => OCCASION_STYLE_MATCH["Praca"].includes(s))) {
         workValid++;
       }
 
       const blacklist = WEATHER_BLACKLIST[currentSidebarWeather];
       let isBlacklisted = false;
       if (blacklist) {
-        if (blacklist.categories.includes(catLower) || blacklist.styles.includes(styleLower) || blacklist.colors.includes(colorLower)) {
+        if (
+          blacklist.categories.includes(catLower) ||
+          stylesLower.some((s) => blacklist.styles.includes(s)) ||
+          blacklist.colors.includes(colorLower)
+        ) {
           isBlacklisted = true;
         }
         if (blacklist.forbiddenKeywords?.some((keyword) => nameLower.includes(keyword))) {
@@ -111,10 +118,27 @@ const Sidebar = () => {
       logout();
       return;
     }
-    try {
-      const res = await fetch("http://localhost:5001/api/capsule", {
-        headers: { Authorization: `Bearer ${token}` }
+
+    const getCoordinates = () => {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ latitude: 51.2465, longitude: 22.5684 });
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+          () => resolve({ latitude: 51.2465, longitude: 22.5684 }),
+          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
+        );
       });
+    };
+
+    try {
+      const coords = await getCoordinates();
+      const res = await fetch(
+        `http://localhost:5001/api/capsule?latitude=${coords.latitude}&longitude=${coords.longitude}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (res.status === 401 || res.status === 403) {
         console.error("Sesja wygasła, wylogowuję.");
         setIsCapsuleOpen(false);
@@ -252,7 +276,7 @@ const Sidebar = () => {
       </aside>
 
       <StatsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} stats={stats} />
-      <CapsuleModal isOpen={isCapsuleOpen} onClose={() => setIsCapsuleOpen(false)} data={capsuleData} />
+      <CapsuleModal isOpen={isCapsuleOpen} onClose={() => setIsCapsuleOpen(false)} data={capsuleData} allClothes={clothes} />
     </>
   );
 };
@@ -407,7 +431,49 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
   );
 };
 
-const CapsuleModal = ({ isOpen, onClose, data }) => {
+const CapsuleModal = ({ isOpen, onClose, data, allClothes = [] }) => {
+  const [items, setItems] = useState([]);
+  const [showPicker, setShowPicker] = useState(false);
+
+  useEffect(() => {
+    if (data?.capsuleItems) {
+      setItems(data.capsuleItems);
+    } else {
+      setItems([]);
+    }
+    setShowPicker(false);
+  }, [data]);
+
+  const combinations = useMemo(() => {
+    const goras = items.filter((i) => i.category === "Góra");
+    const dols = items.filter((i) => i.category === "Dół");
+    const sukienki = items.filter((i) => i.category === "Sukienki");
+    const buty = items.filter((i) => i.category === "Buty" || i.category === "Obuwie");
+
+    const combos = [];
+    if (buty.length === 0) {
+      goras.forEach((g) => dols.forEach((d) => combos.push([g, d])));
+      sukienki.forEach((s) => combos.push([s]));
+    } else {
+      goras.forEach((g) => dols.forEach((d) => buty.forEach((b) => combos.push([g, d, b]))));
+      sukienki.forEach((s) => buty.forEach((b) => combos.push([s, b])));
+    }
+    return combos;
+  }, [items]);
+
+  const availableToAdd = useMemo(
+    () => (allClothes || []).filter((c) => !items.some((i) => i.id === c.id)),
+    [allClothes, items]
+  );
+
+  const handleRemove = (id) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleAdd = (cloth) => {
+    setItems((prev) => [...prev, cloth]);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -422,7 +488,7 @@ const CapsuleModal = ({ isOpen, onClose, data }) => {
         </h2>
         <p className="text-xs text-gray-400 mb-6">Metoda kombinatoryczna maksymalizacji użyteczności odzieży</p>
 
-        {!data || !data.capsuleItems || data.capsuleItems.length === 0 ? (
+        {!data ? (
           <div className="text-center py-10 text-gray-400 italic">Dodaj minimum 5 ubrań (w tym buty, góry i doły), aby wygenerować szafę kapsułową.</div>
         ) : (
           <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
@@ -430,42 +496,90 @@ const CapsuleModal = ({ isOpen, onClose, data }) => {
             <div className="bg-gradient-to-r from-[#8E7A6B] to-[#3D2B1F] p-5 rounded-2xl text-white shadow-sm text-center">
               <span className="text-[10px] uppercase tracking-widest opacity-70 block mb-1">Wynik Analizy Kombinatorycznej</span>
               <div className="text-3xl font-playfair font-bold">
-                {data.capsuleItems.length} elementów = {data.totalCombinations} unikalnych stylizacji
+                {items.length} elementów = {combinations.length} unikalnych stylizacji
               </div>
               <p className="text-[10px] opacity-80 mt-1 max-w-md mx-auto">
-                Algorytm wyselekcjonował najbardziej kompatybilne ubrania bazowe, z których wygenerował niezależne, niepowtarzalne zestawy modowe.
+                Algorytm wyselekcjonował najbardziej kompatybilne ubrania bazowe. Możesz ręcznie dodać lub usunąć elementy — zestawy przeliczą się automatycznie.
               </p>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Wybrane elementy bazy ({data.capsuleItems.length}/10)</h4>
-              <div className="grid grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-[#E8DDD0]/40">
-                {data.capsuleItems.map((item) => (
-                  <div key={item.id} className="flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 shadow-2xs">
-                    <img src={item.imageUrl} alt={item.name} className="h-14 w-14 object-contain mb-1" />
-                    <span className="text-[8px] font-bold text-gray-500 truncate w-full">{item.name}</span>
-                  </div>
-                ))}
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Wybrane elementy bazy ({items.length})</h4>
+                <button
+                  onClick={() => setShowPicker((prev) => !prev)}
+                  className="text-[10px] font-bold text-[#8E7A6B] hover:text-[#3D2B1F] flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus size={12} /> {showPicker ? "Zamknij" : "Dodaj ubranie"}
+                </button>
               </div>
+
+              <div className="grid grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-[#E8DDD0]/40">
+                {items.length === 0 ? (
+                  <span className="col-span-5 text-[11px] text-gray-400 italic text-center py-4">Baza kapsuły jest pusta — dodaj ubrania poniżej.</span>
+                ) : (
+                  items.map((item) => (
+                    <div key={item.id} className="relative group flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 shadow-2xs">
+                      <button
+                        onClick={() => handleRemove(item.id)}
+                        className="absolute -top-1.5 -right-1.5 bg-white border border-gray-200 rounded-full p-0.5 text-gray-400 hover:text-red-500 hover:border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        title="Usuń z kapsuły"
+                      >
+                        <X size={12} />
+                      </button>
+                      <img src={item.imageUrl} alt={item.name} className="h-14 w-14 object-contain mb-1" />
+                      <span className="text-[8px] font-bold text-gray-500 truncate w-full">{item.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {showPicker && (
+                <div className="bg-white border border-[#E8DDD0]/50 rounded-2xl p-4 mt-3">
+                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Dodaj z Twojej garderoby</h5>
+                  {availableToAdd.length === 0 ? (
+                    <p className="text-[11px] text-gray-400 italic">Wszystkie ubrania są już w kapsule.</p>
+                  ) : (
+                    <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-1">
+                      {availableToAdd.map((cloth) => (
+                        <button
+                          key={cloth.id}
+                          onClick={() => handleAdd(cloth)}
+                          className="flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 hover:border-[#8E7A6B] transition-colors cursor-pointer"
+                        >
+                          <img src={cloth.imageUrl} alt={cloth.name} className="h-12 w-12 object-contain mb-1" />
+                          <span className="text-[8px] font-bold text-gray-500 truncate w-full">{cloth.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Przykładowe matematyczne kombinacje zestawów</h4>
-              <div className="flex flex-col gap-2">
-                {data.combinations.slice(0, 5).map((outfit, index) => (
-                  <div key={index} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-[#E8DDD0]/30 shadow-2xs">
-                    <div className="text-[10px] font-bold text-[#8E7A6B] min-w-[60px]">Zestaw #{index + 1}</div>
-                    <div className="flex gap-2">
-                      {outfit.map((cloth) => (
-                        <div key={cloth.id} className="flex items-center gap-1 bg-gray-50/50 px-2 py-1 rounded-lg border border-gray-100">
-                          <img src={cloth.imageUrl} alt={cloth.name} className="h-6 w-6 object-contain" />
-                          <span className="text-[9px] font-medium text-gray-600 max-w-[80px] truncate">{cloth.name}</span>
-                        </div>
-                      ))}
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Wszystkie kombinacje zestawów ({combinations.length})</h4>
+              {combinations.length === 0 ? (
+                <div className="text-[11px] text-gray-400 italic text-center py-4 bg-white rounded-xl border border-[#E8DDD0]/30">
+                  Brak wystarczającej liczby elementów, aby zestawić strój — dodaj górę, dół (lub sukienkę) i buty.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {combinations.map((outfit, index) => (
+                    <div key={index} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-[#E8DDD0]/30 shadow-2xs">
+                      <div className="text-[10px] font-bold text-[#8E7A6B] min-w-[60px]">Zestaw #{index + 1}</div>
+                      <div className="flex gap-2">
+                        {outfit.map((cloth) => (
+                          <div key={cloth.id} className="flex items-center gap-1 bg-gray-50/50 px-2 py-1 rounded-lg border border-gray-100">
+                            <img src={cloth.imageUrl} alt={cloth.name} className="h-6 w-6 object-contain" />
+                            <span className="text-[9px] font-medium text-gray-600 max-w-[80px] truncate">{cloth.name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
