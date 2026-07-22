@@ -1,12 +1,12 @@
 const {
   calculateOutfitScore,
   parseStyles,
+  isNonOutfitItem,
   OCCASION_STYLE_MATCH,
   WEATHER_BLACKLIST
 } = require("./outfitEngine");
 
 const NEUTRAL_COLORS = ["czarny", "biały", "kremowy", "beżowy", "szary", "granatowy"];
-
 
 const isHardWeatherVetoed = (item, weatherType) => {
   const blacklist = WEATHER_BLACKLIST[weatherType];
@@ -21,6 +21,7 @@ const isHardWeatherVetoed = (item, weatherType) => {
 
   return false;
 };
+
 
 const scoreVersatility = (item, userProfile = {}) => {
   let score = 0;
@@ -52,13 +53,18 @@ const scoreVersatility = (item, userProfile = {}) => {
 };
 
 function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear") {
-  if (!clothes || clothes.length < 5) {
+  if (!clothes) {
     return { capsuleItems: [], totalCombinations: 0, combinations: [] };
   }
 
-  const weatherSafe = clothes.filter((c) => !isHardWeatherVetoed(c, weatherType));
+  const wearableClothes = clothes.filter((c) => !isNonOutfitItem(c));
+  if (wearableClothes.length < 5) {
+    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  }
 
-  const pool = weatherSafe.length >= 5 ? weatherSafe : clothes;
+  const weatherSafe = wearableClothes.filter((c) => !isHardWeatherVetoed(c, weatherType));
+
+  const pool = weatherSafe.length >= 5 ? weatherSafe : wearableClothes;
 
   const goras = pool.filter((c) => c.category === "Góra");
   const dols = pool.filter((c) => c.category === "Dół");
@@ -90,7 +96,8 @@ function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear
     });
   });
 
-
+  // Każdą kombinację oceniamy pod kątem WSZYSTKICH okazji i zapamiętujemy, do której pasuje najlepiej —
+  // to pozwala potem zagwarantować różnorodność zamiast zwracać zawsze te same "najbezpieczniejsze" zestawy.
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
   const scoredCombos = rawCombos
     .map((outfit) => {

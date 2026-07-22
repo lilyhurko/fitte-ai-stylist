@@ -18,7 +18,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const { generateBestOutfits } = require("./outfitEngine");
+const { generateBestOutfits, isNonOutfitItem } = require("./outfitEngine");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -261,6 +261,7 @@ ZASADY ODPOWIEDZI (KRYTYCZNE):
 6. Na samym końcu odpowiedzi, w NOWEJ linii, podaj znacznik w dokładnie takim formacie:
 UBRANIA: [dokładna nazwa 1]|[dokładna nazwa 2]|[dokładna nazwa 3]
 Użyj DOKŁADNIE takich nazw ubrań, jakie widnieją na liście w sekcji "Ubrania w szafie" powyżej (bez odmiany przez przypadki, bez cudzysłowów). Wypisz tylko te ubrania, które faktycznie polecasz w tej odpowiedzi. Ta linia jest wyłącznie do przetworzenia maszynowego.
+7. Nigdy nie proponuj bielizny ani stroju kąpielowego jako elementu stylizacji na wyjście — to nie są ubrania wierzchnie, niezależnie od okazji.
 
 PYTANIE UŻYTKOWNIKA: ${query}
 `;
@@ -385,7 +386,7 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       selectedOccasion = occasionMatch[1].trim();
     }
 
-    const [user, clothes, events] = await Promise.all([
+    const [user, allClothes, events] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.cloth.findMany({ where: { userId } }),
       prisma.event.findMany({
@@ -394,6 +395,9 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
         take: 3,
       }),
     ]);
+
+
+    const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
 
     const textLower = query.toLowerCase();
     const czyUzytkownikZmieniaTemat =
@@ -822,8 +826,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // 1. Pobieramy historię analiz, rekomendacje ubrań RAG oraz całą szafę
-    const [history, recommendations, clothes] = await Promise.all([
+    const [history, recommendations, allClothes] = await Promise.all([
       prisma.analysis.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
@@ -836,6 +839,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
       })
     ]);
 
+    const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
     const clothesMap = new Map(clothes.map(c => [c.id, c]));
 
     const richHistory = history.map(item => {

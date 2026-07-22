@@ -193,11 +193,36 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
   };
 }
 
+// Ubrania, które nigdy nie powinny wejść w skład proponowanej stylizacji na wyjście (randka, praca, impreza itd.),
+// niezależnie od tego, jak dobrze "pasują" kolorystycznie czy stylowo. To kategoryczne wykluczenie, nie kara
+// punktowa — bielizna i strój kąpielowy to nie jest kwestia gustu, tylko fundamentalne niedopasowanie kontekstu.
+const NON_OUTFIT_KEYWORDS = [
+  "strój kąpielowy", "stroj kapielowy", "kostium kąpielowy", "kostium kapielowy",
+  "kąpielówki", "kapielowki", "bikini",
+  "biustonosz", "stanik", "majtki", "figi", "bielizna",
+  "piżama", "pizama", "szlafrok", "bokserki"
+];
+
+function isNonOutfitItem(item) {
+  if (!item) return false;
+  const category = (item.category || "").toLowerCase();
+  const name = (item.name || "").toLowerCase();
+
+  // Kategoria "Bielizna" jest wykluczona zawsze, niezależnie od nazwy.
+  if (category === "bielizna") return true;
+
+  // Dodatkowo słowa kluczowe w nazwie łapią przypadki, gdy AI-wizja błędnie skategoryzowała
+  // ubranie (np. strój kąpielowy oznaczony jako "Góra").
+  return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
+}
+
 function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
-  const goras = clothes.filter(c => c.category === "Góra");
-  const dols = clothes.filter(c => c.category === "Dół");
-  const sukienki = clothes.filter(c => c.category === "Sukienki");
-  const buty = clothes.filter(c => c.category === "Buty" || c.category === "Obuwie");
+  const wearableClothes = (clothes || []).filter((c) => !isNonOutfitItem(c));
+
+  const goras = wearableClothes.filter(c => c.category === "Góra");
+  const dols = wearableClothes.filter(c => c.category === "Dół");
+  const sukienki = wearableClothes.filter(c => c.category === "Sukienki");
+  const buty = wearableClothes.filter(c => c.category === "Buty" || c.category === "Obuwie");
 
   let combinations = [];
 
@@ -243,6 +268,8 @@ module.exports = {
   generateBestOutfits,
   calculateOutfitScore,
   parseStyles,
+  isNonOutfitItem,
+  NON_OUTFIT_KEYWORDS,
   OCCASION_STYLE_MATCH,
   OCCASION_KEYWORDS,
   WEATHER_BLACKLIST,
