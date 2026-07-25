@@ -26,7 +26,7 @@ const WEATHER_BLACKLIST = {
     categories: [],
     styles: ["Classic"],
     colors: ["czarny", "ciemnobrązowy", "granatowy"],
-    forbiddenKeywords: ["bufiast", "grub", "wełn", "skórz", "kozak", "śniegowc"]
+    forbiddenKeywords: ["bufiast", "grub", "wełn", "skórz", "kozak", "śniegowc", "marynark", "żakiet", "garnitur"]
   },
   "Cold": {
     categories: ["Sukienki", "Sandały"],
@@ -45,8 +45,6 @@ const COLOR_HARMONIES = {
   "ciemnobrązowy": ["kremowy", "beżowy", "pastelowy róż", "ecru"]
 };
 
-// Ubranie może mieć teraz kilka stylów naraz, zapisanych jako "Classic, Romantic" — ta funkcja
-// zamienia to na tablicę do porównań, zamiast traktować cały string jako jedną wartość.
 function parseStyles(item) {
   if (!item || !item.style) return [];
   return String(item.style)
@@ -77,7 +75,6 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
       const col = item.color ? item.color.toLowerCase() : "";
       const name = item.name ? item.name.toLowerCase() : "";
 
-      // Kategoria, kolor i słowa kluczowe to obiektywnie złe dopasowanie do pogody (np. sandały w deszczu) — twarde weto.
       if (blacklist.categories && blacklist.categories.includes(cat)) {
         hardVeto = true;
       }
@@ -90,9 +87,7 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
         });
       }
 
-      // Styl to za mało precyzyjny sygnał, żeby całkowicie eliminować zestaw (np. "Classic" bywa też lekkie ubrania
-      // biurowe) — więc to tylko kara punktowa, nie automatyczna dyskwalifikacja. Wystarczy, że JEDEN z kilku
-      // przypisanych stylów trafi na czarną listę.
+
       if (blacklist.styles && itemStyles.some(st => blacklist.styles.includes(st))) {
         weatherStylePenalty += 45;
       }
@@ -193,9 +188,7 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
   };
 }
 
-// Ubrania, które nigdy nie powinny wejść w skład proponowanej stylizacji na wyjście (randka, praca, impreza itd.),
-// niezależnie od tego, jak dobrze "pasują" kolorystycznie czy stylowo. To kategoryczne wykluczenie, nie kara
-// punktowa — bielizna i strój kąpielowy to nie jest kwestia gustu, tylko fundamentalne niedopasowanie kontekstu.
+
 const NON_OUTFIT_KEYWORDS = [
   "strój kąpielowy", "stroj kapielowy", "kostium kąpielowy", "kostium kapielowy",
   "kąpielówki", "kapielowki", "bikini",
@@ -208,11 +201,9 @@ function isNonOutfitItem(item) {
   const category = (item.category || "").toLowerCase();
   const name = (item.name || "").toLowerCase();
 
-  // Kategoria "Bielizna" jest wykluczona zawsze, niezależnie od nazwy.
   if (category === "bielizna") return true;
 
-  // Dodatkowo słowa kluczowe w nazwie łapią przypadki, gdy AI-wizja błędnie skategoryzowała
-  // ubranie (np. strój kąpielowy oznaczony jako "Góra").
+
   return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
 }
 

@@ -8,6 +8,7 @@ const {
 
 const NEUTRAL_COLORS = ["czarny", "biały", "kremowy", "beżowy", "szary", "granatowy"];
 
+
 const isHardWeatherVetoed = (item, weatherType) => {
   const blacklist = WEATHER_BLACKLIST[weatherType];
   if (!blacklist) return false;
@@ -21,6 +22,10 @@ const isHardWeatherVetoed = (item, weatherType) => {
 
   return false;
 };
+
+
+const isHardVetoedForTrip = (item, weatherTypes) =>
+  weatherTypes.some((wt) => isHardWeatherVetoed(item, wt));
 
 
 const scoreVersatility = (item, userProfile = {}) => {
@@ -52,31 +57,82 @@ const scoreVersatility = (item, userProfile = {}) => {
   return score;
 };
 
-function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear") {
-  if (!clothes) {
-    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+
+const scoreComboAcrossWeather = (outfit, userProfile, occasion, weatherTypes) => {
+  const scores = weatherTypes.map(
+    (wt) => calculateOutfitScore(outfit, userProfile, null, occasion, wt).totalScore
+  );
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+};
+
+
+function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
+  let nG = goras.length > 0 ? 1 : 0;
+  let nD = dols.length > 0 ? 1 : 0;
+  let nB = buty.length > 0 ? 1 : 0;
+  let nS = sukienki.length > 0 ? 1 : 0;
+
+  const comboCount = () => nG * nD * nB + nS * nB;
+
+
+  const maxIterations = goras.length + dols.length + sukienki.length + buty.length;
+  let iterations = 0;
+
+  while (comboCount() < targetCombos && iterations < maxIterations) {
+    iterations++;
+    const candidates = [];
+    if (nG < goras.length) candidates.push({ cat: "g", gain: nD * nB });
+    if (nD < dols.length) candidates.push({ cat: "d", gain: nG * nB });
+    if (nB < buty.length) candidates.push({ cat: "b", gain: nG * nD + nS });
+    if (nS < sukienki.length) candidates.push({ cat: "s", gain: nB });
+
+    if (candidates.length === 0) break;
+
+    candidates.sort((a, b) => b.gain - a.gain);
+    const pick = candidates[0];
+    if (pick.cat === "g") nG++;
+    else if (pick.cat === "d") nD++;
+    else if (pick.cat === "b") nB++;
+    else nS++;
   }
 
-  const wearableClothes = clothes.filter((c) => !isNonOutfitItem(c));
-  if (wearableClothes.length < 5) {
-    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
-  }
+  return {
+    selectedGoras: goras.slice(0, nG),
+    selectedDols: dols.slice(0, nD),
+    selectedSukienki: sukienki.slice(0, nS),
+    selectedButy: buty.slice(0, nB),
+  };
+}
 
-  const weatherSafe = wearableClothes.filter((c) => !isHardWeatherVetoed(c, weatherType));
+// Wspólny rdzeń: z puli ubrań buduje bazę kapsułową + wszystkie sensowne kombinacje, oceniane pod kątem
+// wszystkich okazji i wszystkich typów pogody z `weatherTypes` naraz. Używany zarówno przez kapsułę "na dziś"
+// (jeden typ pogody, stały mały limit), jak i kapsułę podróżną (kilka typów pogody, minimalna baza pod
+// docelową liczbę dni).
+function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) {
+  const { targetCombos = null } = options;
 
+  const weatherSafe = wearableClothes.filter((c) => !isHardVetoedForTrip(c, weatherTypes));
+  // Jeśli filtr pogodowy zostawiłby zbyt mało ubrań do zbudowania sensownej kapsuły, cofamy się do pełnej szafy
+  // zamiast pokazać pustą siatkę.
   const pool = weatherSafe.length >= 5 ? weatherSafe : wearableClothes;
-
-  const goras = pool.filter((c) => c.category === "Góra");
-  const dols = pool.filter((c) => c.category === "Dół");
-  const sukienki = pool.filter((c) => c.category === "Sukienki");
-  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie");
 
   const byVersatility = (a, b) => scoreVersatility(b, userProfile) - scoreVersatility(a, userProfile);
 
-  const selectedGoras = [...goras].sort(byVersatility).slice(0, 4);
-  const selectedDols = [...dols].sort(byVersatility).slice(0, 3);
-  const selectedSukienki = [...sukienki].sort(byVersatility).slice(0, 1);
-  const selectedButy = [...buty].sort(byVersatility).slice(0, 2);
+  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatility);
+  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatility);
+  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatility);
+  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatility);
+
+  // Tryb "na dziś": mała, stała baza (top N najbardziej wersatylnych sztuk na kategorię) — jak dotychczas.
+  // Tryb podróży (targetCombos podane): minimalna baza wystarczająca na `targetCombos` różnych zestawów.
+  const { selectedGoras, selectedDols, selectedSukienki, selectedButy } = targetCombos
+    ? selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos)
+    : {
+        selectedGoras: goras.slice(0, 4),
+        selectedDols: dols.slice(0, 3),
+        selectedSukienki: sukienki.slice(0, 1),
+        selectedButy: buty.slice(0, 2),
+      };
 
   const capsuleItems = [...selectedGoras, ...selectedDols, ...selectedSukienki, ...selectedButy];
 
@@ -96,15 +152,13 @@ function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear
     });
   });
 
-  // Każdą kombinację oceniamy pod kątem WSZYSTKICH okazji i zapamiętujemy, do której pasuje najlepiej —
-  // to pozwala potem zagwarantować różnorodność zamiast zwracać zawsze te same "najbezpieczniejsze" zestawy.
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
   const scoredCombos = rawCombos
     .map((outfit) => {
       let best = { score: -Infinity, occasion: null };
       occasions.forEach((occ) => {
-        const { totalScore } = calculateOutfitScore(outfit, userProfile, null, occ, weatherType);
-        if (totalScore > best.score) best = { score: totalScore, occasion: occ };
+        const score = scoreComboAcrossWeather(outfit, userProfile, occ, weatherTypes);
+        if (score > best.score) best = { score, occasion: occ };
       });
       return { outfit, ...best };
     })
@@ -144,11 +198,42 @@ function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear
 
   diversified.sort((a, b) => b.score - a.score);
 
+  const finalLimit = targetCombos || 30;
+
   return {
     capsuleItems,
     totalCombinations: rawCombos.length,
-    combinations: diversified.slice(0, 30).map((c) => c.outfit)
+    combinations: diversified.slice(0, finalLimit).map((c) => c.outfit)
   };
 }
 
-module.exports = { generateCapsuleWardrobe };
+function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear") {
+  if (!clothes) {
+    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  }
+
+  const wearableClothes = clothes.filter((c) => !isNonOutfitItem(c));
+  if (wearableClothes.length < 5) {
+    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  }
+
+  return buildCapsule(wearableClothes, userProfile, [weatherType]);
+}
+
+
+function generateTripCapsuleWardrobe(clothes, userProfile = {}, weatherTypes = ["Clear"], days = 1) {
+  if (!clothes) {
+    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  }
+
+  const wearableClothes = clothes.filter((c) => !isNonOutfitItem(c));
+  if (wearableClothes.length < 5) {
+    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  }
+
+  const safeWeatherTypes = weatherTypes.length > 0 ? weatherTypes : ["Clear"];
+  const targetCombos = Math.max(1, parseInt(days, 10) || 1);
+  return buildCapsule(wearableClothes, userProfile, safeWeatherTypes, { targetCombos });
+}
+
+module.exports = { generateCapsuleWardrobe, generateTripCapsuleWardrobe };

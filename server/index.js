@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
-const { generateCapsuleWardrobe } = require("./capsuleEngine");
+const { generateCapsuleWardrobe, generateTripCapsuleWardrobe } = require("./capsuleEngine");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
@@ -205,6 +205,16 @@ const generateContextString = (clothes, user) => {
 
   return context;
 };
+// Wspólna klasyfikacja jednego dnia pogody na podstawie maks. temperatury i sumy opadów — używana zarówno
+// przez prognozę kalendarza (/api/events), jak i kapsułę podróżną (/api/capsule/trip), żeby nie utrzymywać
+// dwóch kopii tej samej logiki.
+function classifyDailyWeather(maxTemp, rainSum) {
+  if (rainSum > 0.2) return "Rain";
+  if (maxTemp >= 24) return "Hot";
+  if (maxTemp <= 10) return "Cold";
+  return "Clear";
+}
+
 async function getLiveWeather(lat, lon) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,rain,snow_depth`;
@@ -233,6 +243,48 @@ async function getLiveWeather(lat, lon) {
     return "Clear";
   }
 }
+
+// Zamienia nazwę miasta na współrzędne przez Open-Meteo Geocoding (ten sam dostawca co reszta pogody w tej
+// aplikacji — bez dodatkowego klucza API). Zwraca null, jeśli nic nie znaleziono.
+async function geocodeCity(cityName) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pl&format=json`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Błąd geokodowania miasta");
+
+  const data = await response.json();
+  if (!data.results || data.results.length === 0) return null;
+
+  const best = data.results[0];
+  return {
+    name: best.name,
+    country: best.country,
+    latitude: best.latitude,
+    longitude: best.longitude,
+  };
+}
+
+// Prognoza dzienna (maks. temperatura + suma opadów) na `days` dni w przód dla danych współrzędnych,
+// sklasyfikowana tą samą funkcją co reszta aplikacji (classifyDailyWeather).
+async function getMultiDayForecast(lat, lon, days) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,rain_sum&forecast_days=${days}&timezone=auto`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Błąd pobierania prognozy wielodniowej");
+
+  const data = await response.json();
+  if (!data.daily || !data.daily.time) return [];
+
+  return data.daily.time.map((dateStr, index) => {
+    const maxTemp = data.daily.temperature_2m_max[index];
+    const rainSum = data.daily.rain_sum[index];
+    return {
+      date: dateStr,
+      maxTemp,
+      rainSum,
+      weatherType: classifyDailyWeather(maxTemp, rainSum),
+    };
+  });
+}
+
 const getBasePrompt = (query, context, weatherType = "Clear") => {
   let opisPogody = "Słonecznie i przyjemnie";
   if (weatherType === "Rain") opisPogody = "Pada deszcz / ulewa (jest mokro)";
@@ -396,7 +448,9 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       }),
     ]);
 
-
+    // Bielizna i stroje kąpielowe nigdy nie powinny trafić do rekomendacji stylizacji na wyjście — odcinamy je
+    // tu, u źródła, więc ani deterministyczny RAG, ani Gemini/Llama (przez wardrobeContext) nie mają jak ich
+    // zaproponować.
     const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
 
     const textLower = query.toLowerCase();
@@ -679,6 +733,57 @@ app.get("/api/capsule", authenticateToken, async (req, res) => {
   }
 });
 
+const MAX_TRIP_DAYS = 16;
+
+app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { city, days } = req.body;
+
+    if (!city || typeof city !== "string" || !city.trim()) {
+      return res.status(400).json({ error: "Podaj nazwę miasta." });
+    }
+
+    const parsedDays = parseInt(days, 10);
+    if (!Number.isFinite(parsedDays) || parsedDays < 1) {
+      return res.status(400).json({ error: "Podaj poprawną liczbę dni (minimum 1)." });
+    }
+    const tripDays = Math.min(parsedDays, MAX_TRIP_DAYS);
+
+    const location = await geocodeCity(city.trim());
+    if (!location) {
+      return res.status(404).json({ error: `Nie znaleziono miasta "${city}". Sprawdź pisownię i spróbuj ponownie.` });
+    }
+
+    const [user, clothes, dailyForecast] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.cloth.findMany({ where: { userId } }),
+      getMultiDayForecast(location.latitude, location.longitude, tripDays),
+    ]);
+
+    if (dailyForecast.length === 0) {
+      return res.status(502).json({ error: "Nie udało się pobrać prognozy pogody dla tego miasta." });
+    }
+
+    const weatherTypes = Array.from(new Set(dailyForecast.map((d) => d.weatherType)));
+
+    const capsuleData = generateTripCapsuleWardrobe(clothes, user, weatherTypes, tripDays);
+
+    res.json({
+      ...capsuleData,
+      city: location.name,
+      country: location.country,
+      days: tripDays,
+      requestedDays: parsedDays,
+      dailyForecast,
+      weatherTypes,
+    });
+  } catch (error) {
+    console.error("Błąd generowania kapsuły podróżnej:", error);
+    res.status(500).json({ error: "Błąd generowania kapsuły podróżnej." });
+  }
+});
+
 app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { modelType, feedback } = req.body;
@@ -826,6 +931,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
+    // 1. Pobieramy historię analiz, rekomendacje ubrań RAG oraz całą szafę
     const [history, recommendations, allClothes] = await Promise.all([
       prisma.analysis.findMany({
         where: { userId },
@@ -839,6 +945,8 @@ app.get("/api/history", authenticateToken, async (req, res) => {
       })
     ]);
 
+    // Ten sam filtr co przy generowaniu — bielizna/strój kąpielowy nie mają się pojawiać w dopasowanych zdjęciach,
+    // nawet przy ponownym parsowaniu starszych wpisów historii.
     const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
     const clothesMap = new Map(clothes.map(c => [c.id, c]));
 
@@ -904,12 +1012,7 @@ app.get("/api/events", authenticateToken, async (req, res) => {
           const maxTemp = wData.daily.temperature_2m_max[index];
           const rainSum = wData.daily.rain_sum[index];
 
-          let dayStatus = "Clear";
-          if (rainSum > 0.2) dayStatus = "Rain";
-          else if (maxTemp >= 24) dayStatus = "Hot";
-          else if (maxTemp <= 10) dayStatus = "Cold";
-
-          dailyWeatherMap[dateStr] = dayStatus;
+          dailyWeatherMap[dateStr] = classifyDailyWeather(maxTemp, rainSum);
         });
       }
     } catch (e) {

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
-import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package, Plus } from "lucide-react";
+import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package, Plus, Plane, MapPin } from "lucide-react";
 import "./Sidebar.css";
 
 const OCCASION_STYLE_MATCH = {
@@ -276,7 +276,7 @@ const Sidebar = () => {
       </aside>
 
       <StatsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} stats={stats} />
-      <CapsuleModal isOpen={isCapsuleOpen} onClose={() => setIsCapsuleOpen(false)} data={capsuleData} allClothes={clothes} />
+      <CapsuleModal isOpen={isCapsuleOpen} onClose={() => setIsCapsuleOpen(false)} data={capsuleData} onDataChange={setCapsuleData} allClothes={clothes} />
     </>
   );
 };
@@ -431,9 +431,14 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
   );
 };
 
-const CapsuleModal = ({ isOpen, onClose, data, allClothes = [] }) => {
+const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) => {
   const [items, setItems] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
+  const [mode, setMode] = useState("today");
+  const [tripCity, setTripCity] = useState("");
+  const [tripDays, setTripDays] = useState(5);
+  const [tripLoading, setTripLoading] = useState(false);
+  const [tripError, setTripError] = useState("");
 
   useEffect(() => {
     if (data?.capsuleItems) {
@@ -474,6 +479,51 @@ const CapsuleModal = ({ isOpen, onClose, data, allClothes = [] }) => {
     setItems((prev) => [...prev, cloth]);
   };
 
+  const handleGenerateTripCapsule = async () => {
+    setTripError("");
+    if (!tripCity.trim()) {
+      setTripError("Podaj nazwę miasta.");
+      return;
+    }
+    const daysNum = parseInt(tripDays, 10);
+    if (!Number.isFinite(daysNum) || daysNum < 1) {
+      setTripError("Podaj poprawną liczbę dni.");
+      return;
+    }
+
+    const token = sessionStorage.getItem("fitte_token");
+    if (!token) {
+      setTripError("Sesja wygasła — zaloguj się ponownie.");
+      return;
+    }
+
+    setTripLoading(true);
+    try {
+      const res = await fetch("http://localhost:5001/api/capsule/trip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
+      });
+
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setTripError(result.error || "Nie udało się wygenerować kapsuły podróżnej.");
+        return;
+      }
+
+      onDataChange?.(result);
+    } catch (e) {
+      console.error("Błąd generowania kapsuły podróżnej:", e);
+      setTripError("Błąd sieci — upewnij się, że serwer działa.");
+    } finally {
+      setTripLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -486,10 +536,90 @@ const CapsuleModal = ({ isOpen, onClose, data, allClothes = [] }) => {
         <h2 className="font-playfair text-2xl mb-1">
           Algorytmiczna Szafa <span className="italic">Kapsułowa</span>
         </h2>
-        <p className="text-xs text-gray-400 mb-6">Metoda kombinatoryczna maksymalizacji użyteczności odzieży</p>
+        <p className="text-xs text-gray-400 mb-4">Metoda kombinatoryczna maksymalizacji użyteczności odzieży</p>
+
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setMode("today")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              mode === "today"
+                ? "bg-[#3D2B1F] text-white"
+                : "bg-white text-[#3D2B1F] border border-[#E8DDD0] hover:border-[#8E7A6B]"
+            }`}
+          >
+            <CloudSun size={14} /> Dziś
+          </button>
+          <button
+            onClick={() => setMode("trip")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              mode === "trip"
+                ? "bg-[#3D2B1F] text-white"
+                : "bg-white text-[#3D2B1F] border border-[#E8DDD0] hover:border-[#8E7A6B]"
+            }`}
+          >
+            <Plane size={14} /> Wyjazd
+          </button>
+        </div>
+
+        {mode === "trip" && (
+          <div className="bg-white p-4 rounded-2xl border border-[#E8DDD0]/50 mb-5">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={tripCity}
+                  onChange={(e) => setTripCity(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleGenerateTripCapsule()}
+                  placeholder="Miasto, np. Rzym"
+                  className="w-full bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#8E7A6B]"
+                />
+              </div>
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={tripDays}
+                onChange={(e) => setTripDays(e.target.value)}
+                className="w-full sm:w-24 bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8E7A6B]"
+                placeholder="Dni"
+              />
+              <button
+                onClick={handleGenerateTripCapsule}
+                disabled={tripLoading}
+                className="bg-[#3D2B1F] text-white px-5 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
+              >
+                {tripLoading ? "Liczę pogodę..." : "Generuj kapsułę"}
+              </button>
+            </div>
+            {tripError && <p className="text-[11px] text-red-500 mt-2">{tripError}</p>}
+            {data?.city && (
+              <p className="text-[11px] text-gray-400 mt-2">
+                Ostatnia trasa: <span className="font-bold text-[#3D2B1F]">{data.city}{data.country ? `, ${data.country}` : ""}</span>
+                {" "}— {data.days} {data.days === 1 ? "dzień" : "dni"}
+                {data.requestedDays && data.requestedDays > data.days && (
+                  <> (prognoza dostępna tylko na pierwsze {data.days} dni z {data.requestedDays} zapytanych)</>
+                )}
+              </p>
+            )}
+            {data?.weatherTypes && data.weatherTypes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {data.weatherTypes.map((wt) => (
+                  <span key={wt} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FDFBF9] border border-[#E8DDD0] text-[#8E7A6B]">
+                    {wt}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {!data ? (
-          <div className="text-center py-10 text-gray-400 italic">Dodaj minimum 5 ubrań (w tym buty, góry i doły), aby wygenerować szafę kapsułową.</div>
+          <div className="text-center py-10 text-gray-400 italic">
+            {mode === "trip"
+              ? "Podaj miasto i liczbę dni, aby wygenerować kapsułę podróżną."
+              : "Dodaj minimum 5 ubrań (w tym buty, góry i doły), aby wygenerować szafę kapsułową."}
+          </div>
         ) : (
           <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
 
