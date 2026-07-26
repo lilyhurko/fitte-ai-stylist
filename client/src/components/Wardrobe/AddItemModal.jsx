@@ -55,8 +55,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     formData.append("image", file);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // Zwiększamy do 90s ze względu na Hugging Face
-
+    const timeoutId = setTimeout(() => controller.abort(), 90000); 
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: "POST",

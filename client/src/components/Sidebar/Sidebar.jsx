@@ -4,6 +4,7 @@ import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
 import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package, Plus, Plane, MapPin } from "lucide-react";
 import "./Sidebar.css";
+import { API_BASE_URL } from "../../config"; 
 
 const OCCASION_STYLE_MATCH = {
   "Randka": ["chic", "romantic"],
@@ -136,7 +137,7 @@ const Sidebar = () => {
     try {
       const coords = await getCoordinates();
       const res = await fetch(
-        `http://localhost:5001/api/capsule?latitude=${coords.latitude}&longitude=${coords.longitude}`,
+        `${API_BASE_URL}/capsule?latitude=${coords.latitude}&longitude=${coords.longitude}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status === 401 || res.status === 403) {
@@ -499,7 +500,7 @@ const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) 
 
     setTripLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/api/capsule/trip", {
+      const res = await fetch("${API_BASE_URL}/capsule/trip", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
