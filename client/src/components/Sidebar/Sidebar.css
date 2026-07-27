@@ -202,8 +202,10 @@
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 16px;
-    left: 16px;
+    /* env(safe-area-inset-top) = wysokość notcha/paska statusu w trybie standalone PWA (iOS/Android).
+       Bez tego przycisk chowa się pod zegarem/ikonami systemowymi. Fallback 0px dla przeglądarek bez obsługi. */
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: calc(16px + env(safe-area-inset-left, 0px));
     background: white;
     border: 1px solid #e8ddd0;
     padding: 10px;
@@ -217,7 +219,7 @@
   .mobile-nav-close {
     display: flex;
     position: absolute;
-    top: 24px;
+    top: calc(24px + env(safe-area-inset-top, 0px));
     right: 20px;
     background: none;
     border: none;
@@ -226,6 +228,7 @@
   }
 
   .logo {
+    margin-bottom: 30px;
     font-size: 28px;
   }
 
@@ -252,7 +255,8 @@
     margin-bottom: 30px;
   }
   header, .wardrobe-header, .assistant-container header {
-    padding-left: 60px !important; 
+    padding-left: 60px !important;
+    padding-top: env(safe-area-inset-top, 0px);
     transition: padding-left 0.3s ease;
   }
 }
