@@ -78,7 +78,7 @@ const Wardrobe = () => {
   };
 
   const handleItemAdded = async (aiResult) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
 
     try {
       console.log("Dane przekazywane z Modala do zapisu Proxy:", aiResult);
@@ -115,7 +115,7 @@ const Wardrobe = () => {
   };
 
   const handleUpdateItem = async (id, updatedFields) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
 
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/${id}`, {

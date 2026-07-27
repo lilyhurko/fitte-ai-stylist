@@ -3,8 +3,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
 import { LogOut, Menu, X, Sparkles, Shirt, History, User, Calendar, BarChart3, PieChart, CloudSun, Heart, Briefcase, Package, Plus, Plane, MapPin } from "lucide-react";
+import { API_BASE_URL } from "../../config";
 import "./Sidebar.css";
-import { API_BASE_URL } from "../../config"; 
 
 const OCCASION_STYLE_MATCH = {
   "Randka": ["chic", "romantic"],
@@ -112,7 +112,7 @@ const Sidebar = () => {
   const handleOpenCapsule = async () => {
     setIsOpen(false);
     setIsCapsuleOpen(true);
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     if (!token) {
       console.error("Brak tokena — sesja wygasła lub nieprawidłowa.");
       setIsCapsuleOpen(false);
@@ -287,8 +287,8 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal-content apple-card max-w-lg w-[90%] p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
-        <button className="close-btn absolute top-5 right-5 text-gray-400 hover:text-black transition-colors" onClick={onClose}>
+      <div className="modal-content apple-card max-w-lg w-[90%] max-h-[90vh] overflow-y-auto p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+        <button className="close-btn absolute top-3 right-3 p-2 text-gray-400 hover:text-black transition-colors" onClick={onClose}>
           <X size={22} />
         </button>
 
@@ -492,7 +492,7 @@ const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) 
       return;
     }
 
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     if (!token) {
       setTripError("Sesja wygasła — zaloguj się ponownie.");
       return;
@@ -500,7 +500,7 @@ const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) 
 
     setTripLoading(true);
     try {
-      const res = await fetch("${API_BASE_URL}/capsule/trip", {
+      const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -529,8 +529,8 @@ const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) 
 
   return (
     <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal-content apple-card max-w-2xl w-[90%] p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
-        <button className="close-btn absolute top-5 right-5 text-gray-400 hover:text-black transition-colors" onClick={onClose}>
+      <div className="modal-content apple-card max-w-2xl w-[90%] max-h-[90vh] overflow-y-auto p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+        <button className="close-btn absolute top-3 right-3 p-2 text-gray-400 hover:text-black transition-colors" onClick={onClose}>
           <X size={22} />
         </button>
 
@@ -578,6 +578,7 @@ const CapsuleModal = ({ isOpen, onClose, data, onDataChange, allClothes = [] }) 
               </div>
               <input
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={16}
                 value={tripDays}

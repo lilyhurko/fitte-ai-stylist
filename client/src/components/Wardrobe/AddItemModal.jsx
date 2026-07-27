@@ -49,7 +49,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     if (!file || isProcessing) return; 
 
     setIsProcessing(true);
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
 
     const formData = new FormData();
     formData.append("image", file);

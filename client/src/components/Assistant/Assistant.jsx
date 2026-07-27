@@ -34,7 +34,7 @@ const handleGenerate = async () => {
     setLlamaFeedback(null);
     setRagFeedback(null);
 
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
     const getCoordinates = () => {
@@ -90,7 +90,7 @@ const handleGenerate = async () => {
   };
 
   const handleModelFeedback = async (modelType, feedbackType) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     const analysisId = results._id || results.id;
 
     if (!analysisId) return;
@@ -120,7 +120,7 @@ const handleGenerate = async () => {
   const handleRagFeedback = async (feedbackType) => {
     if (!results?.recommendationId) return;
 
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     const analysisId = results.id || results._id;
 
     try {
