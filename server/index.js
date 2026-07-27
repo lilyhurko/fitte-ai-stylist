@@ -205,9 +205,7 @@ const generateContextString = (clothes, user) => {
 
   return context;
 };
-// Wspólna klasyfikacja jednego dnia pogody na podstawie maks. temperatury i sumy opadów — używana zarówno
-// przez prognozę kalendarza (/api/events), jak i kapsułę podróżną (/api/capsule/trip), żeby nie utrzymywać
-// dwóch kopii tej samej logiki.
+
 function classifyDailyWeather(maxTemp, rainSum) {
   if (rainSum > 0.2) return "Rain";
   if (maxTemp >= 24) return "Hot";
