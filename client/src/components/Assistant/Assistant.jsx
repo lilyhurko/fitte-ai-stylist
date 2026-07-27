@@ -24,7 +24,7 @@ const Assistant = () => {
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
-const handleGenerate = async () => {
+  const handleGenerate = async () => {
     if (!prompt && !selectedOccasion) return;
 
     setLoading(true);
@@ -56,7 +56,7 @@ const handleGenerate = async () => {
             console.log("Błąd GPS lub brak zgody, używam fallbacku na Lublin.", error.message);
             resolve({ latitude: 51.2465, longitude: 22.5684 });
           },
-          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 } // Maksymalnie 2 sekundy czekania
+          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
         );
       });
     };
@@ -146,30 +146,31 @@ const handleGenerate = async () => {
       console.error("Błąd feedbacku RAG:", error);
     }
   };
+
   return (
-    <main className="assistant-container pt-4 px-4 md:px-12 pb-12 min-h-screen">
-      <header className="mb-6 mt-2">
-        <h2 className="font-playfair text-3xl md:text-5xl font-light">
+    <main className="assistant-container">
+      <header className="mb-6 mt-1">
+        <h2 className="font-playfair text-3xl md:text-5xl font-light leading-tight">
           Co dziś <span className="italic text-fitte-terracotta">założyć?</span>
         </h2>
-        <p className="text-fitte-brown-light text-xs md:text-sm mt-2">
+        <p className="text-fitte-brown-light text-xs md:text-sm mt-1.5">
           Dostosuję propozycje do Twojego stylu.
         </p>
       </header>
 
-      <section className="input-card bg-white rounded-[30px] md:rounded-[40px] p-6 md:p-10 border border-fitte-sand shadow-sm">
-        <div className="mb-6">
-          <span className="text-[10px] font-bold tracking-widest text-fitte-brown-dark">
+      <section className="input-card bg-white rounded-[24px] md:rounded-[40px] p-5 md:p-10 border border-fitte-sand shadow-sm">
+        <div className="mb-5">
+          <span className="text-[10px] font-bold tracking-widest text-fitte-brown-dark block mb-3">
             WYBIERZ OKAZJĘ
           </span>
-          <div className="flex flex-wrap gap-2 md:gap-3 mt-4">
+          <div className="flex flex-wrap gap-2">
             {occasions.map((occ) => (
               <button
                 key={occ}
                 onClick={() => setSelectedOccasion(occ)}
-                className={`px-4 md:px-6 py-2 rounded-full border text-xs transition-all ${
+                className={`px-3.5 md:px-6 py-2 rounded-full border text-xs transition-all touch-manipulation ${
                   selectedOccasion === occ
-                    ? "bg-fitte-brown-dark text-white border-fitte-brown-dark"
+                    ? "bg-fitte-brown-dark text-white border-fitte-brown-dark font-medium"
                     : "bg-transparent border-fitte-sand text-fitte-brown-dark hover:border-fitte-brown-dark"
                 }`}
               >
@@ -183,21 +184,23 @@ const handleGenerate = async () => {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="w-full h-32 bg-fitte-cream/50 rounded-2xl p-4 md:p-6 border border-fitte-sand focus:outline-none focus:border-fitte-brown-light resize-none text-sm"
+            className="w-full h-28 md:h-32 bg-fitte-cream/50 rounded-2xl p-4 border border-fitte-sand focus:outline-none focus:border-fitte-brown-light resize-none text-sm leading-relaxed"
             placeholder="Opisz szczegóły (np. idę na kolację, chcę czuć się swobodnie)..."
           />
 
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mt-6">
-            <div className="flex flex-wrap gap-3 items-center text-[9px] font-bold opacity-50">
-              <span>AKTYWNE SILNIKI BADAWCZE:</span>
+          <div className="flex flex-col-reverse md:flex-row md:justify-between md:items-center gap-4 mt-5">
+            <div className="flex flex-wrap gap-2 md:gap-3 items-center text-[9px] font-bold opacity-50">
+              <span className="w-full md:w-auto">AKTYWNE SILNIKI BADAWCZE:</span>
               <span>GEMINI 2.5</span>
-              <span>LLAMA 3.3 (70B)</span>
-              <span>FITTE HYBRID RAG</span>
+              <span>•</span>
+              <span>LLAMA 3.3</span>
+              <span>•</span>
+              <span>HYBRID RAG</span>
             </div>
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="generate-btn w-full md:w-auto bg-fitte-brown-dark text-white px-10 py-3.5 rounded-full hover:opacity-90 transition-all font-bold flex items-center justify-center gap-2.5 text-sm shadow-sm"
+              className="generate-btn w-full md:w-auto bg-fitte-brown-dark text-white px-8 py-3.5 rounded-full hover:opacity-90 active:scale-95 transition-all font-bold flex items-center justify-center gap-2.5 text-sm shadow-sm touch-manipulation"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -211,9 +214,9 @@ const handleGenerate = async () => {
         </div>
       </section>
 
-{results && (
-        <section className="mt-12 md:mt-16 animate-fade-in">
-          <h3 className="font-playfair text-xl md:text-2xl mb-6 md:mb-8">
+      {results && (
+        <section className="mt-8 md:mt-16 animate-fade-in">
+          <h3 className="font-playfair text-xl md:text-2xl mb-5 md:mb-8">
             Porównanie inteligentnych propozycji
           </h3>
 
@@ -221,21 +224,21 @@ const handleGenerate = async () => {
             {/* COLUMN 1: GEMINI */}
             <div className="ai-result-card">
               <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-4">
+                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-3">
                   <Sparkles size={14} /> Gemini 2.5 Flash
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed mb-5">
+                <p className="text-sm text-gray-700 leading-relaxed mb-4">
                   {results.geminiResponse}
                 </p>
 
                 {results.geminiItems && results.geminiItems.length > 0 ? (
-                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
+                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 overflow-x-auto">
                     {results.geminiItems.map((cloth) => (
                       <img
                         key={cloth.id}
                         src={cloth.imageUrl}
                         alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
                         title={cloth.name}
                       />
                     ))}
@@ -246,7 +249,7 @@ const handleGenerate = async () => {
                   </div>
                 )}
               </div>
-              <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+              <div className="mt-auto pt-3 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
                   Trafiona stylizacja?
                 </span>
@@ -254,14 +257,22 @@ const handleGenerate = async () => {
                   <button
                     onClick={() => handleModelFeedback("gemini", "LIKE")}
                     disabled={geminiFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${geminiFeedback === "LIKE" ? "bg-green-50 text-green-600 border-green-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                    className={`p-2 rounded-xl border transition-all ${
+                      geminiFeedback === "LIKE"
+                        ? "bg-green-50 text-green-600 border-green-200 scale-105"
+                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
+                    }`}
                   >
                     <ThumbsUp size={15} />
                   </button>
                   <button
                     onClick={() => handleModelFeedback("gemini", "DISLIKE")}
                     disabled={geminiFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${geminiFeedback === "DISLIKE" ? "bg-red-50 text-red-600 border-red-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                    className={`p-2 rounded-xl border transition-all ${
+                      geminiFeedback === "DISLIKE"
+                        ? "bg-red-50 text-red-600 border-red-200 scale-105"
+                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
+                    }`}
                   >
                     <ThumbsDown size={15} />
                   </button>
@@ -272,21 +283,21 @@ const handleGenerate = async () => {
             {/* COLUMN 2: LLAMA */}
             <div className="ai-result-card">
               <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-4">
+                <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-3">
                   <Monitor size={14} /> Llama 3.3 (Cloud)
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed mb-5">
+                <p className="text-sm text-gray-700 leading-relaxed mb-4">
                   {results.mistralResponse}
                 </p>
 
                 {results.llamaItems && results.llamaItems.length > 0 ? (
-                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 animate-fade-in">
+                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 overflow-x-auto">
                     {results.llamaItems.map((cloth) => (
                       <img
                         key={cloth.id}
                         src={cloth.imageUrl}
                         alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
                         title={cloth.name}
                       />
                     ))}
@@ -297,7 +308,7 @@ const handleGenerate = async () => {
                   </div>
                 )}
               </div>
-              <div className="mt-auto pt-4 border-t border-fitte-sand/40 flex justify-between items-center">
+              <div className="mt-auto pt-3 border-t border-fitte-sand/40 flex justify-between items-center">
                 <span className="text-[10px] text-gray-400 tracking-wider uppercase">
                   Trafiona stylizacja?
                 </span>
@@ -305,14 +316,22 @@ const handleGenerate = async () => {
                   <button
                     onClick={() => handleModelFeedback("llama", "LIKE")}
                     disabled={llamaFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${llamaFeedback === "LIKE" ? "bg-green-50 text-green-600 border-green-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                    className={`p-2 rounded-xl border transition-all ${
+                      llamaFeedback === "LIKE"
+                        ? "bg-green-50 text-green-600 border-green-200 scale-105"
+                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
+                    }`}
                   >
                     <ThumbsUp size={15} />
                   </button>
                   <button
                     onClick={() => handleModelFeedback("llama", "DISLIKE")}
                     disabled={llamaFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${llamaFeedback === "DISLIKE" ? "bg-red-50 text-red-600 border-red-200 scale-105" : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"}`}
+                    className={`p-2 rounded-xl border transition-all ${
+                      llamaFeedback === "DISLIKE"
+                        ? "bg-red-50 text-red-600 border-red-200 scale-105"
+                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
+                    }`}
                   >
                     <ThumbsDown size={15} />
                   </button>
@@ -323,28 +342,28 @@ const handleGenerate = async () => {
             {/* COLUMN 3: FITTE HYBRID RAG */}
             <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
               <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-4">
+                <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-3">
                   <Brain size={14} /> Fitte AI (Hybrid RAG)
                 </div>
-                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-5">
+                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-4">
                   {results.ragResponse}
                 </p>
 
                 {results.ragItems && results.ragItems.length > 0 && (
-                  <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 animate-fade-in">
+                  <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 overflow-x-auto">
                     {results.ragItems.map((cloth) => (
                       <img
                         key={cloth.id}
                         src={cloth.imageUrl}
                         alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm"
+                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
                         title={cloth.name}
                       />
                     ))}
                   </div>
                 )}
               </div>
-              <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
+              <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] text-fitte-beige/60 tracking-wider uppercase">
                     Czy to udana stylizacja?
@@ -353,14 +372,22 @@ const handleGenerate = async () => {
                     <button
                       onClick={() => handleRagFeedback("LIKE")}
                       disabled={ragFeedback !== null}
-                      className={`p-2 rounded-xl transition-all ${ragFeedback === "LIKE" ? "bg-green-600 text-white scale-105" : "bg-white/10 text-white hover:bg-white/20"}`}
+                      className={`p-2 rounded-xl transition-all ${
+                        ragFeedback === "LIKE"
+                          ? "bg-green-600 text-white scale-105"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
                     >
                       <ThumbsUp size={15} />
                     </button>
                     <button
                       onClick={() => handleRagFeedback("DISLIKE")}
                       disabled={ragFeedback !== null}
-                      className={`p-2 rounded-xl transition-all ${ragFeedback === "DISLIKE" ? "bg-red-600 text-white scale-105" : "bg-white/10 text-white hover:bg-white/20"}`}
+                      className={`p-2 rounded-xl transition-all ${
+                        ragFeedback === "DISLIKE"
+                          ? "bg-red-600 text-white scale-105"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
                     >
                       <ThumbsDown size={15} />
                     </button>
