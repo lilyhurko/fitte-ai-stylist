@@ -179,11 +179,7 @@
   opacity: 1;
 }
 
-/* ==========================================================================
-   MOBILE & PWA ADAPTATION FOR MODALS (STATS & CAPSULE)
-   ========================================================================== */
 
-/* Базове покриття для модалок */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -202,59 +198,58 @@
 }
 
 @media (max-width: 768px) {
-  .modal-overlay {
-    align-items: flex-end; /* Перетворюємо модальне вікно на Bottom Sheet для телефонів */
-    padding: 0;
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: 280px;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15);
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 20px env(safe-area-inset-bottom, 20px) 20px;
+    overflow-y: auto;
   }
 
-  .modal-content {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 88dvh !important; /* Не перекриває всю висоту, залишає простір зверху */
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    border-top-left-radius: 28px !important;
-    border-top-right-radius: 28px !important;
-    padding: 24px 18px env(safe-area-inset-bottom, 20px) 18px !important;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  .sidebar.open {
+    transform: translateX(0);
   }
 
-  /* Адаптація сітки елементів капсули під вузькі екрани */
-  .grid-cols-5 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important; /* Замість 5 колонок робимо 3 */
-    gap: 8px !important;
+  .mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: calc(14px + env(safe-area-inset-left, 0px));
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(232, 221, 208, 0.7);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    cursor: pointer;
+    z-index: 90;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    color: #3d2b1f;
   }
-
-  /* Для маленьких картинок всередині капсули */
-  .grid-cols-5 img {
-    height: 48px !important;
-    width: 48px !important;
-  }
-
-  /* Адаптація блоків з комбінаціями комплектів */
-  .combinations-list-item {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
-  }
-
-  /* Зручний згортковий заголовок модалки */
-  .modal-content::before {
-    content: "";
+  .sidebar-overlay {
     display: block;
-    width: 36px;
-    height: 4px;
-    background-color: #e8ddd0;
-    border-radius: 2px;
-    margin: 0 auto 16px auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 95;
+    animation: fadeIn 0.2s ease forwards;
   }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
+  header, .wardrobe-header, .assistant-container header {
+    padding-left: 0 !important;
+    margin-top: 45px !important; 
   }
 }

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWardrobe } from "../../context/WardrobeContext";
 import { NavLink } from "react-router-dom";
@@ -69,6 +69,47 @@ const Sidebar = () => {
   const [isCapsuleOpen, setIsCapsuleOpen] = useState(false);
   const [capsuleData, setCapsuleData] = useState(null);
 
+  // Стейт для обробки свайпів
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      touchStartX.current = e.targetTouches[0].clientX;
+      touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchMove = (e) => {
+      touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchEnd = () => {
+      const distance = touchEndX.current - touchStartX.current;
+      const isSwipeRight = distance > 70; // Поріг для відкриття
+      const isSwipeLeft = distance < -70; // Поріг для закриття
+
+      // Свайп вправо від лівого краю екрана (перші 50px) відкриває меню
+      if (isSwipeRight && touchStartX.current < 50 && !isOpen) {
+        setIsOpen(true);
+      }
+
+      // Свайп вліво по відкритому меню закриває його
+      if (isSwipeLeft && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isOpen]);
+
   const stats = useMemo(() => {
     if (!clothes || clothes.length === 0) {
       return EMPTY_STATS;
@@ -80,7 +121,7 @@ const Sidebar = () => {
     let dateValid = 0;
     let workValid = 0;
 
-    const currentSidebarWeather = "Hot"; // TODO: podłączyć realny WeatherContext zamiast sztywnej wartości
+    const currentSidebarWeather = "Hot";
     let weatherCompatibleCount = 0;
 
     clothes.forEach((item) => {
@@ -163,7 +204,6 @@ const Sidebar = () => {
     setIsCapsuleOpen(true);
     const token = localStorage.getItem("fitte_token");
     if (!token) {
-      console.error("Brak tokena — sesja wygasła lub nieprawidłowa.");
       setIsCapsuleOpen(false);
       logout();
       return;
@@ -194,7 +234,6 @@ const Sidebar = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.status === 401 || res.status === 403) {
-        console.error("Sesja wygasła, wylogowuję.");
         setIsCapsuleOpen(false);
         logout();
         return;
@@ -210,17 +249,28 @@ const Sidebar = () => {
 
   return (
     <>
-      <button className="mobile-nav-toggle" onClick={() => setIsOpen(true)}>
-        <Menu size={24} />
+      {/* Кнопка Гамбургер */}
+      <button 
+        className="mobile-nav-toggle touch-manipulation" 
+        onClick={() => setIsOpen(true)}
+        aria-label="Otwórz menu"
+      >
+        <Menu size={22} />
       </button>
 
+      {/* Оверлей при відкритому меню */}
       {isOpen && (
         <div className="sidebar-overlay" onClick={() => setIsOpen(false)}></div>
       )}
 
+      {/* Сайдбар з підтримкою анімації відкриття */}
       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
-        <button className="mobile-nav-close" onClick={() => setIsOpen(false)}>
-          <X size={24} />
+        <button 
+          className="mobile-nav-close touch-manipulation" 
+          onClick={() => setIsOpen(false)}
+          aria-label="Zamknij menu"
+        >
+          <X size={22} />
         </button>
 
         <div className="sidebar-content">
@@ -330,7 +380,7 @@ const Sidebar = () => {
         <div className="sidebar-footer">
           <button
             onClick={handleStatsClick}
-            className="w-full flex items-center gap-3 p-3 mb-3 rounded-2xl bg-white/60 border border-[#E8DDD0]/50 shadow-sm hover:bg-white hover:shadow-md transition-all text-left cursor-pointer"
+            className="w-full flex items-center gap-3 p-3 mb-3 rounded-2xl bg-white/60 border border-[#E8DDD0]/50 shadow-2xs hover:bg-white transition-all text-left cursor-pointer touch-manipulation"
           >
             <div className="p-2 bg-amber-50 rounded-xl text-amber-600 shrink-0">
               <CloudSun size={18} />
@@ -359,7 +409,7 @@ const Sidebar = () => {
 
           <button
             onClick={handleOpenCapsule}
-            className="w-full flex items-center gap-3 p-3 mb-3 rounded-2xl bg-white/60 border border-[#E8DDD0]/50 shadow-sm hover:bg-white hover:shadow-md transition-all text-left cursor-pointer"
+            className="w-full flex items-center gap-3 p-3 mb-3 rounded-2xl bg-white/60 border border-[#E8DDD0]/50 shadow-2xs hover:bg-white transition-all text-left cursor-pointer touch-manipulation"
           >
             <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 shrink-0">
               <Package size={18} />
@@ -387,7 +437,7 @@ const Sidebar = () => {
           </button>
 
           <hr className="footer-line" />
-          <button onClick={logout} className="logout-btn">
+          <button onClick={logout} className="logout-btn touch-manipulation">
             <LogOut size={20} />
             <span>Wyloguj się</span>
           </button>
