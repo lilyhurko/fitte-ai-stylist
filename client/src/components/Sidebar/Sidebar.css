@@ -179,84 +179,82 @@
   opacity: 1;
 }
 
+/* ==========================================================================
+   MOBILE & PWA ADAPTATION FOR MODALS (STATS & CAPSULE)
+   ========================================================================== */
+
+/* Базове покриття для модалок */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  z-index: 2000;
+}
+
 @media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    transform: translateX(-100%);
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.05);
-    width: 280px;
-    padding: 30px 20px;
+  .modal-overlay {
+    align-items: flex-end; /* Перетворюємо модальне вікно на Bottom Sheet для телефонів */
+    padding: 0;
   }
 
-  .sidebar.open {
-    transform: translateX(0);
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88dvh !important; /* Не перекриває всю висоту, залишає простір зверху */
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-top-left-radius: 28px !important;
+    border-top-right-radius: 28px !important;
+    padding: 24px 18px env(safe-area-inset-bottom, 20px) 18px !important;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   }
 
-  .sidebar-header {
-    height: auto;
-    margin-bottom: 30px;
+  /* Адаптація сітки елементів капсули під вузькі екрани */
+  .grid-cols-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important; /* Замість 5 колонок робимо 3 */
+    gap: 8px !important;
   }
 
-  .mobile-nav-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    /* env(safe-area-inset-top) = wysokość notcha/paska statusu w trybie standalone PWA (iOS/Android).
-       Bez tego przycisk chowa się pod zegarem/ikonami systemowymi. Fallback 0px dla przeglądarek bez obsługi. */
-    top: calc(16px + env(safe-area-inset-top, 0px));
-    left: calc(16px + env(safe-area-inset-left, 0px));
-    background: white;
-    border: 1px solid #e8ddd0;
-    padding: 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    z-index: 90;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    color: #3d2b1f;
+  /* Для маленьких картинок всередині капсули */
+  .grid-cols-5 img {
+    height: 48px !important;
+    width: 48px !important;
   }
 
-  .mobile-nav-close {
-    display: flex;
-    position: absolute;
-    top: calc(24px + env(safe-area-inset-top, 0px));
-    right: 20px;
-    background: none;
-    border: none;
-    color: #3d2b1f;
-    cursor: pointer;
+  /* Адаптація блоків з комбінаціями комплектів */
+  .combinations-list-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
   }
 
-  .logo {
-    margin-bottom: 30px;
-    font-size: 28px;
-  }
-
-  .user-card {
-    margin-bottom: 35px;
-    padding: 15px;
-    border-radius: 25px;
-  }
-
-  .sidebar-overlay {
+  /* Зручний згортковий заголовок модалки */
+  .modal-content::before {
+    content: "";
     display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(2px);
-    z-index: 95;
+    width: 36px;
+    height: 4px;
+    background-color: #e8ddd0;
+    border-radius: 2px;
+    margin: 0 auto 16px auto;
   }
-  .sidebar-navigation {
-    display: flex;
-    margin-top: 10px;
-    margin-bottom: 30px;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
   }
-  header, .wardrobe-header, .assistant-container header {
-    padding-left: 60px !important;
-    padding-top: env(safe-area-inset-top, 0px);
-    transition: padding-left 0.3s ease;
+  to {
+    transform: translateY(0);
   }
 }

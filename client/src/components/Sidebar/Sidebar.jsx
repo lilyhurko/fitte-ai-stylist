@@ -414,19 +414,22 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal-content apple-card max-w-lg w-[90%] max-h-[90vh] overflow-y-auto p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="modal-content apple-card max-w-lg w-[90%] max-h-[90vh] overflow-y-auto p-6 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          className="close-btn absolute top-3 right-3 p-2 text-gray-400 hover:text-black transition-colors"
+          className="close-btn absolute top-4 right-4 p-2 text-gray-400 hover:text-black transition-colors touch-manipulation"
           onClick={onClose}
         >
           <X size={22} />
         </button>
 
-        <h2 className="font-playfair text-2xl mb-1">
+        <h2 className="font-playfair text-xl md:text-2xl mb-1">
           Wizualna struktura Twojej <span className="italic">Garderoby</span>
         </h2>
-        <p className="text-xs text-gray-400 mb-6">
+        <p className="text-xs text-gray-400 mb-5">
           Pełna analiza kolorystyczno-stylistyczna Fitte AI
         </p>
 
@@ -435,19 +438,19 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
             Garderoba jest obecnie pusta. Dodaj ubrania, aby zobaczyć analizę.
           </div>
         ) : (
-          <div className="flex flex-col gap-5 max-h-[68vh] overflow-y-auto pr-1">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex items-center gap-4">
-              <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
-                <CloudSun size={24} />
+          <div className="flex flex-col gap-4 max-h-[65vh] overflow-y-auto pr-1">
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex items-center gap-3 md:gap-4">
+              <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600 shrink-0">
+                <CloudSun size={22} />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span>Dopasowanie do obecnej pogody</span>
-                  <span className="text-amber-700">
-                    {stats.weatherPercentage}% szafy
+                  <span className="truncate">Dopasowanie do pogody</span>
+                  <span className="text-amber-700 ml-2">
+                    {stats.weatherPercentage}%
                   </span>
                 </div>
-                <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{
@@ -456,18 +459,15 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                     }}
                   ></div>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  Ubrania spełniające aktualne kryteria termiczne i osłonowe.
-                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600">
-                  <Heart size={14} /> Na randki
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-3.5 md:p-4 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex flex-col gap-1.5">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-rose-600">
+                  <Heart size={13} /> Na randki
                 </div>
-                <div className="text-2xl font-playfair font-bold text-rose-700">
+                <div className="text-xl md:text-2xl font-playfair font-bold text-rose-700">
                   {stats.datePercentage}%
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -479,16 +479,13 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                     }}
                   ></div>
                 </div>
-                <span className="text-[9px] text-gray-400 uppercase tracking-wider">
-                  Styl Romantic & Chic
-                </span>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
-                  <Briefcase size={14} /> Do pracy
+              <div className="bg-white p-3.5 md:p-4 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex flex-col gap-1.5">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600">
+                  <Briefcase size={13} /> Do pracy
                 </div>
-                <div className="text-2xl font-playfair font-bold text-blue-800">
+                <div className="text-xl md:text-2xl font-playfair font-bold text-blue-800">
                   {stats.workPercentage}%
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -500,53 +497,38 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                     }}
                   ></div>
                 </div>
-                <span className="text-[9px] text-gray-400 uppercase tracking-wider">
-                  Styl Classic & Minimal
-                </span>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-1.5">
-                <PieChart size={14} /> Dominujące kolory w szafie
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+                <PieChart size={13} /> Dominujące kolory
               </h4>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {Object.entries(stats.rawColors)
                   .slice(0, 5)
                   .map(([colorName, count]) => {
                     const percentage = Math.round((count / stats.total) * 100);
                     const colorCode = getColorCode(colorName);
 
-                    const isLightColor =
-                      colorCode === "#FFFFFF" ||
-                      colorCode === "#FFFDD0" ||
-                      colorCode === "#F5F2EB" ||
-                      colorCode === "#F5F5DC";
-
                     return (
                       <div key={colorName} className="text-xs">
                         <div className="flex justify-between text-gray-600 mb-1 font-medium">
                           <div className="flex items-center gap-2">
                             <div
-                              className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
+                              className="w-3 h-3 rounded-full border border-gray-300 shadow-2xs"
                               style={{ background: colorCode }}
                             ></div>
                             <span className="capitalize">{colorName}</span>
                           </div>
                           <span className="font-bold">{percentage}%</span>
                         </div>
-                        <div className="w-full h-3 bg-[#F8F3ED] rounded-full overflow-hidden border border-gray-100">
+                        <div className="w-full h-2.5 bg-[#F8F3ED] rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
                               width: `${percentage}%`,
                               background: colorCode,
-                              borderRight: isLightColor
-                                ? "2px solid #D1C7BD"
-                                : "none",
-                              boxShadow: isLightColor
-                                ? "inset 0 0 4px rgba(0,0,0,0.05)"
-                                : "none",
                             }}
                           ></div>
                         </div>
@@ -556,11 +538,11 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-1.5">
-                <BarChart3 size={14} /> Podział ze względu na Style
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+                <BarChart3 size={13} /> Podział ze względu na Style
               </h4>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {Object.entries(stats.rawStyles).map(([styleName, count]) => {
                   const percentage = Math.round((count / stats.total) * 100);
                   return (
@@ -569,13 +551,12 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                         <span>{styleName}</span>
                         <span className="font-bold">{percentage}%</span>
                       </div>
-                      <div className="w-full h-2.5 bg-[#F8F3ED] rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-[#F8F3ED] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
                             width: `${percentage}%`,
-                            background:
-                              "linear-gradient(90deg, #8E7A6B, #3D2B1F)",
+                            background: "linear-gradient(90deg, #8E7A6B, #3D2B1F)",
                           }}
                         ></div>
                       </div>
@@ -641,13 +622,8 @@ const CapsuleModal = ({
     [allClothes, items],
   );
 
-  const handleRemove = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  const handleAdd = (cloth) => {
-    setItems((prev) => [...prev, cloth]);
-  };
+  const handleRemove = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const handleAdd = (cloth) => setItems((prev) => [...prev, cloth]);
 
   const handleGenerateTripCapsule = async () => {
     setTripError("");
@@ -662,10 +638,7 @@ const CapsuleModal = ({
     }
 
     const token = localStorage.getItem("fitte_token");
-    if (!token) {
-      setTripError("Sesja wygasła — zaloguj się ponownie.");
-      return;
-    }
+    if (!token) return;
 
     setTripLoading(true);
     try {
@@ -679,18 +652,10 @@ const CapsuleModal = ({
       });
 
       const result = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setTripError(
-          result.error || "Nie udało się wygenerować kapsuły podróżnej.",
-        );
-        return;
-      }
-
-      onDataChange?.(result);
+      if (res.ok) onDataChange?.(result);
+      else setTripError(result.error || "Nie udało się wygenerować kapsuły.");
     } catch (e) {
-      console.error("Błąd generowania kapsuły podróżnej:", e);
-      setTripError("Błąd sieci — upewnij się, że serwer działa.");
+      setTripError("Błąd sieci.");
     } finally {
       setTripLoading(false);
     }
@@ -699,39 +664,42 @@ const CapsuleModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal-content apple-card max-w-2xl w-[90%] max-h-[90vh] overflow-y-auto p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="modal-content apple-card max-w-2xl w-[90%] max-h-[90vh] overflow-y-auto p-5 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          className="close-btn absolute top-3 right-3 p-2 text-gray-400 hover:text-black transition-colors"
+          className="close-btn absolute top-3 right-3 p-2 text-gray-400 hover:text-black transition-colors touch-manipulation"
           onClick={onClose}
         >
           <X size={22} />
         </button>
 
-        <h2 className="font-playfair text-2xl mb-1">
+        <h2 className="font-playfair text-xl md:text-2xl mb-1">
           Algorytmiczna Szafa <span className="italic">Kapsułowa</span>
         </h2>
         <p className="text-xs text-gray-400 mb-4">
-          Metoda kombinatoryczna maksymalizacji użyteczności odzieży
+          Metoda kombinatoryczna użyteczności odzieży
         </p>
 
-        <div className="flex gap-2 mb-5">
+        <div className="flex gap-2 mb-4">
           <button
             onClick={() => setMode("today")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation ${
               mode === "today"
                 ? "bg-[#3D2B1F] text-white"
-                : "bg-white text-[#3D2B1F] border border-[#E8DDD0] hover:border-[#8E7A6B]"
+                : "bg-white text-[#3D2B1F] border border-[#E8DDD0]"
             }`}
           >
             <CloudSun size={14} /> Dziś
           </button>
           <button
             onClick={() => setMode("trip")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation ${
               mode === "trip"
                 ? "bg-[#3D2B1F] text-white"
-                : "bg-white text-[#3D2B1F] border border-[#E8DDD0] hover:border-[#8E7A6B]"
+                : "bg-white text-[#3D2B1F] border border-[#E8DDD0]"
             }`}
           >
             <Plane size={14} /> Wyjazd
@@ -739,217 +707,122 @@ const CapsuleModal = ({
         </div>
 
         {mode === "trip" && (
-          <div className="bg-white p-4 rounded-2xl border border-[#E8DDD0]/50 mb-5">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="bg-white p-3 md:p-4 rounded-2xl border border-[#E8DDD0]/50 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
-                <MapPin
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={tripCity}
                   onChange={(e) => setTripCity(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && handleGenerateTripCapsule()
-                  }
                   placeholder="Miasto, np. Rzym"
-                  className="w-full bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#8E7A6B]"
+                  className="w-full bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none"
                 />
               </div>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={16}
-                value={tripDays}
-                onChange={(e) => setTripDays(e.target.value)}
-                className="w-full sm:w-24 bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8E7A6B]"
-                placeholder="Dni"
-              />
-              <button
-                onClick={handleGenerateTripCapsule}
-                disabled={tripLoading}
-                className="bg-[#3D2B1F] text-white px-5 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
-              >
-                {tripLoading ? "Liczę pogodę..." : "Generuj kapsułę"}
-              </button>
-            </div>
-            {tripError && (
-              <p className="text-[11px] text-red-500 mt-2">{tripError}</p>
-            )}
-            {data?.city && (
-              <p className="text-[11px] text-gray-400 mt-2">
-                Ostatnia trasa:{" "}
-                <span className="font-bold text-[#3D2B1F]">
-                  {data.city}
-                  {data.country ? `, ${data.country}` : ""}
-                </span>{" "}
-                — {data.days} {data.days === 1 ? "dzień" : "dni"}
-                {data.requestedDays && data.requestedDays > data.days && (
-                  <>
-                    {" "}
-                    (prognoza dostępna tylko na pierwsze {data.days} dni z{" "}
-                    {data.requestedDays} zapytanych)
-                  </>
-                )}
-              </p>
-            )}
-            {data?.weatherTypes && data.weatherTypes.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {data.weatherTypes.map((wt) => (
-                  <span
-                    key={wt}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FDFBF9] border border-[#E8DDD0] text-[#8E7A6B]"
-                  >
-                    {wt}
-                  </span>
-                ))}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={16}
+                  value={tripDays}
+                  onChange={(e) => setTripDays(e.target.value)}
+                  className="w-20 bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl px-3 py-2 text-xs text-center"
+                />
+                <button
+                  onClick={handleGenerateTripCapsule}
+                  disabled={tripLoading}
+                  className="flex-1 bg-[#3D2B1F] text-white px-4 py-2 rounded-xl text-xs font-bold touch-manipulation"
+                >
+                  {tripLoading ? "..." : "Generuj"}
+                </button>
               </div>
-            )}
+            </div>
+            {tripError && <p className="text-[10px] text-red-500 mt-1">{tripError}</p>}
           </div>
         )}
 
         {!data ? (
-          <div className="text-center py-10 text-gray-400 italic">
+          <div className="text-center py-8 text-gray-400 italic text-xs">
             {mode === "trip"
-              ? "Podaj miasto i liczbę dni, aby wygenerować kapsułę podróżną."
-              : "Dodaj minimum 5 ubrań (w tym buty, góry i doły), aby wygenerować szafę kapsułową."}
+              ? "Podaj miasto i liczbę dni, aby wygenerować kapsułę."
+              : "Dodaj min. 5 ubrań, aby wygenerować szafę kapsułową."}
           </div>
         ) : (
-          <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
-            <div className="bg-gradient-to-r from-[#8E7A6B] to-[#3D2B1F] p-5 rounded-2xl text-white shadow-sm text-center">
-              <span className="text-[10px] uppercase tracking-widest opacity-70 block mb-1">
-                Wynik Analizy Kombinatorycznej
+          <div className="flex flex-col gap-5 max-h-[65vh] overflow-y-auto pr-1">
+            <div className="bg-gradient-to-r from-[#8E7A6B] to-[#3D2B1F] p-4 rounded-2xl text-white shadow-sm text-center">
+              <span className="text-[9px] uppercase tracking-widest opacity-70 block mb-0.5">
+                Wynik Analiz
               </span>
-              <div className="text-3xl font-playfair font-bold">
-                {items.length} elementów = {combinations.length} unikalnych
-                stylizacji
+              <div className="text-xl md:text-2xl font-playfair font-bold">
+                {items.length} el. = {combinations.length} stylizacji
               </div>
-              <p className="text-[10px] opacity-80 mt-1 max-w-md mx-auto">
-                Algorytm wyselekcjonował najbardziej kompatybilne ubrania
-                bazowe. Możesz ręcznie dodać lub usunąć elementy — zestawy
-                przeliczą się automatycznie.
-              </p>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                  Wybrane elementy bazy ({items.length})
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  Elementy bazy ({items.length})
                 </h4>
                 <button
                   onClick={() => setShowPicker((prev) => !prev)}
-                  className="text-[10px] font-bold text-[#8E7A6B] hover:text-[#3D2B1F] flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] font-bold text-[#8E7A6B] flex items-center gap-1 touch-manipulation"
                 >
-                  <Plus size={12} /> {showPicker ? "Zamknij" : "Dodaj ubranie"}
+                  <Plus size={12} /> {showPicker ? "Zamknij" : "Dodaj"}
                 </button>
               </div>
 
-              <div className="grid grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-[#E8DDD0]/40">
-                {items.length === 0 ? (
-                  <span className="col-span-5 text-[11px] text-gray-400 italic text-center py-4">
-                    Baza kapsuły jest pusta — dodaj ubrania poniżej.
-                  </span>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="relative group flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 shadow-2xs"
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-2 bg-white p-3 rounded-2xl border border-[#E8DDD0]/40">
+                {items.map((item) => (
+                  <div key={item.id} className="relative flex flex-col items-center bg-[#FDFBF9] p-1.5 rounded-xl border border-gray-100">
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      className="absolute -top-1 -right-1 bg-white border border-gray-200 rounded-full p-0.5 text-red-500 shadow-2xs touch-manipulation"
                     >
-                      <button
-                        onClick={() => handleRemove(item.id)}
-                        className="absolute -top-1.5 -right-1.5 bg-white border border-gray-200 rounded-full p-0.5 text-gray-400 hover:text-red-500 hover:border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        title="Usuń z kapsuły"
-                      >
-                        <X size={12} />
-                      </button>
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-14 w-14 object-contain mb-1"
-                      />
-                      <span className="text-[8px] font-bold text-gray-500 truncate w-full">
-                        {item.name}
-                      </span>
-                    </div>
-                  ))
-                )}
+                      <X size={10} />
+                    </button>
+                    <img src={item.imageUrl} alt={item.name} className="h-12 w-12 object-contain mb-1" />
+                    <span className="text-[8px] font-bold text-gray-500 truncate w-full text-center">{item.name}</span>
+                  </div>
+                ))}
               </div>
 
               {showPicker && (
-                <div className="bg-white border border-[#E8DDD0]/50 rounded-2xl p-4 mt-3">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">
-                    Dodaj z Twojej garderoby
-                  </h5>
-                  {availableToAdd.length === 0 ? (
-                    <p className="text-[11px] text-gray-400 italic">
-                      Wszystkie ubrania są już w kapsule.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-1">
-                      {availableToAdd.map((cloth) => (
-                        <button
-                          key={cloth.id}
-                          onClick={() => handleAdd(cloth)}
-                          className="flex flex-col items-center text-center bg-[#FDFBF9] p-2 rounded-xl border border-gray-100 hover:border-[#8E7A6B] transition-colors cursor-pointer"
-                        >
-                          <img
-                            src={cloth.imageUrl}
-                            alt={cloth.name}
-                            className="h-12 w-12 object-contain mb-1"
-                          />
-                          <span className="text-[8px] font-bold text-gray-500 truncate w-full">
-                            {cloth.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="bg-white border border-[#E8DDD0]/50 rounded-2xl p-3 mt-2">
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2 max-h-36 overflow-y-auto">
+                    {availableToAdd.map((cloth) => (
+                      <button
+                        key={cloth.id}
+                        onClick={() => handleAdd(cloth)}
+                        className="flex flex-col items-center bg-[#FDFBF9] p-1.5 rounded-xl border border-gray-100 touch-manipulation"
+                      >
+                        <img src={cloth.imageUrl} alt={cloth.name} className="h-10 w-10 object-contain mb-1" />
+                        <span className="text-[8px] font-bold text-gray-500 truncate w-full">{cloth.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-                Wszystkie kombinacje zestawów ({combinations.length})
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Kombinacje zestawów ({combinations.length})
               </h4>
-              {combinations.length === 0 ? (
-                <div className="text-[11px] text-gray-400 italic text-center py-4 bg-white rounded-xl border border-[#E8DDD0]/30">
-                  Brak wystarczającej liczby elementów, aby zestawić strój —
-                  dodaj górę, dół (lub sukienkę) i buty.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {combinations.map((outfit, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-4 bg-white p-3 rounded-xl border border-[#E8DDD0]/30 shadow-2xs"
-                    >
-                      <div className="text-[10px] font-bold text-[#8E7A6B] min-w-[60px]">
-                        Zestaw #{index + 1}
-                      </div>
-                      <div className="flex gap-2">
-                        {outfit.map((cloth) => (
-                          <div
-                            key={cloth.id}
-                            className="flex items-center gap-1 bg-gray-50/50 px-2 py-1 rounded-lg border border-gray-100"
-                          >
-                            <img
-                              src={cloth.imageUrl}
-                              alt={cloth.name}
-                              className="h-6 w-6 object-contain"
-                            />
-                            <span className="text-[9px] font-medium text-gray-600 max-w-[80px] truncate">
-                              {cloth.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+              <div className="flex flex-col gap-2">
+                {combinations.map((outfit, index) => (
+                  <div key={index} className="combinations-list-item flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#E8DDD0]/30">
+                    <span className="text-[9px] font-bold text-[#8E7A6B]">#{index + 1}</span>
+                    <div className="flex gap-1.5 overflow-x-auto w-full md:w-auto">
+                      {outfit.map((cloth) => (
+                        <div key={cloth.id} className="flex items-center gap-1 bg-gray-50/50 p-1 rounded-lg border border-gray-100 shrink-0">
+                          <img src={cloth.imageUrl} alt={cloth.name} className="h-6 w-6 object-contain" />
+                          <span className="text-[8px] font-medium text-gray-600 max-w-[60px] truncate">{cloth.name}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
