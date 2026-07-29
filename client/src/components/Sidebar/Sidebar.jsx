@@ -489,7 +489,8 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
             Garderoba jest obecnie pusta. Dodaj ubrania, aby zobaczyć analizę.
           </div>
         ) : (
-          <div className="flex flex-col gap-4 max-h-[65vh] overflow-y-auto pr-1">
+          /* ВИПРАВЛЕНО: забрано max-h-[65vh] та overflow-y-auto */
+          <div className="flex flex-col gap-4">
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-[#E8DDD0]/40 flex items-center gap-3 md:gap-4">
               <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600 shrink-0">
                 <CloudSun size={22} />
@@ -677,50 +678,50 @@ const CapsuleModal = ({
   const handleAdd = (cloth) => setItems((prev) => [...prev, cloth]);
 
   const handleGenerateTripCapsule = async () => {
-  setTripError("");
-  if (!tripCity.trim()) {
-    setTripError("Podaj nazwę miasta.");
-    return;
-  }
-  const daysNum = parseInt(tripDays, 10);
-  if (!Number.isFinite(daysNum) || daysNum < 1) {
-    setTripError("Podaj poprawną liczbę dni.");
-    return;
-  }
-
-  const token = localStorage.getItem("fitte_token");
-  if (!token) return;
-
-  setTripLoading(true);
-  try {
-    const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
-    });
-
-    const result = await res.json().catch(() => ({}));
-    if (res.ok) {
-      onDataChange?.(result); 
-    } else {
-      setTripError(result.error || "Nie udało się wygenerować kapsuły.");
+    setTripError("");
+    if (!tripCity.trim()) {
+      setTripError("Podaj nazwę miasta.");
+      return;
     }
-  } catch (e) {
-    setTripError("Błąd sieci.");
-  } finally {
-    setTripLoading(false);
-  }
-};
+    const daysNum = parseInt(tripDays, 10);
+    if (!Number.isFinite(daysNum) || daysNum < 1) {
+      setTripError("Podaj poprawną liczbę dni.");
+      return;
+    }
+
+    const token = localStorage.getItem("fitte_token");
+    if (!token) return;
+
+    setTripLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onDataChange?.(result); 
+      } else {
+        setTripError(result.error || "Nie udało się wygenerować kapsuły.");
+      }
+    } catch (e) {
+      setTripError("Błąd sieci.");
+    } finally {
+      setTripLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
-        className="modal-content apple-card max-w-2xl w-[90%] max-h-[90vh] overflow-y-auto p-5 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
+        className="modal-content apple-card max-w-2xl w-[90%] max-h-[88vh] overflow-y-auto p-5 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -820,7 +821,8 @@ const CapsuleModal = ({
               : "Dodaj min. 5 ubrań, aby wygenerować szafę kapsułową."}
           </div>
         ) : (
-          <div className="flex flex-col gap-5 max-h-[65vh] overflow-y-auto pr-1">
+          /* ВИПРАВЛЕНО: забрано max-h-[65vh] та overflow-y-auto */
+          <div className="flex flex-col gap-5">
             <div className="bg-gradient-to-r from-[#8E7A6B] to-[#3D2B1F] p-4 rounded-2xl text-white shadow-sm text-center">
               <span className="text-[9px] uppercase tracking-widest opacity-70 block mb-0.5">
                 Wynik Analiz
@@ -902,7 +904,6 @@ const CapsuleModal = ({
     </div>
   );
 };
-
 const EXACT_COLORS = {
   czarny: "#000000",
   czarna: "#000000",
