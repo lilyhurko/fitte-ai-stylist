@@ -45,12 +45,25 @@ const COLOR_HARMONIES = {
   "ciemnobrązowy": ["kremowy", "beżowy", "pastelowy róż", "ecru"]
 };
 
+// Ubranie może mieć teraz kilka stylów naraz, zapisanych jako "Classic, Romantic" — ta funkcja
+// zamienia to na tablicę do porównań, zamiast traktować cały string jako jedną wartość.
 function parseStyles(item) {
   if (!item || !item.style) return [];
   return String(item.style)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+// "Bawełniana" (cotton) zawiera literalnie podciąg "wełna" (wool) — bez tego zabezpieczenia proste
+// name.includes("wełn") fałszywie wykluczałoby bawełniane ubrania (idealne na upał) jako rzekomo wełniane
+// (złe na upał). Jedyny znany taki przypadek w naszym słowniku słów kluczowych, więc obsługujemy go punktowo
+// zamiast komplikować cały mechanizm dopasowania.
+function nameMatchesForbiddenKeyword(name, keyword) {
+  if (keyword === "wełn") {
+    return /(?<!ba)wełn/i.test(name);
+  }
+  return name.includes(keyword);
 }
 
 function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
@@ -75,6 +88,7 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
       const col = item.color ? item.color.toLowerCase() : "";
       const name = item.name ? item.name.toLowerCase() : "";
 
+      // Kategoria, kolor i słowa kluczowe to obiektywnie złe dopasowanie do pogody (np. sandały w deszczu) — twarde weto.
       if (blacklist.categories && blacklist.categories.includes(cat)) {
         hardVeto = true;
       }
@@ -83,11 +97,13 @@ function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasio
       }
       if (blacklist.forbiddenKeywords) {
         blacklist.forbiddenKeywords.forEach(keyword => {
-          if (name.includes(keyword)) hardVeto = true;
+          if (nameMatchesForbiddenKeyword(name, keyword)) hardVeto = true;
         });
       }
 
-
+      // Styl to za mało precyzyjny sygnał, żeby całkowicie eliminować zestaw (np. "Classic" bywa też lekkie ubrania
+      // biurowe) — więc to tylko kara punktowa, nie automatyczna dyskwalifikacja. Wystarczy, że JEDEN z kilku
+      // przypisanych stylów trafi na czarną listę.
       if (blacklist.styles && itemStyles.some(st => blacklist.styles.includes(st))) {
         weatherStylePenalty += 45;
       }
@@ -203,7 +219,6 @@ function isNonOutfitItem(item) {
 
   if (category === "bielizna") return true;
 
-
   return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
 }
 
@@ -255,15 +270,16 @@ function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasio
   return combinations.slice(0, 3);
 }
 
+
 const WEATHER_FRIENDLY_KEYWORDS = {
-  "Hot": ["lnian", "bawełnian", "przewiewn", "letni", "krótk", "sandał", "bez rękaw", "koszulk", "top"],
-  "Cold": ["wełn", "ciepł", "grub", "dzianin", "swetr", "kurtk", "płaszcz", "polar", "kożuch", "golf"],
-  "Rain": ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz", "kurtk"],
+  "Hot": ["lnian", "bawełnian", "przewiewn", "letni", "krótk", "sandał", "bez rękaw", "koszulk"],
+  "Cold": ["wełn", "ciepł", "grub", "dzianin", "swetr", "kurtk", "płaszcz", "polar", "kożuch"],
+  "Rain": ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
   "Clear": []
 };
 
 const WEATHER_COLOR_BONUS = {
-  "Hot": ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny", "ecru"],
+  "Hot": ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
   "Cold": ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
   "Rain": [],
   "Clear": []
@@ -278,10 +294,10 @@ function scoreWeatherFit(item, weatherTypes) {
 
   weatherTypes.forEach((wt) => {
     const keywords = WEATHER_FRIENDLY_KEYWORDS[wt] || [];
-    if (keywords.some((k) => name.includes(k))) score += 20;
+    if (keywords.some((k) => name.includes(k))) score += 15;
 
     const bonusColors = WEATHER_COLOR_BONUS[wt] || [];
-    if (bonusColors.includes(color)) score += 10;
+    if (bonusColors.includes(color)) score += 8;
   });
 
   return score / weatherTypes.length;
@@ -293,6 +309,8 @@ module.exports = {
   parseStyles,
   isNonOutfitItem,
   NON_OUTFIT_KEYWORDS,
+  scoreWeatherFit,
+  nameMatchesForbiddenKeyword,
   OCCASION_STYLE_MATCH,
   OCCASION_KEYWORDS,
   WEATHER_BLACKLIST,

@@ -3,6 +3,7 @@ const {
   parseStyles,
   isNonOutfitItem,
   scoreWeatherFit,
+  nameMatchesForbiddenKeyword,
   OCCASION_STYLE_MATCH,
   WEATHER_BLACKLIST
 } = require("./outfitEngine");
@@ -19,7 +20,7 @@ const isHardWeatherVetoed = (item, weatherType) => {
 
   if (blacklist.categories && blacklist.categories.includes(item.category)) return true;
   if (blacklist.colors && blacklist.colors.includes(col)) return true;
-  if (blacklist.forbiddenKeywords && blacklist.forbiddenKeywords.some(k => name.includes(k))) return true;
+  if (blacklist.forbiddenKeywords && blacklist.forbiddenKeywords.some(k => nameMatchesForbiddenKeyword(name, k))) return true;
 
   return false;
 };
@@ -104,25 +105,20 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
     selectedButy: buty.slice(0, nB),
   };
 }
-
-
 function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) {
   const { targetCombos = null } = options;
 
   const weatherSafe = wearableClothes.filter((c) => !isHardVetoedForTrip(c, weatherTypes));
   const pool = weatherSafe.length >= 5 ? weatherSafe : wearableClothes;
 
-  const byVersatilityAndWeather = (a, b) => {
-    const scoreA = scoreVersatility(a, userProfile) + scoreWeatherFit(a, weatherTypes) * 3;
-    const scoreB = scoreVersatility(b, userProfile) + scoreWeatherFit(b, weatherTypes) * 3;
-    return scoreB - scoreA;
-  };
+  const byVersatility = (a, b) =>
+    (scoreVersatility(b, userProfile) + scoreWeatherFit(b, weatherTypes)) -
+    (scoreVersatility(a, userProfile) + scoreWeatherFit(a, weatherTypes));
 
-  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatilityAndWeather);
-  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatilityAndWeather);
-  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatilityAndWeather);
-  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatilityAndWeather);
-
+  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatility);
+  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatility);
+  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatility);
+  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatility);
   const { selectedGoras, selectedDols, selectedSukienki, selectedButy } = targetCombos
     ? selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos)
     : {
@@ -168,6 +164,7 @@ function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) 
     byOccasion[c.occasion].push(c);
   });
   Object.values(byOccasion).forEach((list) => list.sort((a, b) => b.score - a.score));
+
 
   const diversified = [];
   const usedKeys = new Set();
