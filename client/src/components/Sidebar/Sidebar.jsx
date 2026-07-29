@@ -69,7 +69,6 @@ const Sidebar = () => {
   const [isCapsuleOpen, setIsCapsuleOpen] = useState(false);
   const [capsuleData, setCapsuleData] = useState(null);
 
-  // Стейт для обробки свайпів
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -85,15 +84,13 @@ const Sidebar = () => {
 
     const handleTouchEnd = () => {
       const distance = touchEndX.current - touchStartX.current;
-      const isSwipeRight = distance > 70; // Поріг для відкриття
-      const isSwipeLeft = distance < -70; // Поріг для закриття
+      const isSwipeRight = distance > 70; 
+      const isSwipeLeft = distance < -70; 
 
-      // Свайп вправо від лівого краю екрана (перші 50px) відкриває меню
       if (isSwipeRight && touchStartX.current < 50 && !isOpen) {
         setIsOpen(true);
       }
 
-      // Свайп вліво по відкритому меню закриває його
       if (isSwipeLeft && isOpen) {
         setIsOpen(false);
       }
@@ -231,8 +228,14 @@ const Sidebar = () => {
       const coords = await getCoordinates();
       const res = await fetch(
         `${API_BASE_URL}/capsule?latitude=${coords.latitude}&longitude=${coords.longitude}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          } 
+        },
       );
+
       if (res.status === 401 || res.status === 403) {
         setIsCapsuleOpen(false);
         logout();
@@ -249,7 +252,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Кнопка Гамбургер */}
       <button 
         className="mobile-nav-toggle touch-manipulation" 
         onClick={() => setIsOpen(true)}
@@ -258,12 +260,11 @@ const Sidebar = () => {
         <Menu size={22} />
       </button>
 
-      {/* Оверлей при відкритому меню */}
+
       {isOpen && (
         <div className="sidebar-overlay" onClick={() => setIsOpen(false)}></div>
       )}
 
-      {/* Сайдбар з підтримкою анімації відкриття */}
       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
         <button 
           className="mobile-nav-close touch-manipulation" 
@@ -676,40 +677,43 @@ const CapsuleModal = ({
   const handleAdd = (cloth) => setItems((prev) => [...prev, cloth]);
 
   const handleGenerateTripCapsule = async () => {
-    setTripError("");
-    if (!tripCity.trim()) {
-      setTripError("Podaj nazwę miasta.");
-      return;
-    }
-    const daysNum = parseInt(tripDays, 10);
-    if (!Number.isFinite(daysNum) || daysNum < 1) {
-      setTripError("Podaj poprawną liczbę dni.");
-      return;
-    }
+  setTripError("");
+  if (!tripCity.trim()) {
+    setTripError("Podaj nazwę miasta.");
+    return;
+  }
+  const daysNum = parseInt(tripDays, 10);
+  if (!Number.isFinite(daysNum) || daysNum < 1) {
+    setTripError("Podaj poprawną liczbę dni.");
+    return;
+  }
 
-    const token = localStorage.getItem("fitte_token");
-    if (!token) return;
+  const token = localStorage.getItem("fitte_token");
+  if (!token) return;
 
-    setTripLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
-      });
+  setTripLoading(true);
+  try {
+    const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
+    });
 
-      const result = await res.json().catch(() => ({}));
-      if (res.ok) onDataChange?.(result);
-      else setTripError(result.error || "Nie udało się wygenerować kapsuły.");
-    } catch (e) {
-      setTripError("Błąd sieci.");
-    } finally {
-      setTripLoading(false);
+    const result = await res.json().catch(() => ({}));
+    if (res.ok) {
+      onDataChange?.(result); 
+    } else {
+      setTripError(result.error || "Nie udało się wygenerować kapsuły.");
     }
-  };
+  } catch (e) {
+    setTripError("Błąd sieci.");
+  } finally {
+    setTripLoading(false);
+  }
+};
 
   if (!isOpen) return null;
 
@@ -765,6 +769,7 @@ const CapsuleModal = ({
                   type="text"
                   value={tripCity}
                   onChange={(e) => setTripCity(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleGenerateTripCapsule()}
                   placeholder="Miasto, np. Rzym"
                   className="w-full bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none"
                 />
@@ -781,13 +786,30 @@ const CapsuleModal = ({
                 <button
                   onClick={handleGenerateTripCapsule}
                   disabled={tripLoading}
-                  className="flex-1 bg-[#3D2B1F] text-white px-4 py-2 rounded-xl text-xs font-bold touch-manipulation"
+                  className="flex-1 bg-[#3D2B1F] text-white px-4 py-2 rounded-xl text-xs font-bold touch-manipulation cursor-pointer"
                 >
                   {tripLoading ? "..." : "Generuj"}
                 </button>
               </div>
             </div>
             {tripError && <p className="text-[10px] text-red-500 mt-1">{tripError}</p>}
+            
+            {data?.city && mode === "trip" && (
+              <div className="mt-2 pt-2 border-t border-[#E8DDD0]/30 flex flex-wrap justify-between items-center text-[10px] text-gray-500">
+                <span>
+                  Trasa: <strong className="text-[#3D2B1F]">{data.city}{data.country ? `, ${data.country}` : ""}</strong> ({data.days} dni)
+                </span>
+                {data?.weatherTypes && (
+                  <div className="flex gap-1 mt-1 sm:mt-0">
+                    {data.weatherTypes.map((wt) => (
+                      <span key={wt} className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200/50">
+                        {wt}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

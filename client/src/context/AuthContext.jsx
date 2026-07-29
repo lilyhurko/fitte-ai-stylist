@@ -8,6 +8,11 @@ import React, {
 import { API_BASE_URL } from "../config";
 const AuthContext = createContext();
 
+const isStandalonePWA = () =>
+  (typeof window !== "undefined" &&
+    window.matchMedia?.("(display-mode: standalone)").matches) ||
+  window.navigator?.standalone === true;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   const resetInactivityTimer = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    if (user) {
+    if (user && !isStandalonePWA()) {
       timeoutRef.current = setTimeout(() => {
         console.log("Sesja wygasła z powodu braku aktywności.");
         logout();
@@ -51,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    const savedUser = sessionStorage.getItem("fitte_user");
+    const savedUser = localStorage.getItem("fitte_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -59,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveSession = (userData, token) => {
-    sessionStorage.setItem("fitte_token", token);
+    localStorage.setItem("fitte_token", token);
     const processedUser = {
       ...userData,
       styleTags:
@@ -71,7 +76,7 @@ export const AuthProvider = ({ children }) => {
           ? JSON.parse(userData.favoriteColors)
           : userData.favoriteColors,
     };
-    sessionStorage.setItem("fitte_user", JSON.stringify(processedUser));
+    localStorage.setItem("fitte_user", JSON.stringify(processedUser));
     setUser(processedUser);
   };
 
@@ -117,8 +122,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    sessionStorage.removeItem("fitte_token");
-    sessionStorage.removeItem("fitte_user");
+    localStorage.removeItem("fitte_token");
+    localStorage.removeItem("fitte_user");
     setUser(null);
   };
 

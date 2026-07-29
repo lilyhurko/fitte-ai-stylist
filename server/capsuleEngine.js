@@ -2,6 +2,7 @@ const {
   calculateOutfitScore,
   parseStyles,
   isNonOutfitItem,
+  scoreWeatherFit,
   OCCASION_STYLE_MATCH,
   WEATHER_BLACKLIST
 } = require("./outfitEngine");
@@ -104,27 +105,24 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
   };
 }
 
-// Wspólny rdzeń: z puli ubrań buduje bazę kapsułową + wszystkie sensowne kombinacje, oceniane pod kątem
-// wszystkich okazji i wszystkich typów pogody z `weatherTypes` naraz. Używany zarówno przez kapsułę "na dziś"
-// (jeden typ pogody, stały mały limit), jak i kapsułę podróżną (kilka typów pogody, minimalna baza pod
-// docelową liczbę dni).
+
 function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) {
   const { targetCombos = null } = options;
 
   const weatherSafe = wearableClothes.filter((c) => !isHardVetoedForTrip(c, weatherTypes));
-  // Jeśli filtr pogodowy zostawiłby zbyt mało ubrań do zbudowania sensownej kapsuły, cofamy się do pełnej szafy
-  // zamiast pokazać pustą siatkę.
   const pool = weatherSafe.length >= 5 ? weatherSafe : wearableClothes;
 
-  const byVersatility = (a, b) => scoreVersatility(b, userProfile) - scoreVersatility(a, userProfile);
+  const byVersatilityAndWeather = (a, b) => {
+    const scoreA = scoreVersatility(a, userProfile) + scoreWeatherFit(a, weatherTypes) * 3;
+    const scoreB = scoreVersatility(b, userProfile) + scoreWeatherFit(b, weatherTypes) * 3;
+    return scoreB - scoreA;
+  };
 
-  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatility);
-  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatility);
-  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatility);
-  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatility);
+  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatilityAndWeather);
+  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatilityAndWeather);
+  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatilityAndWeather);
+  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatilityAndWeather);
 
-  // Tryb "na dziś": mała, stała baza (top N najbardziej wersatylnych sztuk na kategorię) — jak dotychczas.
-  // Tryb podróży (targetCombos podane): minimalna baza wystarczająca na `targetCombos` różnych zestawów.
   const { selectedGoras, selectedDols, selectedSukienki, selectedButy } = targetCombos
     ? selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos)
     : {
@@ -170,7 +168,6 @@ function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) 
     byOccasion[c.occasion].push(c);
   });
   Object.values(byOccasion).forEach((list) => list.sort((a, b) => b.score - a.score));
-
 
   const diversified = [];
   const usedKeys = new Set();

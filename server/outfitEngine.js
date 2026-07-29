@@ -255,6 +255,38 @@ function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasio
   return combinations.slice(0, 3);
 }
 
+const WEATHER_FRIENDLY_KEYWORDS = {
+  "Hot": ["lnian", "bawełnian", "przewiewn", "letni", "krótk", "sandał", "bez rękaw", "koszulk", "top"],
+  "Cold": ["wełn", "ciepł", "grub", "dzianin", "swetr", "kurtk", "płaszcz", "polar", "kożuch", "golf"],
+  "Rain": ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz", "kurtk"],
+  "Clear": []
+};
+
+const WEATHER_COLOR_BONUS = {
+  "Hot": ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny", "ecru"],
+  "Cold": ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
+  "Rain": [],
+  "Clear": []
+};
+
+function scoreWeatherFit(item, weatherTypes) {
+  if (!weatherTypes || weatherTypes.length === 0) return 0;
+
+  const name = item.name ? item.name.toLowerCase() : "";
+  const color = item.color ? item.color.toLowerCase() : "";
+  let score = 0;
+
+  weatherTypes.forEach((wt) => {
+    const keywords = WEATHER_FRIENDLY_KEYWORDS[wt] || [];
+    if (keywords.some((k) => name.includes(k))) score += 20;
+
+    const bonusColors = WEATHER_COLOR_BONUS[wt] || [];
+    if (bonusColors.includes(color)) score += 10;
+  });
+
+  return score / weatherTypes.length;
+}
+
 module.exports = {
   generateBestOutfits,
   calculateOutfitScore,

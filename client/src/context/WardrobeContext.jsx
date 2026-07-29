@@ -10,7 +10,7 @@ export const WardrobeProvider = ({ children }) => {
   const { user } = useAuth();
 
   const deleteCloth = async (id) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     if (!token) return;
 
     try {
@@ -35,7 +35,7 @@ export const WardrobeProvider = ({ children }) => {
     }
   };
   const fetchClothes = async () => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     if (!token) return;
 
     setLoading(true);

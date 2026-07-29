@@ -12,7 +12,7 @@ import "./Assistant.css";
 import { API_BASE_URL } from "../../config";
 
 const Assistant = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth(); // <-- Додано logout
   const [selectedOccasion, setSelectedOccasion] = useState("Randka");
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,12 +35,16 @@ const Assistant = () => {
     setRagFeedback(null);
 
     const token = localStorage.getItem("fitte_token");
+    if (!token) {
+      logout();
+      return;
+    }
+
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
     const getCoordinates = () => {
       return new Promise((resolve) => {
         if (!navigator.geolocation) {
-          console.log("Geolokalizacja nie jest wspierana, używam fallbacku.");
           resolve({ latitude: 51.2465, longitude: 22.5684 }); // Lublin
           return;
         }
@@ -52,8 +56,7 @@ const Assistant = () => {
               longitude: position.coords.longitude,
             });
           },
-          (error) => {
-            console.log("Błąd GPS lub brak zgody, używam fallbacku na Lublin.", error.message);
+          () => {
             resolve({ latitude: 51.2465, longitude: 22.5684 });
           },
           { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
@@ -63,7 +66,6 @@ const Assistant = () => {
 
     try {
       const coords = await getCoordinates();
-      console.log("Wysyłam współrzędne do API Fitte:", coords);
 
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: "POST",
@@ -77,6 +79,14 @@ const Assistant = () => {
           longitude: coords.longitude
         }),
       });
+
+      // ОБРОБКА 401/403: Скидаємо сесію, якщо токен вигас
+      if (response.status === 401 || response.status === 403) {
+        console.warn("Sesja wygasła. Wylogowywanie...");
+        localStorage.removeItem("fitte_token");
+        logout();
+        return;
+      }
 
       const data = await response.json();
       if (response.ok) {
@@ -93,7 +103,7 @@ const Assistant = () => {
     const token = localStorage.getItem("fitte_token");
     const analysisId = results._id || results.id;
 
-    if (!analysisId) return;
+    if (!analysisId || !token) return;
 
     try {
       const response = await fetch(
@@ -107,6 +117,12 @@ const Assistant = () => {
           body: JSON.stringify({ modelType, feedback: feedbackType }),
         },
       );
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("fitte_token");
+        logout();
+        return;
+      }
 
       if (response.ok) {
         if (modelType === "gemini") setGeminiFeedback(feedbackType);
@@ -123,6 +139,8 @@ const Assistant = () => {
     const token = localStorage.getItem("fitte_token");
     const analysisId = results.id || results._id;
 
+    if (!token) return;
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`,
@@ -138,6 +156,12 @@ const Assistant = () => {
           }),
         },
       );
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("fitte_token");
+        logout();
+        return;
+      }
 
       if (response.ok) {
         setRagFeedback(feedbackType);

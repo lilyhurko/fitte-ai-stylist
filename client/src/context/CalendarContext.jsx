@@ -8,7 +8,7 @@ export const CalendarProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchEvents = async () => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/events`, {
@@ -26,7 +26,7 @@ export const CalendarProvider = ({ children }) => {
   };
 
   const addEvent = async (eventData) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     try {
       const response = await fetch(`${API_BASE_URL}/events`, {
         method: "POST",
@@ -47,7 +47,7 @@ export const CalendarProvider = ({ children }) => {
   };
 
   const deleteEvent = async (id) => {
-    const token = sessionStorage.getItem("fitte_token");
+    const token = localStorage.getItem("fitte_token");
     try {
       const response = await fetch(`${API_BASE_URL}/events/${id}`, {
         method: "DELETE",
