@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useWardrobe } from "../../context/WardrobeContext";
 import AddItemModal from "../../components/Wardrobe/AddItemModal";
 import EditItemModal from "../../components/Wardrobe/EditItemModal";
-import { Trash2, Loader2, Plus, Pencil, Search, X } from 'lucide-react'; 
+import { Trash2, Loader2, Plus, Pencil, Search, X } from "lucide-react";
 import "./Wardrobe.css";
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from "../../config";
 
 const Wardrobe = () => {
   const { clothes, deleteCloth, loading, fetchClothes } = useWardrobe();
@@ -17,8 +17,15 @@ const Wardrobe = () => {
   const [selectedStyles, setSelectedStyles] = useState([]);
 
   const categories = [
-    "Wszystkie", "Góra", "Dół", "Sukienki", "Obuwie",
-    "Okrycia wierzchnie", "Akcesoria", "Torby", "Bielizna"
+    "Wszystkie",
+    "Góra",
+    "Dół",
+    "Sukienki",
+    "Obuwie",
+    "Okrycia wierzchnie",
+    "Akcesoria",
+    "Torby",
+    "Bielizna",
   ];
 
   useEffect(() => {
@@ -31,44 +38,66 @@ const Wardrobe = () => {
   }, [activeTab]);
 
   const parseStyles = (styleString) =>
-    (styleString || "").split(",").map((s) => s.trim()).filter(Boolean);
+    (styleString || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
   const categoryScoped = useMemo(
-    () => (activeTab === "Wszystkie" ? clothes : clothes.filter((c) => c.category === activeTab)),
-    [clothes, activeTab]
+    () =>
+      activeTab === "Wszystkie"
+        ? clothes
+        : clothes.filter((c) => c.category === activeTab),
+    [clothes, activeTab],
   );
 
   const availableColors = useMemo(() => {
     const set = new Set();
-    categoryScoped.forEach((c) => { if (c.color) set.add(c.color); });
+    categoryScoped.forEach((c) => {
+      if (c.color) set.add(c.color);
+    });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pl"));
   }, [categoryScoped]);
 
   const availableStyles = useMemo(() => {
     const set = new Set();
-    categoryScoped.forEach((c) => parseStyles(c.style).forEach((s) => set.add(s)));
+    categoryScoped.forEach((c) =>
+      parseStyles(c.style).forEach((s) => set.add(s)),
+    );
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pl"));
   }, [categoryScoped]);
 
   const filteredClothes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return categoryScoped.filter((c) => {
-      const matchesSearch = !query || (c.name || "").toLowerCase().includes(query);
-      const matchesColor = selectedColors.length === 0 || (c.color && selectedColors.includes(c.color));
+      const matchesSearch =
+        !query || (c.name || "").toLowerCase().includes(query);
+      const matchesColor =
+        selectedColors.length === 0 ||
+        (c.color && selectedColors.includes(c.color));
       const itemStyles = parseStyles(c.style);
-      const matchesStyle = selectedStyles.length === 0 || itemStyles.some((s) => selectedStyles.includes(s));
+      const matchesStyle =
+        selectedStyles.length === 0 ||
+        itemStyles.some((s) => selectedStyles.includes(s));
       return matchesSearch && matchesColor && matchesStyle;
     });
   }, [categoryScoped, searchQuery, selectedColors, selectedStyles]);
 
-  const hasActiveFilters = searchQuery.trim().length > 0 || selectedColors.length > 0 || selectedStyles.length > 0;
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 ||
+    selectedColors.length > 0 ||
+    selectedStyles.length > 0;
 
   const toggleColor = (color) => {
-    setSelectedColors((prev) => (prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]));
+    setSelectedColors((prev) =>
+      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color],
+    );
   };
 
   const toggleStyle = (style) => {
-    setSelectedStyles((prev) => (prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]));
+    setSelectedStyles((prev) =>
+      prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style],
+    );
   };
 
   const clearFilters = () => {
@@ -145,14 +174,17 @@ const Wardrobe = () => {
         </button>
       </header>
 
-      <div className="relative mb-4 w-full">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="relative mb-4 w-full max-w-xs">
+        <Search
+          size={15}
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+        />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Szukaj po nazwie ubrania..."
-          className="w-full bg-white border border-fitte-sand/50 rounded-xl pl-9 pr-8 py-2 text-xs md:text-sm focus:outline-none focus:border-fitte-brown-dark transition-colors shadow-2xs"
+          className="w-full bg-white border border-fitte-sand/50 rounded-full pl-9 pr-8 py-2 text-xs md:text-sm focus:outline-none focus:border-fitte-brown-dark transition-colors shadow-2xs"
         />
         {searchQuery && (
           <button
@@ -163,7 +195,6 @@ const Wardrobe = () => {
           </button>
         )}
       </div>
-
       <div className="categories-tabbar flex gap-4 md:gap-8 border-b border-fitte-sand mb-4 overflow-x-auto no-scrollbar pb-1 w-full max-w-full">
         {categories.map((cat) => (
           <button
@@ -184,7 +215,9 @@ const Wardrobe = () => {
         <div className="flex flex-col gap-2 mb-5 w-full">
           {availableStyles.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 w-full">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Styl:</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">
+                Styl:
+              </span>
               {availableStyles.map((style) => (
                 <button
                   key={style}
@@ -203,7 +236,9 @@ const Wardrobe = () => {
 
           {availableColors.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 w-full">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Kolor:</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">
+                Kolor:
+              </span>
               {availableColors.map((color) => (
                 <button
                   key={color}
@@ -237,7 +272,9 @@ const Wardrobe = () => {
             className="animate-spin text-fitte-brown-dark mb-3"
             size={36}
           />
-          <p className="text-gray-500 italic text-xs">Otwieram Twoją szafę...</p>
+          <p className="text-gray-500 italic text-xs">
+            Otwieram Twoją szafę...
+          </p>
         </div>
       ) : (
         <div className="wardrobe-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 w-full">
@@ -245,7 +282,6 @@ const Wardrobe = () => {
             filteredClothes.map((item) => (
               <div key={item.id} className="cloth-card group w-full">
                 <div className="image-wrapper relative aspect-square rounded-xl overflow-hidden mb-2 bg-[#fdfdfd] border border-fitte-sand/20 w-full">
-
                   <div className="action-buttons absolute top-1.5 left-1.5 flex gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-all z-10">
                     <button
                       onClick={() => setEditingItem(item)}
@@ -256,7 +292,11 @@ const Wardrobe = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (window.confirm(`Czy na pewno chcesz usunąć "${item.name}" ze swojej garderoby?`)) {
+                        if (
+                          window.confirm(
+                            `Czy na pewno chcesz usunąć "${item.name}" ze swojej garderoby?`,
+                          )
+                        ) {
                           deleteCloth(item.id);
                         }
                       }}
