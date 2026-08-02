@@ -6,12 +6,28 @@ import React, {
   useRef,
 } from "react";
 import { API_BASE_URL } from "../config";
+
 const AuthContext = createContext();
 
-const isStandalonePWA = () =>
-  (typeof window !== "undefined" &&
-    window.matchMedia?.("(display-mode: standalone)").matches) ||
-  window.navigator?.standalone === true;
+const isStandalonePWA = () => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    window.navigator?.standalone === true ||
+    document.referrer.includes("android-app://")
+  );
+};
+
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch (e) {
+    return true;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,14 +41,14 @@ export const AuthProvider = ({ children }) => {
 
     if (user && !isStandalonePWA()) {
       timeoutRef.current = setTimeout(() => {
-        console.log("Sesja wygasła z powodu braku aktywności.");
+        console.log("Sesja w przeglądarce wygasła z powodu braku aktywności.");
         logout();
       }, INACTIVITY_LIMIT);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !isStandalonePWA()) {
       const events = [
         "mousedown",
         "keydown",
@@ -42,25 +58,40 @@ export const AuthProvider = ({ children }) => {
       ];
 
       events.forEach((event) =>
-        window.addEventListener(event, resetInactivityTimer),
+        window.addEventListener(event, resetInactivityTimer)
       );
       resetInactivityTimer();
 
       return () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         events.forEach((event) =>
-          window.removeEventListener(event, resetInactivityTimer),
+          window.removeEventListener(event, resetInactivityTimer)
         );
       };
     }
   }, [user]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("fitte_user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const initAuth = () => {
+      const token = localStorage.getItem("fitte_token");
+      const savedUser = localStorage.getItem("fitte_user");
+
+      if (token && savedUser && !isTokenExpired(token)) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          console.error("Błąd odczytu fitte_user z localStorage:", e);
+          logout();
+        }
+      } else {
+        if (token || savedUser) {
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const saveSession = (userData, token) => {
@@ -113,7 +144,7 @@ export const AuthProvider = ({ children }) => {
         saveSession(data.user, data.token);
         return { success: true };
       } else {
-        return { success: false, error: data.error || "Błąd rejestracji" }; // Zwracamy błąd
+        return { success: false, error: data.error || "Błąd rejestracji" };
       }
     } catch (error) {
       return { success: false, error: "Serwer nie odpowiada." };
