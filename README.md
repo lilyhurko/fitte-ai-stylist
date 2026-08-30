@@ -19,7 +19,7 @@ This repository is organized as a monorepo, separating the system logic into mod
 ## 🧠 Core AI Modules & Systems
 
 1.  **Retrieval-Augmented Generation (RAG):** A custom internal data injection process that pairs active database records (user-specific wardrobe items, category fields, preferred styles) with context prompts to ensure completely custom, non-generic styling responses.
-2.  **Multi-Model Benchmarking Interface:** A dedicated evaluation framework enabling users to review and benchmark generated outputs across multiple concurrent model infrastructures (**Google Gemini 2.5 API** vs. **Llama 3.3 via Groq Cloud**) and evaluate specific responses using a 1-5 star user rating system.
+2.  **Multi-Model Benchmarking Interface:** A dedicated evaluation framework enabling users to review and benchmark generated outputs across multiple concurrent model infrastructures (**Google Gemini 2.5 API** vs. **GPT-OSS 120B via Groq Cloud**) and evaluate specific responses using a 1-5 star user rating system.
 
 ---
 
@@ -28,7 +28,7 @@ This repository is organized as a monorepo, separating the system logic into mod
 * **Frontend:** React.js, Vite, Tailwind CSS, React Context API, React Router DOM
 * **Backend:** Node.js, Express.js, Prisma ORM, JWT Authentication, Cloudinary API
 * **Database:** MongoDB Atlas (Cloud Database)
-* **AI Integration:** Google Gemini API, Groq Cloud API (Llama Models)
+* **AI Integration:** Google Gemini API, Groq Cloud API (GPT-OSS)
 * **Hosting Deployment:** Vercel (Client App) & Render (Backend API Service)
 
 ---
@@ -51,6 +51,7 @@ DATABASE_URL="your-mongodb-atlas-url"
 JWT_SECRET="your-jwt-auth-token-secret"
 GEMINI_API_KEY="your-gemini-cloud-key"
 GROQ_API_KEY="your-groq-cloud-key"
+GROQ_MODEL="openai/gpt-oss-120b"
 CLOUDINARY_URL="your-cloudinary-media-url"
 ```
 3. Generate the database Prisma client and apply schemas:

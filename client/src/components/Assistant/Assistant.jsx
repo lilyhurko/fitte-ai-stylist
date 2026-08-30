@@ -12,7 +12,7 @@ import "./Assistant.css";
 import { API_BASE_URL } from "../../config";
 
 const Assistant = () => {
-  const { user, logout } = useAuth(); // <-- Додано logout
+  const { logout } = useAuth();
   const [selectedOccasion, setSelectedOccasion] = useState("Randka");
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -217,7 +217,7 @@ const Assistant = () => {
               <span className="w-full md:w-auto">AKTYWNE SILNIKI BADAWCZE:</span>
               <span>GEMINI 2.5</span>
               <span>•</span>
-              <span>LLAMA 3.3</span>
+              <span>GPT-OSS 120B</span>
               <span>•</span>
               <span>HYBRID RAG</span>
             </div>
@@ -304,11 +304,11 @@ const Assistant = () => {
               </div>
             </div>
 
-            {/* COLUMN 2: LLAMA */}
+            {/* COLUMN 2: GROQ */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-3">
-                  <Monitor size={14} /> Llama 3.3 (Cloud)
+                  <Monitor size={14} /> GPT-OSS 120B (Groq)
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed mb-4">
                   {results.mistralResponse}

@@ -156,7 +156,7 @@ const History = () => {
                         <div>
                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-fitte-sand/10">
                             <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Monitor size={11} /> Llama 3.3
+                              <Monitor size={11} /> GPT-OSS 120B
                             </span>
                           </div>
                           <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">

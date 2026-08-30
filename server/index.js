@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const { generateBestOutfits, isNonOutfitItem } = require("./outfitEngine");
@@ -328,19 +329,21 @@ async function askGemini(query, context, weatherType) {
   }
 }
 
-async function askMistralCloud(query, context, weatherType) {
+async function askGroqCloud(query, context, weatherType) {
   try {
     const prompt = getBasePrompt(query, context, weatherType);
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
+      reasoning_effort: "low",
+      max_completion_tokens: 512,
     });
     return (
       chatCompletion.choices[0]?.message?.content ||
-      "Brak odpowiedzi ze strony chmury Mistral."
+      "Brak odpowiedzi ze strony modelu Groq."
     );
   } catch (err) {
-    return "Błąd Mistral (Groq Cloud): " + err.message;
+    return "Błąd modelu Groq Cloud: " + err.message;
   }
 }
 async function askRAG(
@@ -387,11 +390,22 @@ async function askRAG(
       Odpowiedz wyłącznie czystym uzasadnieniem bez powitań, po polsku.
     `;
 
-    const chatCompletion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: explanationPrompt }],
-      temperature: 0.2,
-    });
+    let explanation = "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
+    try {
+      const chatCompletion = await groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: explanationPrompt }],
+        temperature: 0.2,
+        reasoning_effort: "low",
+        max_completion_tokens: 256,
+      });
+      explanation = chatCompletion.choices[0]?.message?.content || explanation;
+    } catch (explanationError) {
+      console.warn(
+        `[Groq]: Nie udało się wygenerować uzasadnienia modelem ${GROQ_MODEL}. Używam bezpiecznego tekstu zastępczego:`,
+        explanationError.message,
+      );
+    }
 
     const newRec = await prisma.outfitRecommendation.create({
       data: {
@@ -399,14 +413,12 @@ async function askRAG(
         clothIds: bestSet.outfit.map((i) => i.id),
         score: bestSet.totalScore,
         scoreDetails: JSON.stringify(bestSet.details),
-        explanation: chatCompletion.choices[0]?.message?.content || "",
+        explanation,
       },
     });
 
     return {
-      explanation:
-        chatCompletion.choices[0]?.message?.content ||
-        "Zestaw dopasowany do Twoich preferencji.",
+      explanation,
       recommendationId: newRec.id,
       ragItems: bestSet.outfit,
     };
@@ -492,11 +504,11 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
     const latGemini = Date.now() - startGemini;
 
     const startMistral = Date.now();
-    const mistralOdp = await askMistralCloud(
+    const mistralOdp = await askGroqCloud(
       query,
       wardrobeContext,
       weatherType,
-    ).catch((err) => "Błąd Mistral: " + err.message);
+    ).catch((err) => "Błąd modelu Groq: " + err.message);
     const latMistral = Date.now() - startMistral;
 
     const startRag = Date.now();
