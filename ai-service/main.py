@@ -69,6 +69,7 @@ async def process_image(
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
         input_image = ImageOps.exif_transpose(input_image)
+
         output_image = remove(input_image, session=SESSION_REMBG)
         
         ai_image = output_image.convert("RGB")
