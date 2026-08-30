@@ -932,55 +932,145 @@ app.post(
     const { feedback, analysisId } = req.body;
     const userId = req.user.userId;
 
-    try {
-      const rec = await prisma.outfitRecommendation.findUnique({
-        where: { id },
+    if (!["LIKE", "DISLIKE"].includes(feedback)) {
+      return res.status(400).json({
+        error: "Nieprawidłowa wartość feedbacku",
       });
-      if (!rec)
-        return res.status(404).json({ error: "Nie znaleziono rekomendacji" });
+    }
 
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
-      let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
-      const clothes = await prisma.cloth.findMany({
-        where: { id: { in: rec.clothIds } },
+    try {
+      const rec = await prisma.outfitRecommendation.findFirst({
+        where: {
+          id,
+          userId,
+        },
       });
+
+      if (!rec) {
+        return res.status(404).json({
+          error: "Nie znaleziono rekomendacji użytkownika",
+        });
+      }
+
+      if (rec.status !== "PENDING") {
+        return res.status(409).json({
+          error: "Ta rekomendacja została już oceniona",
+        });
+      }
+
+      if (analysisId) {
+        const analysis = await prisma.analysis.findFirst({
+          where: {
+            id: analysisId,
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (!analysis) {
+          return res.status(404).json({
+            error: "Nie znaleziono analizy użytkownika",
+          });
+        }
+      }
+
+      const user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          styleWeights: true,
+          colorWeights: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "Nie znaleziono użytkownika",
+        });
+      }
+
+      const clothes = await prisma.cloth.findMany({
+        where: {
+          id: {
+            in: rec.clothIds,
+          },
+          userId,
+        },
+      });
+
+      let styleWeights = user.styleWeights
+        ? JSON.parse(user.styleWeights)
+        : {};
+
+      let colorWeights = user.colorWeights
+        ? JSON.parse(user.colorWeights)
+        : {};
 
       const factor = feedback === "LIKE" ? 0.1 : -0.1;
+
       clothes.forEach((item) => {
-        if (item.style)
-          styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
-        if (item.color)
-          colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
+        if (item.style) {
+          styleWeights[item.style] =
+            (styleWeights[item.style] || 1.0) + factor;
+        }
+
+        if (item.color) {
+          colorWeights[item.color] =
+            (colorWeights[item.color] || 1.0) + factor;
+        }
       });
 
       const operations = [
         prisma.user.update({
-          where: { id: userId },
+          where: {
+            id: userId,
+          },
           data: {
             styleWeights: JSON.stringify(styleWeights),
             colorWeights: JSON.stringify(colorWeights),
           },
         }),
-        prisma.outfitRecommendation.update({
-          where: { id },
-          data: { status: feedback === "LIKE" ? "LIKED" : "DISLIKED" },
+
+        prisma.outfitRecommendation.updateMany({
+          where: {
+            id,
+            userId,
+            status: "PENDING",
+          },
+          data: {
+            status: feedback === "LIKE" ? "LIKED" : "DISLIKED",
+          },
         }),
       ];
 
       if (analysisId) {
         operations.push(
-          prisma.analysis.update({
-            where: { id: analysisId },
-            data: { ragScore: feedback === "LIKE" ? 1 : 0 },
+          prisma.analysis.updateMany({
+            where: {
+              id: analysisId,
+              userId,
+            },
+            data: {
+              ragScore: feedback === "LIKE" ? 1 : 0,
+            },
           }),
         );
       }
 
       await prisma.$transaction(operations);
-      res.json({ success: true, styleWeights, colorWeights });
+
+      res.json({
+        success: true,
+        styleWeights,
+        colorWeights,
+      });
     } catch (error) {
-      res.status(500).json({ error: "Błąd pętli uczenia: " + error.message });
+      res.status(500).json({
+        error: "Błąd pętli uczenia: " + error.message,
+      });
     }
   },
 );
