@@ -29,6 +29,12 @@ const isTokenExpired = (token) => {
   }
 };
 
+const clearPrivateApiCache = async () => {
+  if ("caches" in window) {
+    await window.caches.delete("fitte-user-data");
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +79,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = () => {
+      clearPrivateApiCache().catch((error) => {
+        console.error("Nie udało się usunąć starego cache PWA:", error);
+      });
       const token = localStorage.getItem("fitte_token");
       const savedUser = localStorage.getItem("fitte_user");
 
@@ -157,8 +166,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     localStorage.removeItem("fitte_token");
     localStorage.removeItem("fitte_user");
+
+    clearPrivateApiCache().catch((error) => {
+      console.error("Nie udało się wyczyścić prywatnego cache:", error);
+    });
+
     setUser(null);
   };
 
