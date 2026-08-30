@@ -40,7 +40,25 @@ const upload = multer({
   limits: { fileSize: 30 * 1024 * 1024 },
 });
 
-app.use(cors());
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS || "http://localhost:5173"
+)
+  .split(",")
+  .map((origin) => origin.trim());
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin niedozwolony przez CORS"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 
