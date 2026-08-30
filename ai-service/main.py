@@ -12,7 +12,7 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse, JSONResponse
 from rembg import remove, new_session 
-from PIL import Image
+from PIL import Image, ImageOps
 from google import genai  
 from dotenv import load_dotenv
 from pillow_heif import register_heif_opener
@@ -68,7 +68,7 @@ async def process_image(
     try:
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
-        
+        input_image = ImageOps.exif_transpose(input_image)
         output_image = remove(input_image, session=SESSION_REMBG)
         
         ai_image = output_image.convert("RGB")

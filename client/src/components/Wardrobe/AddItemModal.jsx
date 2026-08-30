@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Loader2, Upload, Sparkles, X } from "lucide-react";
 import "./AddItemModal.css";
-import { API_BASE_URL } from "../../config"; 
+import { API_BASE_URL } from "../../config";
 
 const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [file, setFile] = useState(null);
@@ -34,19 +34,25 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
 
   const handleFile = (selectedFile) => {
     if (!selectedFile) return;
+
+    const isHeic =
+      selectedFile.type === "image/heic" ||
+      selectedFile.type === "image/heif" ||
+      /\.(heic|heif)$/i.test(selectedFile.name);
+
     setFile(selectedFile);
-    setPreview(URL.createObjectURL(selectedFile));
+    setPreview(isHeic ? null : URL.createObjectURL(selectedFile));
   };
 
   const handleClose = () => {
-    if (isProcessing) return; 
+    if (isProcessing) return;
     setFile(null);
     setPreview(null);
     onClose();
   };
 
   const handleGenerate = async () => {
-    if (!file || isProcessing) return; 
+    if (!file || isProcessing) return;
 
     setIsProcessing(true);
     const token = localStorage.getItem("fitte_token");
@@ -55,29 +61,31 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     formData.append("image", file);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); 
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Connection": "keep-alive"
+          Connection: "keep-alive",
         },
         body: formData,
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-      
+
       if (response.status === 400 && !response.ok) {
-        console.warn("Wykryto zdublowane zapytanie sieciowe (Retry), ignoruję błąd strumienia.");
-        return; 
+        console.warn(
+          "Wykryto zdublowane zapytanie sieciowe (Retry), ignoruję błąd strumienia.",
+        );
+        return;
       }
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        onAddSuccess(data.item); 
+        onAddSuccess(data.item);
         handleClose();
       } else {
         console.error("Backend AI Error:", data.error);
@@ -87,8 +95,10 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.log("Timeout Hugging Face - proces jest kontynuowany na serwerze.");
+      if (error.name === "AbortError") {
+        console.log(
+          "Timeout Hugging Face - proces jest kontynuowany na serwerze.",
+        );
         handleClose();
       } else {
         console.error("Błąd krytyczny sieci:", error);
@@ -119,7 +129,9 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               <h3 className="font-playfair italic text-xl text-fitte-brown-dark mb-1">
                 Fitte AI analizuje Twoje ubranie...
               </h3>
-              <p className="text-xs text-gray-400">Usuwamy tło i dobieramy parametry stylu</p>
+              <p className="text-xs text-gray-400">
+                Usuwamy tło i dobieramy parametry stylu
+              </p>
               <div className="loading-bar">
                 <div className="loading-progress"></div>
               </div>
@@ -140,14 +152,34 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               onClick={() => fileInputRef.current.click()}
             >
               {preview ? (
-                <img src={preview} alt="Preview" className="image-preview" />
+                <img
+                  src={preview}
+                  alt="Podgląd wybranego ubrania"
+                  className="image-preview"
+                />
+              ) : file ? (
+                <div className="drop-zone-content">
+                  <div className="upload-icon-circle">
+                    <Upload size={32} />
+                  </div>
+
+                  <p className="main-text text-sm font-bold">{file.name}</p>
+
+                  <p className="sub-text text-xs text-gray-400">
+                    Plik HEIC zostanie przekonwertowany po wysłaniu
+                  </p>
+                </div>
               ) : (
                 <div className="drop-zone-content">
                   <div className="upload-icon-circle">
                     <Upload size={32} />
                   </div>
-                  <p className="main-text text-sm font-bold">Przeciągnij i upuść zdjęcie</p>
-                  <p className="sub-text text-xs text-gray-400">lub kliknij, aby wybrać z dysku</p>
+                  <p className="main-text text-sm font-bold">
+                    Przeciągnij i upuść zdjęcie
+                  </p>
+                  <p className="sub-text text-xs text-gray-400">
+                    lub kliknij, aby wybrać z dysku
+                  </p>
                 </div>
               )}
               <input
@@ -155,7 +187,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={(e) => handleFile(e.target.files[0])}
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               />
             </div>
 

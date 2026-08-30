@@ -7,7 +7,8 @@ import "./Wardrobe.css";
 import { API_BASE_URL } from "../../config";
 
 const Wardrobe = () => {
-  const { clothes, deleteCloth, loading, fetchClothes } = useWardrobe();
+  const { clothes, deleteCloth, loading, fetchClothes, addCloth } =
+    useWardrobe();
   const [activeTab, setActiveTab] = useState("Wszystkie");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -106,31 +107,11 @@ const Wardrobe = () => {
     setSelectedStyles([]);
   };
 
-  const handleItemAdded = async (aiResult) => {
-    const token = localStorage.getItem("fitte_token");
+  const handleItemAdded = (newItem) => {
+    if (!newItem) return;
 
-    try {
-      const formData = new FormData();
-      if (aiResult.imageBlob) {
-        formData.append("image", aiResult.imageBlob, "cloth.png");
-      } else {
-        alert("Brak pliku obrazu do przetworzenia.");
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (response.ok) {
-        await fetchClothes();
-        setIsModalOpen(false);
-      }
-    } catch (error) {
-      console.error("Błąd sieci podczas dodawania ubrania:", error);
-    }
+    addCloth(newItem);
+    setIsModalOpen(false);
   };
 
   const handleUpdateItem = async (id, updatedFields) => {

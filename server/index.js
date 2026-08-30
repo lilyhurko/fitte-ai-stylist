@@ -686,8 +686,7 @@ app.post(
       }
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-      nativeForm.append("file", fileBlob, "upload.png");
-
+      nativeForm.append("file", fileBlob, req.file.originalname || "upload");
       const hfResponse = await fetch(
         "https://lilyhurko-fitte-ai-service.hf.space/process-image",
         {
