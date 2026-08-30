@@ -692,6 +692,9 @@ app.post(
         "https://lilyhurko-fitte-ai-service.hf.space/process-image",
         {
           method: "POST",
+          headers: {
+            "X-Service-Token": process.env.AI_SERVICE_TOKEN,
+          },
           body: nativeForm,
         },
       );
@@ -885,10 +888,10 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
   const { modelType, feedback } = req.body;
 
   if (!["LIKE", "DISLIKE"].includes(feedback)) {
-  return res.status(400).json({
-    error: "Nieprawidłowa wartość feedbacku",
-  });
-}
+    return res.status(400).json({
+      error: "Nieprawidłowa wartość feedbacku",
+    });
+  }
 
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
@@ -1001,25 +1004,19 @@ app.post(
         },
       });
 
-      let styleWeights = user.styleWeights
-        ? JSON.parse(user.styleWeights)
-        : {};
+      let styleWeights = user.styleWeights ? JSON.parse(user.styleWeights) : {};
 
-      let colorWeights = user.colorWeights
-        ? JSON.parse(user.colorWeights)
-        : {};
+      let colorWeights = user.colorWeights ? JSON.parse(user.colorWeights) : {};
 
       const factor = feedback === "LIKE" ? 0.1 : -0.1;
 
       clothes.forEach((item) => {
         if (item.style) {
-          styleWeights[item.style] =
-            (styleWeights[item.style] || 1.0) + factor;
+          styleWeights[item.style] = (styleWeights[item.style] || 1.0) + factor;
         }
 
         if (item.color) {
-          colorWeights[item.color] =
-            (colorWeights[item.color] || 1.0) + factor;
+          colorWeights[item.color] = (colorWeights[item.color] || 1.0) + factor;
         }
       });
 

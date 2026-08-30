@@ -1,8 +1,15 @@
 import os
+import hmac
 import io
 import json
-from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    Header,
+    HTTPException,
+    Depends,
+)
 from fastapi.responses import StreamingResponse, JSONResponse
 from rembg import remove, new_session 
 from PIL import Image
@@ -17,14 +24,24 @@ client = genai.Client()
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-AI-Analysis"] 
-)
+AI_SERVICE_TOKEN = os.getenv("AI_SERVICE_TOKEN")
+
+if not AI_SERVICE_TOKEN:
+    raise RuntimeError("Brak wymaganej zmiennej AI_SERVICE_TOKEN")
+
+
+def authenticate_service(
+    x_service_token: str | None = Header(default=None),
+):
+    if (
+        not x_service_token
+        or not hmac.compare_digest(x_service_token, AI_SERVICE_TOKEN)
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Brak autoryzacji usługi",
+        )
+
 
 print(" Ładowanie modelu u2netp dla rembg...")
 SESSION_REMBG = new_session(model_name="u2netp") 
@@ -44,7 +61,10 @@ AVAILABLE_MODEL = get_available_model()
 print(f" Fitte AI startuje na modelu: {AVAILABLE_MODEL}")
 
 @app.post("/process-image")
-async def process_image(file: UploadFile = File(...)):
+async def process_image(
+    file: UploadFile = File(...),
+    _: None = Depends(authenticate_service),
+):
     try:
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
