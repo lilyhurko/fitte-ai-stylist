@@ -58,14 +58,14 @@ export const AuthProvider = ({ children }) => {
       ];
 
       events.forEach((event) =>
-        window.addEventListener(event, resetInactivityTimer)
+        window.addEventListener(event, resetInactivityTimer),
       );
       resetInactivityTimer();
 
       return () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         events.forEach((event) =>
-          window.removeEventListener(event, resetInactivityTimer)
+          window.removeEventListener(event, resetInactivityTimer),
         );
       };
     }
@@ -95,18 +95,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveSession = (userData, token) => {
+    const { password: _password, ...safeUserData } = userData;
+
     localStorage.setItem("fitte_token", token);
+
     const processedUser = {
-      ...userData,
+      ...safeUserData,
       styleTags:
-        typeof userData.styleTags === "string"
-          ? JSON.parse(userData.styleTags)
-          : userData.styleTags,
+        typeof safeUserData.styleTags === "string"
+          ? JSON.parse(safeUserData.styleTags)
+          : safeUserData.styleTags,
       favoriteColors:
-        typeof userData.favoriteColors === "string"
-          ? JSON.parse(userData.favoriteColors)
-          : userData.favoriteColors,
+        typeof safeUserData.favoriteColors === "string"
+          ? JSON.parse(safeUserData.favoriteColors)
+          : safeUserData.favoriteColors,
     };
+
     localStorage.setItem("fitte_user", JSON.stringify(processedUser));
     setUser(processedUser);
   };

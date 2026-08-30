@@ -6,7 +6,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
-const { generateCapsuleWardrobe, generateTripCapsuleWardrobe } = require("./capsuleEngine");
+const {
+  generateCapsuleWardrobe,
+  generateTripCapsuleWardrobe,
+} = require("./capsuleEngine");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
@@ -19,6 +22,17 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const PUBLIC_USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  gender: true,
+  styleTags: true,
+  favoriteColors: true,
+  styleWeights: true,
+  colorWeights: true,
+  createdAt: true,
+};
 const { generateBestOutfits, isNonOutfitItem } = require("./outfitEngine");
 
 const upload = multer({
@@ -55,10 +69,19 @@ function findMatchingClothes(llmResponse, clothes) {
   let matched = [];
 
   const synonimyKategorii = {
-    gora: ["top", "koszul", "t-shirt", "bluzk", "marynark", "kimono", "żakiet", "kardigan"],
+    gora: [
+      "top",
+      "koszul",
+      "t-shirt",
+      "bluzk",
+      "marynark",
+      "kimono",
+      "żakiet",
+      "kardigan",
+    ],
     dol: ["spodn", "jeans", "dżins", "nogawk", "szort", "spodenk", "spódnic"],
     buty: ["buty", "sneakers", "mule", "obcas", "sandał", "szpilk", "obuwie"],
-    sukienka: ["sukienk", "tunik", "suknia"]
+    sukienka: ["sukienk", "tunik", "suknia"],
   };
 
   const synonimyKolorow = {
@@ -66,7 +89,7 @@ function findMatchingClothes(llmResponse, clothes) {
     beżowy: ["beżow", "kremow", "ecru", "piaskow"],
     biały: ["biał", "biel", "kremow", "ecru"],
     czarny: ["czarn", "ciemn", "grafit"],
-    niebieski: ["niebiesk", "błękit", "jeans", "granat", "dżins"]
+    niebieski: ["niebiesk", "błękit", "jeans", "granat", "dżins"],
   };
 
   clothes.forEach((cloth) => {
@@ -74,58 +97,86 @@ function findMatchingClothes(llmResponse, clothes) {
     const categoryLower = cloth.category ? cloth.category.toLowerCase() : "";
     const colorLower = cloth.color ? cloth.color.toLowerCase() : "";
 
-    const jestSukienka = categoryLower.includes("sukienk") || nameLower.includes("sukienk");
-    const jestGora = categoryLower.includes("góra") || nameLower.includes("koszul") || nameLower.includes("t-shirt") || nameLower.includes("top") || nameLower.includes("marynark") || nameLower.includes("kardigan");
-    const jestDol = categoryLower.includes("dół") || nameLower.includes("spodn") || nameLower.includes("jeans") || nameLower.includes("dżins") || nameLower.includes("szort") || nameLower.includes("spodenk");
-    const jestButy = categoryLower.includes("buty") || categoryLower.includes("obuwie") || nameLower.includes("sneakers") || nameLower.includes("mule") || nameLower.includes("szpilk");
+    const jestSukienka =
+      categoryLower.includes("sukienk") || nameLower.includes("sukienk");
+    const jestGora =
+      categoryLower.includes("góra") ||
+      nameLower.includes("koszul") ||
+      nameLower.includes("t-shirt") ||
+      nameLower.includes("top") ||
+      nameLower.includes("marynark") ||
+      nameLower.includes("kardigan");
+    const jestDol =
+      categoryLower.includes("dół") ||
+      nameLower.includes("spodn") ||
+      nameLower.includes("jeans") ||
+      nameLower.includes("dżins") ||
+      nameLower.includes("szort") ||
+      nameLower.includes("spodenk");
+    const jestButy =
+      categoryLower.includes("buty") ||
+      categoryLower.includes("obuwie") ||
+      nameLower.includes("sneakers") ||
+      nameLower.includes("mule") ||
+      nameLower.includes("szpilk");
 
-    const aiPiszeOSukience = synonimyKategorii.sukienka.some(s => text.includes(s));
-    const aiPiszeOGorze = synonimyKategorii.gora.some(s => text.includes(s));
-    const aiPiszeODole = synonimyKategorii.dol.some(s => text.includes(s));
-    const aiPiszeOButach = synonimyKategorii.buty.some(s => text.includes(s));
+    const aiPiszeOSukience = synonimyKategorii.sukienka.some((s) =>
+      text.includes(s),
+    );
+    const aiPiszeOGorze = synonimyKategorii.gora.some((s) => text.includes(s));
+    const aiPiszeODole = synonimyKategorii.dol.some((s) => text.includes(s));
+    const aiPiszeOButach = synonimyKategorii.buty.some((s) => text.includes(s));
 
-    const categoryMatch = 
+    const categoryMatch =
       (jestSukienka && aiPiszeOSukience) ||
       (jestGora && aiPiszeOGorze) ||
       (jestDol && aiPiszeODole) ||
       (jestButy && aiPiszeOButach);
 
-if (categoryMatch) {
-  let colorMatch = false;
-  let bazaKolor = colorLower;
+    if (categoryMatch) {
+      let colorMatch = false;
+      let bazaKolor = colorLower;
 
-  if (bazaKolor === "wykryty przez ai" || !bazaKolor) {
-    if (nameLower.includes("czarn")) bazaKolor = "czarny";
-    else if (nameLower.includes("biał") || nameLower.includes("biel")) bazaKolor = "biały";
-    else if (nameLower.includes("krem")) bazaKolor = "kremowy";
-    else if (nameLower.includes("beż")) bazaKolor = "beżowy";
-    else if (nameLower.includes("zielon")) bazaKolor = "zielony";
-    else if (nameLower.includes("róż")) bazaKolor = "różowy";
-  }
+      if (bazaKolor === "wykryty przez ai" || !bazaKolor) {
+        if (nameLower.includes("czarn")) bazaKolor = "czarny";
+        else if (nameLower.includes("biał") || nameLower.includes("biel"))
+          bazaKolor = "biały";
+        else if (nameLower.includes("krem")) bazaKolor = "kremowy";
+        else if (nameLower.includes("beż")) bazaKolor = "beżowy";
+        else if (nameLower.includes("zielon")) bazaKolor = "zielony";
+        else if (nameLower.includes("róż")) bazaKolor = "różowy";
+      }
 
-  const oczekiwaneFrazy = synonimyKolorow[bazaKolor] || [bazaKolor];
-  colorMatch = oczekiwaneFrazy.some(fraza => text.includes(fraza));
+      const oczekiwaneFrazy = synonimyKolorow[bazaKolor] || [bazaKolor];
+      colorMatch = oczekiwaneFrazy.some((fraza) => text.includes(fraza));
 
+      if (
+        text.includes("róż") &&
+        (nameLower.includes("zielon") || colorLower.includes("zielon"))
+      ) {
+        colorMatch = false;
+      }
+      if (
+        text.includes("zielon") &&
+        (nameLower.includes("róż") || colorLower.includes("róż"))
+      ) {
+        colorMatch = false;
+      }
 
-  if (text.includes("róż") && (nameLower.includes("zielon") || colorLower.includes("zielon"))) {
-    colorMatch = false;
-  }
-  if (text.includes("zielon") && (nameLower.includes("róż") || colorLower.includes("róż"))) {
-    colorMatch = false;
-  }
+      const slowaNazwy = nameLower.split(/\s+/).filter((w) => w.length > 3);
+      const nameKeywordMatch = slowaNazwy.some((s) =>
+        text.includes(s.slice(0, -1)),
+      );
 
-  const slowaNazwy = nameLower.split(/\s+/).filter(w => w.length > 3);
-  const nameKeywordMatch = slowaNazwy.some(s => text.includes(s.slice(0, -1)));
-
-  if (colorMatch || nameKeywordMatch) {
-    matched.push(cloth);
-  }
-}
+      if (colorMatch || nameKeywordMatch) {
+        matched.push(cloth);
+      }
+    }
   });
 
   const uniqueMatched = [];
-  matched.forEach(item => {
-    if (!uniqueMatched.some(m => m.id === item.id || m._id === item._id)) {
+  matched.forEach((item) => {
+    if (!uniqueMatched.some((m) => m.id === item.id || m._id === item._id)) {
       uniqueMatched.push(item);
     }
   });
@@ -155,7 +206,9 @@ function extractMarkedItems(rawText, clothes) {
     return { cleanText: rawText.trim(), items: [] };
   }
 
-  const cleanText = (withoutCzas.replace(markerRegex, "").trim() + czasSuffix).trim();
+  const cleanText = (
+    withoutCzas.replace(markerRegex, "").trim() + czasSuffix
+  ).trim();
 
   const rawNames = match[1]
     .split("|")
@@ -390,7 +443,8 @@ async function askRAG(
       Odpowiedz wyłącznie czystym uzasadnieniem bez powitań, po polsku.
     `;
 
-    let explanation = "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
+    let explanation =
+      "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
     try {
       const chatCompletion = await groq.chat.completions.create({
         model: GROQ_MODEL,
@@ -574,6 +628,7 @@ app.post("/api/register", async (req, res) => {
         styleTags: JSON.stringify(styleTags),
         favoriteColors: JSON.stringify(favoriteColors),
       },
+      select: PUBLIC_USER_SELECT,
     });
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
@@ -587,14 +642,29 @@ app.post("/api/register", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
+
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const userWithPassword = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        ...PUBLIC_USER_SELECT,
+        password: true,
+      },
+    });
+
+    if (
+      !userWithPassword ||
+      !(await bcrypt.compare(password, userWithPassword.password))
+    ) {
       return res.status(401).json({ error: "Błędne dane logowania" });
     }
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+
+    const token = jwt.sign({ userId: userWithPassword.id }, JWT_SECRET, {
       expiresIn: "24h",
     });
+
+    const { password: _password, ...user } = userWithPassword;
+
     res.json({ user, token });
   } catch (error) {
     res.status(500).json({ error: "Błąd logowania." });
@@ -704,9 +774,12 @@ app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
 
     const updateData = {};
     if (typeof name === "string" && name.trim()) updateData.name = name.trim();
-    if (typeof category === "string" && category.trim()) updateData.category = category.trim();
-    if (typeof style === "string" && style.trim()) updateData.style = style.trim();
-    if (typeof color === "string" && color.trim()) updateData.color = color.trim();
+    if (typeof category === "string" && category.trim())
+      updateData.category = category.trim();
+    if (typeof style === "string" && style.trim())
+      updateData.style = style.trim();
+    if (typeof color === "string" && color.trim())
+      updateData.color = color.trim();
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "Brak danych do aktualizacji." });
@@ -756,13 +829,17 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
 
     const parsedDays = parseInt(days, 10);
     if (!Number.isFinite(parsedDays) || parsedDays < 1) {
-      return res.status(400).json({ error: "Podaj poprawną liczbę dni (minimum 1)." });
+      return res
+        .status(400)
+        .json({ error: "Podaj poprawną liczbę dni (minimum 1)." });
     }
     const tripDays = Math.min(parsedDays, MAX_TRIP_DAYS);
 
     const location = await geocodeCity(city.trim());
     if (!location) {
-      return res.status(404).json({ error: `Nie znaleziono miasta "${city}". Sprawdź pisownię i spróbuj ponownie.` });
+      return res.status(404).json({
+        error: `Nie znaleziono miasta "${city}". Sprawdź pisownię i spróbuj ponownie.`,
+      });
     }
 
     const [user, clothes, dailyForecast] = await Promise.all([
@@ -772,12 +849,21 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
     ]);
 
     if (dailyForecast.length === 0) {
-      return res.status(502).json({ error: "Nie udało się pobrać prognozy pogody dla tego miasta." });
+      return res.status(502).json({
+        error: "Nie udało się pobrać prognozy pogody dla tego miasta.",
+      });
     }
 
-    const weatherTypes = Array.from(new Set(dailyForecast.map((d) => d.weatherType)));
+    const weatherTypes = Array.from(
+      new Set(dailyForecast.map((d) => d.weatherType)),
+    );
 
-    const capsuleData = generateTripCapsuleWardrobe(clothes, user, weatherTypes, tripDays);
+    const capsuleData = generateTripCapsuleWardrobe(
+      clothes,
+      user,
+      weatherTypes,
+      tripDays,
+    );
 
     res.json({
       ...capsuleData,
@@ -798,6 +884,12 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { modelType, feedback } = req.body;
 
+  if (!["LIKE", "DISLIKE"].includes(feedback)) {
+  return res.status(400).json({
+    error: "Nieprawidłowa wartość feedbacku",
+  });
+}
+
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
 
@@ -810,12 +902,21 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Nieprawidłowy typ modelu" });
     }
 
-    const updatedAnalysis = await prisma.analysis.update({
-      where: { id },
+    const updateResult = await prisma.analysis.updateMany({
+      where: {
+        id,
+        userId: req.user.userId,
+      },
       data: updateData,
     });
 
-    res.json({ success: true, updatedAnalysis });
+    if (updateResult.count === 0) {
+      return res.status(404).json({
+        error: "Nie znaleziono analizy należącej do tego użytkownika",
+      });
+    }
+
+    res.json({ success: true });
   } catch (error) {
     res
       .status(500)
@@ -951,33 +1052,35 @@ app.get("/api/history", authenticateToken, async (req, res) => {
         where: { userId },
       }),
       prisma.cloth.findMany({
-        where: { userId }
-      })
+        where: { userId },
+      }),
     ]);
 
     // Ten sam filtr co przy generowaniu — bielizna/strój kąpielowy nie mają się pojawiać w dopasowanych zdjęciach,
     // nawet przy ponownym parsowaniu starszych wpisów historii.
     const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
-    const clothesMap = new Map(clothes.map(c => [c.id, c]));
+    const clothesMap = new Map(clothes.map((c) => [c.id, c]));
 
-    const richHistory = history.map(item => {
+    const richHistory = history.map((item) => {
       const geminiRaw = item.geminiResponse || "";
       const mistralRaw = item.mistralResponse || "";
 
       const geminiResolved = resolveMatchedItems(geminiRaw, clothes);
       const llamaResolved = resolveMatchedItems(mistralRaw, clothes);
 
-      const matchingRec = recommendations.find(r => r.analysisId === item.id || r.id === item.recommendationId);
-      
+      const matchingRec = recommendations.find(
+        (r) => r.analysisId === item.id || r.id === item.recommendationId,
+      );
+
       let ragItems = [];
       if (matchingRec && matchingRec.clothIds) {
-        const ids = Array.isArray(matchingRec.clothIds) 
-          ? matchingRec.clothIds 
+        const ids = Array.isArray(matchingRec.clothIds)
+          ? matchingRec.clothIds
           : JSON.parse(matchingRec.clothIds || "[]");
-        
-        ragItems = ids.map(id => clothesMap.get(id)).filter(Boolean);
-      } 
-      
+
+        ragItems = ids.map((id) => clothesMap.get(id)).filter(Boolean);
+      }
+
       if (ragItems.length === 0) {
         ragItems = findMatchingClothes(item.ragResponse || "", clothes);
       }
@@ -988,7 +1091,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
         mistralResponse: llamaResolved.cleanText,
         geminiItems: geminiResolved.items,
         llamaItems: llamaResolved.items,
-        ragItems: ragItems 
+        ragItems: ragItems,
       };
     });
 
