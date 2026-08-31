@@ -5,15 +5,16 @@ import "./Profile.css";
 import { API_BASE_URL } from "../../config";
 
 const Profile = () => {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || user?.name || "",
     email: user?.email || "",
     gender: user?.gender || "Kobieta",
-    styleTags: typeof user?.styleTags === "string" 
-      ? JSON.parse(user.styleTags || "[]") 
-      : user?.styleTags || [],
+    styleTags:
+      typeof user?.styleTags === "string"
+        ? JSON.parse(user.styleTags || "[]")
+        : user?.styleTags || [],
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -37,9 +38,10 @@ const Profile = () => {
         firstName: user.firstName || user.name || prev.firstName,
         email: user.email || prev.email,
         gender: user.gender || prev.gender,
-        styleTags: typeof user.styleTags === "string" 
-          ? JSON.parse(user.styleTags || "[]") 
-          : user.styleTags || prev.styleTags,
+        styleTags:
+          typeof user.styleTags === "string"
+            ? JSON.parse(user.styleTags || "[]")
+            : user.styleTags || prev.styleTags,
       }));
     }
     fetchProfileData();
@@ -69,7 +71,7 @@ const Profile = () => {
         setFormData(fetchedData);
 
         const storedUser = JSON.parse(
-          localStorage.getItem("fitte_user") || "{}"
+          localStorage.getItem("fitte_user") || "{}",
         );
         storedUser.name = fetchedData.firstName;
         storedUser.email = fetchedData.email;
@@ -107,7 +109,7 @@ const Profile = () => {
         });
 
         const storedUser = JSON.parse(
-          localStorage.getItem("fitte_user") || "{}"
+          localStorage.getItem("fitte_user") || "{}",
         );
         storedUser.name = formData.firstName;
         storedUser.email = formData.email;
@@ -129,6 +131,13 @@ const Profile = () => {
   };
 
   const handleChangePassword = async () => {
+    if (passwordData.newPassword.length < 8) {
+      setPasswordMessage({
+        type: "error",
+        text: "Nowe hasło musi mieć minimum 8 znaków.",
+      });
+      return;
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordMessage({
         type: "error",
@@ -256,7 +265,10 @@ const Profile = () => {
               <div className="flex flex-wrap gap-1.5 mt-0.5">
                 {formData.styleTags.length > 0 ? (
                   formData.styleTags.map((tag) => (
-                    <span key={tag} className="tag-pill text-[9px] md:text-[10px]">
+                    <span
+                      key={tag}
+                      className="tag-pill text-[9px] md:text-[10px]"
+                    >
                       {tag}
                     </span>
                   ))
@@ -273,7 +285,9 @@ const Profile = () => {
             {profileMessage.text && (
               <div
                 className={`flex items-center gap-1.5 text-xs mb-3 ${
-                  profileMessage.type === "success" ? "text-green-600" : "text-red-500"
+                  profileMessage.type === "success"
+                    ? "text-green-600"
+                    : "text-red-500"
                 }`}
               >
                 {profileMessage.type === "success" ? (
@@ -333,7 +347,7 @@ const Profile = () => {
                   })
                 }
                 className="profile-input"
-                placeholder="Min. 6 znaków"
+                placeholder="Min. 8 znaków"
               />
             </div>
 
@@ -360,7 +374,9 @@ const Profile = () => {
             {passwordMessage.text && (
               <div
                 className={`flex items-center gap-1.5 text-xs mb-3 ${
-                  passwordMessage.type === "success" ? "text-green-600" : "text-red-500"
+                  passwordMessage.type === "success"
+                    ? "text-green-600"
+                    : "text-red-500"
                 }`}
               >
                 {passwordMessage.type === "success" ? (

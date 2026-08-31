@@ -730,6 +730,22 @@ const recommendationFeedbackSchema = z.object({
   }),
   analysisId: objectIdSchema.optional(),
 });
+const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Obecne hasło jest wymagane")
+      .max(128, "Hasło jest za długie"),
+
+    newPassword: z
+      .string()
+      .min(8, "Nowe hasło musi mieć minimum 8 znaków")
+      .max(128, "Nowe hasło jest za długie"),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "Nowe hasło musi różnić się od obecnego",
+    path: ["newPassword"],
+  });
 
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
@@ -1255,7 +1271,15 @@ app.post(
   "/api/profile/change-password",
   authenticateToken,
   async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
+    const validation = changePasswordSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        error: validation.error.issues[0].message,
+      });
+    }
+
+    const { currentPassword, newPassword } = validation.data;
     try {
       const user = await prisma.user.findUnique({
         where: { id: req.user.userId },
