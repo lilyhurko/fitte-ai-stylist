@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const { rateLimit } = require("express-rate-limit");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -15,6 +16,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
 
 const app = express();
+app.set("trust proxy", 1);
 const prisma = new PrismaClient();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -37,12 +39,10 @@ const { generateBestOutfits, isNonOutfitItem } = require("./outfitEngine");
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 30 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
 });
 
-const allowedOrigins = (
-  process.env.ALLOWED_ORIGINS || "http://localhost:5173"
-)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim());
 
@@ -59,8 +59,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
-app.use(express.json({ limit: "30mb" }));
-app.use(express.urlencoded({ limit: "30mb", extended: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -314,8 +314,6 @@ async function getLiveWeather(lat, lon) {
   }
 }
 
-// Zamienia nazwę miasta na współrzędne przez Open-Meteo Geocoding (ten sam dostawca co reszta pogody w tej
-// aplikacji — bez dodatkowego klucza API). Zwraca null, jeśli nic nie znaleziono.
 async function geocodeCity(cityName) {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pl&format=json`;
   const response = await fetch(url);
@@ -333,8 +331,6 @@ async function geocodeCity(cityName) {
   };
 }
 
-// Prognoza dzienna (maks. temperatura + suma opadów) na `days` dni w przód dla danych współrzędnych,
-// sklasyfikowana tą samą funkcją co reszta aplikacji (classifyDailyWeather).
 async function getMultiDayForecast(lat, lon, days) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,rain_sum&forecast_days=${days}&timezone=auto`;
   const response = await fetch(url);
@@ -504,7 +500,38 @@ async function askRAG(
   }
 }
 
-app.post("/api/analyze", authenticateToken, async (req, res) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    error: "Zbyt wiele prób. Spróbuj ponownie za 15 minut.",
+  },
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Zbyt wiele przesłanych zdjęć. Spróbuj ponownie za minutę.",
+  },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Zbyt wiele zapytań do AI. Spróbuj ponownie za minutę.",
+  },
+});
+
+app.post("/api/analyze", authenticateToken, aiLimiter, async (req, res) => {
   try {
     const { query, latitude = 51.2465, longitude = 22.5684 } = req.body;
     const userId = req.user.userId;
@@ -530,9 +557,6 @@ app.post("/api/analyze", authenticateToken, async (req, res) => {
       }),
     ]);
 
-    // Bielizna i stroje kąpielowe nigdy nie powinny trafić do rekomendacji stylizacji na wyjście — odcinamy je
-    // tu, u źródła, więc ani deterministyczny RAG, ani Gemini/Llama (przez wardrobeContext) nie mają jak ich
-    // zaproponować.
     const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
 
     const textLower = query.toLowerCase();
@@ -631,7 +655,7 @@ app.get("/", (req, res) => {
   });
 });
 
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", authLimiter, async (req, res) => {
   const { name, email, password, styleTags, favoriteColors } = req.body;
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -658,7 +682,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -692,16 +716,25 @@ app.post("/api/login", async (req, res) => {
 app.post(
   "/api/wardrobe/add",
   authenticateToken,
+  uploadLimiter,
   upload.single("image"),
   async (req, res) => {
     try {
       const userId = req.user.userId;
+
       if (!req.file) {
-        console.log(
-          " [Multer]: Przeglądarka ponowiła puste zapytanie (Retry). Ignoruję, aby nie blokować UI.",
-        );
-        return res.json({ success: true, duplicatedRetry: true });
+        console.log("[Multer]: Brak pliku obrazu w żądaniu.");
+
+        return res.status(400).json({
+          error: "Brak pliku obrazu.",
+        });
       }
+
+      console.log("Typ przesłanego zdjęcia:", {
+        name: req.file.originalname,
+        mime: req.file.mimetype,
+        size: req.file.size,
+      });
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
       nativeForm.append("file", fileBlob, req.file.originalname || "upload");
