@@ -711,6 +711,25 @@ const analyzeSchema = z.object({
     .max(180, "Nieprawidłowa długość geograficzna")
     .default(22.5684),
 });
+const objectIdSchema = z
+  .string()
+  .regex(/^[a-f\d]{24}$/i, "Nieprawidłowy identyfikator");
+
+const analysisFeedbackSchema = z.object({
+  modelType: z.enum(["gemini", "llama"], {
+    error: "Nieprawidłowy typ modelu",
+  }),
+  feedback: z.enum(["LIKE", "DISLIKE"], {
+    error: "Nieprawidłowa wartość feedbacku",
+  }),
+});
+
+const recommendationFeedbackSchema = z.object({
+  feedback: z.enum(["LIKE", "DISLIKE"], {
+    error: "Nieprawidłowa wartość feedbacku",
+  }),
+  analysisId: objectIdSchema.optional(),
+});
 
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
@@ -1005,25 +1024,28 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
 });
 
 app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const { modelType, feedback } = req.body;
+  const idValidation = objectIdSchema.safeParse(req.params.id);
+  const bodyValidation = analysisFeedbackSchema.safeParse(req.body);
 
-  if (!["LIKE", "DISLIKE"].includes(feedback)) {
+  if (!idValidation.success || !bodyValidation.success) {
     return res.status(400).json({
-      error: "Nieprawidłowa wartość feedbacku",
+      error:
+        idValidation.error?.issues[0].message ||
+        bodyValidation.error?.issues[0].message,
     });
   }
 
+  const id = idValidation.data;
+  const { modelType, feedback } = bodyValidation.data;
+
   try {
     const scoreValue = feedback === "LIKE" ? 1 : 0;
+    const updateData = {};
 
-    let updateData = {};
     if (modelType === "gemini") {
       updateData.geminiScore = scoreValue;
     } else if (modelType === "llama") {
       updateData.mistralScore = scoreValue;
-    } else {
-      return res.status(400).json({ error: "Nieprawidłowy typ modelu" });
     }
 
     const updateResult = await prisma.analysis.updateMany({
@@ -1042,9 +1064,10 @@ app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Błąd podczas zapisu feedbacku: " + error.message });
+    console.error("Błąd zapisu feedbacku analizy:", error);
+    res.status(500).json({
+      error: "Nie udało się zapisać feedbacku.",
+    });
   }
 });
 
