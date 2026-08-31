@@ -747,6 +747,20 @@ const changePasswordSchema = z
     path: ["newPassword"],
   });
 
+const updateProfileSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .min(2, "Imię musi mieć minimum 2 znaki")
+    .max(80, "Imię jest za długie"),
+
+  email: emailSchema,
+
+  gender: z.enum(["Kobieta", "Mężczyzna", "Inna"], {
+    error: "Nieprawidłowa wartość płci",
+  }),
+});
+
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
 
@@ -1250,7 +1264,15 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 });
 
 app.patch("/api/profile", authenticateToken, async (req, res) => {
-  const { firstName, email, gender } = req.body;
+  const validation = updateProfileSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  const { firstName, email, gender } = validation.data;
   try {
     if (email) {
       const existingUser = await prisma.user.findUnique({ where: { email } });
