@@ -23,7 +23,7 @@ const Register = () => {
     let e = {};
     if (formData.name.length < 2) e.name = "Imię jest za krótkie";
     if (!formData.email.includes("@")) e.email = "Błędny adres email";
-    if (formData.password.length < 6) e.password = "Hasło musi mieć min. 6 znaków";
+    if (formData.password.length < 8) e.password = "Hasło musi mieć min. 8 znaków";
     setErrors(e);
     return Object.keys(e).length === 0;
   };

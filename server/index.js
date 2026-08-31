@@ -11,7 +11,7 @@ const {
   generateCapsuleWardrobe,
   generateTripCapsuleWardrobe,
 } = require("./capsuleEngine");
-
+const { z } = require("zod");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
 
@@ -655,8 +655,45 @@ app.get("/", (req, res) => {
   });
 });
 
+const emailSchema = z
+  .string()
+  .trim()
+  .max(254)
+  .pipe(z.email("Nieprawidłowy adres e-mail"));
+
+const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(1, "Hasło jest wymagane")
+    .max(128, "Hasło jest za długie"),
+});
+
+const registerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Imię musi mieć minimum 2 znaki")
+    .max(80, "Imię jest za długie"),
+  email: emailSchema,
+  password: z
+    .string()
+    .min(8, "Hasło musi mieć minimum 8 znaków")
+    .max(128, "Hasło jest za długie"),
+  styleTags: z.array(z.string().max(50)).max(20).default([]),
+  favoriteColors: z.array(z.string().max(30)).max(20).default([]),
+});
+
 app.post("/api/register", authLimiter, async (req, res) => {
-  const { name, email, password, styleTags, favoriteColors } = req.body;
+  const validation = registerSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  const { name, email, password, styleTags, favoriteColors } = validation.data;
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) return res.status(400).json({ error: "E-mail zajęty." });
@@ -683,8 +720,14 @@ app.post("/api/register", authLimiter, async (req, res) => {
 });
 
 app.post("/api/login", authLimiter, async (req, res) => {
-  const { email, password } = req.body;
+  const validation = loginSchema.safeParse(req.body);
 
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+  const { email, password } = validation.data;
   try {
     const userWithPassword = await prisma.user.findUnique({
       where: { email },
