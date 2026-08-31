@@ -1075,15 +1075,20 @@ app.post(
   "/api/recommendations/:id/feedback",
   authenticateToken,
   async (req, res) => {
-    const { id } = req.params;
-    const { feedback, analysisId } = req.body;
-    const userId = req.user.userId;
+    const idValidation = objectIdSchema.safeParse(req.params.id);
+    const bodyValidation = recommendationFeedbackSchema.safeParse(req.body);
 
-    if (!["LIKE", "DISLIKE"].includes(feedback)) {
+    if (!idValidation.success || !bodyValidation.success) {
       return res.status(400).json({
-        error: "Nieprawidłowa wartość feedbacku",
+        error:
+          idValidation.error?.issues[0].message ||
+          bodyValidation.error?.issues[0].message,
       });
     }
+
+    const id = idValidation.data;
+    const { feedback, analysisId } = bodyValidation.data;
+    const userId = req.user.userId;
 
     try {
       const rec = await prisma.outfitRecommendation.findFirst({
