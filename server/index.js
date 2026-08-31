@@ -533,7 +533,15 @@ const aiLimiter = rateLimit({
 
 app.post("/api/analyze", authenticateToken, aiLimiter, async (req, res) => {
   try {
-    const { query, latitude = 51.2465, longitude = 22.5684 } = req.body;
+    const validation = analyzeSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        error: validation.error.issues[0].message,
+      });
+    }
+
+    const { query, latitude, longitude } = validation.data;
     const userId = req.user.userId;
 
     const weatherType = await getLiveWeather(latitude, longitude);
@@ -682,6 +690,26 @@ const registerSchema = z.object({
     .max(128, "Hasło jest za długie"),
   styleTags: z.array(z.string().max(50)).max(20).default([]),
   favoriteColors: z.array(z.string().max(30)).max(20).default([]),
+});
+
+const analyzeSchema = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(3, "Zapytanie jest za krótkie")
+    .max(2000, "Zapytanie jest za długie"),
+
+  latitude: z.coerce
+    .number()
+    .min(-90, "Nieprawidłowa szerokość geograficzna")
+    .max(90, "Nieprawidłowa szerokość geograficzna")
+    .default(51.2465),
+
+  longitude: z.coerce
+    .number()
+    .min(-180, "Nieprawidłowa długość geograficzna")
+    .max(180, "Nieprawidłowa długość geograficzna")
+    .default(22.5684),
 });
 
 app.post("/api/register", authLimiter, async (req, res) => {
