@@ -50,6 +50,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "30d";
 const PUBLIC_USER_SELECT = {
   id: true,
   email: true,
@@ -814,7 +815,7 @@ app.post("/api/register", authLimiter, async (req, res) => {
     });
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: "24h",
+      expiresIn: JWT_EXPIRES_IN,
     });
     res.json({ user, token });
   } catch (error) {
@@ -848,7 +849,7 @@ app.post("/api/login", authLimiter, async (req, res) => {
     }
 
     const token = jwt.sign({ userId: userWithPassword.id }, JWT_SECRET, {
-      expiresIn: "24h",
+      expiresIn: JWT_EXPIRES_IN,
     });
 
     const { password: _password, ...user } = userWithPassword;
