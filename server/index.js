@@ -788,6 +788,32 @@ const updateProfileSchema = z.object({
   }),
 });
 
+const createEventSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Nazwa wydarzenia jest wymagana")
+    .max(120, "Nazwa wydarzenia jest za długa"),
+
+  date: z
+    .string()
+    .refine(
+      (value) => !Number.isNaN(Date.parse(value)),
+      "Nieprawidłowa data wydarzenia",
+    ),
+
+  occasion: z.enum(
+    ["Casual", "Praca", "Randka", "Impreza", "Sport", "Podróż"],
+    { error: "Nieprawidłowa okazja" },
+  ),
+
+  formality: z.enum(["Casual", "Smart Casual", "Formal"], {
+    error: "Nieprawidłowy poziom formalności",
+  }),
+
+  outfitIds: z.array(objectIdSchema).max(20).default([]),
+});
+
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
 
@@ -1495,17 +1521,24 @@ app.get("/api/events", authenticateToken, async (req, res) => {
 });
 
 app.post("/api/events", authenticateToken, async (req, res) => {
-  const { title, date, occasion, formality, outfitIds } = req.body;
+  const validation = createEventSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  const { title, date, occasion, formality, outfitIds } = validation.data;
+
   try {
-    if (!title || !date || !occasion || !formality)
-      return res.status(400).json({ error: "Wszystkie pola są wymagane." });
     const newEvent = await prisma.event.create({
       data: {
         title,
         date: new Date(date),
         occasion,
         formality,
-        outfitIds: outfitIds || [],
+        outfitIds,
         userId: req.user.userId,
       },
     });
@@ -1516,17 +1549,42 @@ app.post("/api/events", authenticateToken, async (req, res) => {
 });
 
 app.delete("/api/events/:id", authenticateToken, async (req, res) => {
-  try {
-    const event = await prisma.event.findUnique({
-      where: { id: req.params.id },
-    });
-    if (!event || event.userId !== req.user.userId)
-      return res.status(403).json({ error: "Brak uprawnień" });
+  const idValidation = objectIdSchema.safeParse(req.params.id);
 
-    await prisma.event.delete({ where: { id: req.params.id } });
-    res.json({ success: true, message: "Wydarzenie usunięte." });
+  if (!idValidation.success) {
+    return res.status(400).json({
+      error: idValidation.error.issues[0].message,
+    });
+  }
+
+  const eventId = idValidation.data;
+
+  try {
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        userId: req.user.userId,
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        error: "Nie znaleziono wydarzenia użytkownika.",
+      });
+    }
+
+    await prisma.event.delete({
+      where: { id: eventId },
+    });
+
+    res.json({
+      success: true,
+      message: "Wydarzenie usunięte.",
+    });
   } catch (error) {
-    res.status(500).json({ error: "Błąd usuwania wydarzenia." });
+    res.status(500).json({
+      error: "Błąd usuwania wydarzenia.",
+    });
   }
 });
 
