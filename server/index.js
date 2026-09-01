@@ -907,11 +907,21 @@ app.post(
       const aiAnalysis = JSON.parse(decodedAnalysis);
 
       const imageBuffer = await hfResponse.arrayBuffer();
-      const imageUrl = await new Promise((resolve, reject) => {
+      const uploadedImage = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "fitte_wardrobe" },
-          (err, res) => (err ? reject(err) : resolve(res.secure_url)),
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve({
+                imageUrl: result.secure_url,
+                publicId: result.public_id,
+              });
+            }
+          },
         );
+
         stream.end(Buffer.from(imageBuffer));
       });
 
@@ -921,7 +931,8 @@ app.post(
           category: aiAnalysis.category || "Góra",
           style: aiAnalysis.style || "Minimalizm",
           color: aiAnalysis.color || "kremowy",
-          imageUrl: imageUrl,
+          imageUrl: uploadedImage.imageUrl,
+          cloudinaryPublicId: uploadedImage.publicId,
           userId: userId,
         },
       });
@@ -955,6 +966,19 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
     if (!cloth || cloth.userId !== req.user.userId)
       return res.status(403).json({ error: "Brak uprawnień" });
 
+    if (cloth.cloudinaryPublicId) {
+      const cloudinaryResult = await cloudinary.uploader.destroy(
+        cloth.cloudinaryPublicId,
+        {
+          resource_type: "image",
+          invalidate: true,
+        },
+      );
+
+      if (!["ok", "not found"].includes(cloudinaryResult.result)) {
+        throw new Error("Cloudinary nie usunął obrazu");
+      }
+    }
     await prisma.cloth.delete({ where: { id } });
     res.json({ success: true, message: "Ubranie usunięte." });
   } catch (error) {
