@@ -1242,10 +1242,8 @@ app.post(
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Błąd zapisu feedbacku analizy:", error);
-      res.status(500).json({
-        error: "Nie udało się zapisać feedbacku.",
-      });
+      error.publicMessage = "Nie udało się zapisać feedbacku.";
+      next(error);
     }
   },
 );
@@ -1393,9 +1391,8 @@ app.post(
         colorWeights,
       });
     } catch (error) {
-      res.status(500).json({
-        error: "Błąd pętli uczenia: " + error.message,
-      });
+      error.publicMessage = "Nie udało się zapisać oceny rekomendacji.";
+      next(error);
     }
   },
 );
@@ -1408,7 +1405,8 @@ app.get("/api/profile", authenticateToken, async (req, res, next) => {
     });
     res.json({ ...user, firstName: user.name });
   } catch (error) {
-    res.status(500).json({ error: "Błąd profilu" });
+    error.publicMessage = "Nie udało się pobrać profilu.";
+    next(error);
   }
 });
 
@@ -1434,7 +1432,8 @@ app.patch("/api/profile", authenticateToken, async (req, res, next) => {
     });
     res.json(updatedUser);
   } catch (error) {
-    res.status(500).json({ error: "Błąd aktualizacji" });
+    error.publicMessage = "Nie udało się zaktualizować profilu.";
+    next(error);
   }
 });
 
@@ -1464,7 +1463,8 @@ app.post(
       });
       res.json({ success: true, message: "Hasło zmienione." });
     } catch (error) {
-      res.status(500).json({ error: "Błąd zmiany hasła." });
+      error.publicMessage = "Nie udało się zmienić hasła.";
+      next(error);
     }
   },
 );
@@ -1527,8 +1527,8 @@ app.get("/api/history", authenticateToken, async (req, res, next) => {
 
     res.json(richHistory);
   } catch (error) {
-    console.error("Błąd w endpointcie historii:", error);
-    res.status(500).json({ error: "Błąd pobierania bogatej historii." });
+    error.publicMessage = "Nie udało się pobrać historii.";
+    next(error);
   }
 });
 
@@ -1586,8 +1586,8 @@ app.get("/api/events", authenticateToken, async (req, res, next) => {
 
     res.json({ events: eventsWithOutfits });
   } catch (error) {
-    console.error("Błąd generowania propozycji kalendarza:", error);
-    res.status(500).json({ error: "Błąd serwera." });
+    error.publicMessage = "Nie udało się pobrać wydarzeń.";
+    next(error);
   }
 });
 
@@ -1615,7 +1615,8 @@ app.post("/api/events", authenticateToken, async (req, res, next) => {
     });
     res.json({ success: true, event: newEvent });
   } catch (error) {
-    res.status(500).json({ error: "Błąd zapisu wydarzenia." });
+    error.publicMessage = "Nie udało się zapisać wydarzenia.";
+    next(error);
   }
 });
 
@@ -1653,9 +1654,8 @@ app.delete("/api/events/:id", authenticateToken, async (req, res, next) => {
       message: "Wydarzenie usunięte.",
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Błąd usuwania wydarzenia.",
-    });
+    error.publicMessage = "Nie udało się usunąć wydarzenia.";
+    next(error);
   }
 });
 app.use((error, req, res, next) => {
