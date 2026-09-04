@@ -419,7 +419,7 @@ function classifyDailyWeather(maxTemp, rainSum) {
 async function getLiveWeather(lat, lon) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,rain,snow_depth`;
-    await resilientFetch(
+    const response = await resilientFetch(
       "open-meteo",
       url,
       {},
@@ -451,7 +451,7 @@ async function getLiveWeather(lat, lon) {
 
 async function geocodeCity(cityName) {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pl&format=json`;
-  await resilientFetch(
+  const response = await resilientFetch(
     "open-meteo",
     url,
     {},
@@ -476,7 +476,7 @@ async function geocodeCity(cityName) {
 
 async function getMultiDayForecast(lat, lon, days) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,rain_sum&forecast_days=${days}&timezone=auto`;
-  await resilientFetch(
+  const response = await resilientFetch(
     "open-meteo",
     url,
     {},
