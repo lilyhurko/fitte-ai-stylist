@@ -26,6 +26,95 @@ const writeLog = (level, event, metadata = {}) => {
     }),
   );
 };
+const circuitBreakers = new Map();
+
+const wait = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const resilientFetch = async (
+  provider,
+  url,
+  fetchOptions = {},
+  {
+    timeoutMs = 10000,
+    retries = 2,
+    failureThreshold = 3,
+    resetAfterMs = 30000,
+  } = {},
+) => {
+  const now = Date.now();
+
+  const circuit = circuitBreakers.get(provider) || {
+    failures: 0,
+    openUntil: 0,
+  };
+
+  if (circuit.openUntil > now) {
+    const error = new Error(`Circuit breaker otwarty: ${provider}`);
+    error.statusCode = 503;
+    error.publicMessage = "Usługa zewnętrzna jest chwilowo niedostępna.";
+    throw error;
+  }
+
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        signal: controller.signal,
+      });
+
+      const retryableStatus =
+        response.status === 408 ||
+        response.status === 429 ||
+        response.status >= 500;
+
+      if (!response.ok && retryableStatus) {
+        throw new Error(`${provider} odpowiedział kodem ${response.status}`);
+      }
+
+      circuitBreakers.set(provider, {
+        failures: 0,
+        openUntil: 0,
+      });
+
+      return response;
+    } catch (error) {
+      lastError = error;
+
+      writeLog("warn", "external_request_failed", {
+        provider,
+        attempt: attempt + 1,
+        errorName: error.name,
+      });
+
+      if (attempt < retries) {
+        await wait(500 * 2 ** attempt);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  circuit.failures += 1;
+
+  if (circuit.failures >= failureThreshold) {
+    circuit.openUntil = Date.now() + resetAfterMs;
+
+    writeLog("warn", "circuit_breaker_opened", {
+      provider,
+      resetAfterMs,
+    });
+  }
+
+  circuitBreakers.set(provider, circuit);
+  throw lastError;
+};
+
 const missingEnvironment = Object.entries(requiredEnvironment)
   .filter(([, value]) => !value?.trim())
   .map(([name]) => name);
@@ -330,7 +419,15 @@ function classifyDailyWeather(maxTemp, rainSum) {
 async function getLiveWeather(lat, lon) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,rain,snow_depth`;
-    const response = await fetch(url);
+    await resilientFetch(
+      "open-meteo",
+      url,
+      {},
+      {
+        timeoutMs: 5000,
+        retries: 2,
+      },
+    );
     if (!response.ok) throw new Error("Błąd pobierania pogody");
 
     const data = await response.json();
@@ -354,7 +451,15 @@ async function getLiveWeather(lat, lon) {
 
 async function geocodeCity(cityName) {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pl&format=json`;
-  const response = await fetch(url);
+  await resilientFetch(
+    "open-meteo",
+    url,
+    {},
+    {
+      timeoutMs: 5000,
+      retries: 2,
+    },
+  );
   if (!response.ok) throw new Error("Błąd geokodowania miasta");
 
   const data = await response.json();
@@ -371,7 +476,15 @@ async function geocodeCity(cityName) {
 
 async function getMultiDayForecast(lat, lon, days) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,rain_sum&forecast_days=${days}&timezone=auto`;
-  const response = await fetch(url);
+  await resilientFetch(
+    "open-meteo",
+    url,
+    {},
+    {
+      timeoutMs: 5000,
+      retries: 2,
+    },
+  );
   if (!response.ok) throw new Error("Błąd pobierania prognozy wielodniowej");
 
   const data = await response.json();
@@ -984,7 +1097,8 @@ app.post(
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
       nativeForm.append("file", fileBlob, req.file.originalname || "upload");
-      const hfResponse = await fetch(
+      const hfResponse = await resilientFetch(
+        "hugging-face",
         "https://lilyhurko-fitte-ai-service.hf.space/process-image",
         {
           method: "POST",
@@ -992,6 +1106,10 @@ app.post(
             "X-Service-Token": process.env.AI_SERVICE_TOKEN,
           },
           body: nativeForm,
+        },
+        {
+          timeoutMs: 90000,
+          retries: 1,
         },
       );
 
@@ -1565,10 +1683,16 @@ app.get("/api/events", authenticateToken, async (req, res, next) => {
     ]);
 
     const dailyWeatherMap = {};
-
     try {
-      const weatherRes = await fetch(
+      const weatherRes = await resilientFetch(
+        "open-meteo",
         "https://api.open-meteo.com/v1/forecast?latitude=51.2465&longitude=22.5684&daily=temperature_2m_max,rain_sum&timezone=auto",
+
+        {},
+        {
+          timeoutMs: 5000,
+          retries: 2,
+        },
       );
 
       if (weatherRes.ok) {
