@@ -1038,7 +1038,8 @@ app.get("/api/wardrobe", authenticateToken, async (req, res, next) => {
     });
     res.json({ clothes });
   } catch (error) {
-    res.status(500).json({ error: "Błąd pobierania szafy" });
+    error.publicMessage = "Błąd pobierania szafy.";
+    next(error);
   }
 });
 
@@ -1073,7 +1074,8 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res, next) => {
     await prisma.cloth.delete({ where: { id } });
     res.json({ success: true, message: "Ubranie usunięte." });
   } catch (error) {
-    res.status(500).json({ error: "Błąd usuwania." });
+    error.publicMessage = "Błąd usuwania ubrania.";
+    next(error);
   }
 });
 
@@ -1103,7 +1105,8 @@ app.patch("/api/wardrobe/:id", authenticateToken, async (req, res, next) => {
     });
     res.json({ success: true, item: updatedCloth });
   } catch (error) {
-    res.status(500).json({ error: "Błąd aktualizacji ubrania." });
+    error.publicMessage = "Błąd aktualizacji ubrania.";
+    next(error);
   }
 });
 
@@ -1130,8 +1133,8 @@ app.get("/api/capsule", authenticateToken, async (req, res, next) => {
     const capsuleData = generateCapsuleWardrobe(clothes, user, weatherType);
     res.json(capsuleData);
   } catch (error) {
-    console.error("Błąd generowania szafy kapsułowej:", error);
-    res.status(500).json({ error: "Błąd generowania szafy kapsułowej" });
+    error.publicMessage = "Błąd generowania szafy kapsułowej.";
+    next(error);
   }
 });
 
@@ -1190,8 +1193,8 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res, next) => {
       weatherTypes,
     });
   } catch (error) {
-    console.error("Błąd generowania kapsuły podróżnej:", error);
-    res.status(500).json({ error: "Błąd generowania kapsuły podróżnej." });
+    error.publicMessage = "Błąd generowania kapsuły podróżnej.";
+    next(error);
   }
 });
 
