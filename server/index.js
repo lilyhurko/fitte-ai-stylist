@@ -14,7 +14,18 @@ const requiredEnvironment = {
   CLOUDINARY_API_SECRET:
     process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 };
+const writeLog = (level, event, metadata = {}) => {
+  const method = ["error", "warn", "info"].includes(level) ? level : "log";
 
+  console[method](
+    JSON.stringify({
+      level,
+      timestamp: new Date().toISOString(),
+      event,
+      ...metadata,
+    }),
+  );
+};
 const missingEnvironment = Object.entries(requiredEnvironment)
   .filter(([, value]) => !value?.trim())
   .map(([name]) => name);
@@ -422,8 +433,13 @@ async function askGemini(query, context, weatherType) {
     const prompt = getBasePrompt(query, context, weatherType);
     const result = await model.generateContent(prompt);
     return result.response.text();
-  } catch (err) {
-    return "Błąd Gemini: " + err.message;
+  } catch (error) {
+    writeLog("warn", "gemini_fallback", {
+      provider: "gemini",
+      errorName: error.name,
+    });
+
+    return "Model Gemini jest chwilowo niedostępny.";
   }
 }
 
@@ -440,8 +456,13 @@ async function askGroqCloud(query, context, weatherType) {
       chatCompletion.choices[0]?.message?.content ||
       "Brak odpowiedzi ze strony modelu Groq."
     );
-  } catch (err) {
-    return "Błąd modelu Groq Cloud: " + err.message;
+  } catch (error) {
+    writeLog("warn", "groq_fallback", {
+      provider: "groq",
+      errorName: error.name,
+    });
+
+    return "Model Groq jest chwilowo niedostępny.";
   }
 }
 async function askRAG(
@@ -500,10 +521,11 @@ async function askRAG(
       });
       explanation = chatCompletion.choices[0]?.message?.content || explanation;
     } catch (explanationError) {
-      console.warn(
-        `[Groq]: Nie udało się wygenerować uzasadnienia modelem ${GROQ_MODEL}. Używam bezpiecznego tekstu zastępczego:`,
-        explanationError.message,
-      );
+      writeLog("warn", "groq_explanation_fallback", {
+        provider: "groq",
+        model: GROQ_MODEL,
+        errorName: explanationError.name,
+      });
     }
 
     const newRec = await prisma.outfitRecommendation.create({
@@ -521,10 +543,14 @@ async function askRAG(
       recommendationId: newRec.id,
       ragItems: bestSet.outfit,
     };
-  } catch (err) {
+  } catch (error) {
+    writeLog("warn", "rag_fallback", {
+      provider: "fitte-engine",
+      errorName: error.name,
+    });
+
     return {
-      explanation:
-        "Błąd Autorskiego Systemu RAG (Fitte Engine): " + err.message,
+      explanation: "Nie udało się przygotować rekomendacji Fitte.",
       recommendationId: null,
       ragItems: [],
     };
@@ -1535,47 +1561,59 @@ app.get("/api/history", authenticateToken, async (req, res, next) => {
 app.get("/api/events", authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.userId;
+
     const [events, user, clothes] = await Promise.all([
       prisma.event.findMany({
-        where: { userId: userId },
+        where: { userId },
         orderBy: { date: "asc" },
       }),
-      prisma.user.findUnique({ where: { id: userId } }),
-      prisma.cloth.findMany({ where: { userId: userId } }),
+      prisma.user.findUnique({
+        where: { id: userId },
+      }),
+      prisma.cloth.findMany({
+        where: { userId },
+      }),
     ]);
 
-    let dailyWeatherMap = {};
+    const dailyWeatherMap = {};
+
     try {
       const weatherRes = await fetch(
         "https://api.open-meteo.com/v1/forecast?latitude=51.2465&longitude=22.5684&daily=temperature_2m_max,rain_sum&timezone=auto",
       );
-      if (weatherRes.ok) {
-        const wData = await weatherRes.json();
-        wData.daily.time.forEach((dateStr, index) => {
-          const maxTemp = wData.daily.temperature_2m_max[index];
-          const rainSum = wData.daily.rain_sum[index];
 
-          dailyWeatherMap[dateStr] = classifyDailyWeather(maxTemp, rainSum);
+      if (weatherRes.ok) {
+        const weatherData = await weatherRes.json();
+
+        weatherData.daily.time.forEach((dateString, index) => {
+          const maxTemperature = weatherData.daily.temperature_2m_max[index];
+          const rainSum = weatherData.daily.rain_sum[index];
+
+          dailyWeatherMap[dateString] = classifyDailyWeather(
+            maxTemperature,
+            rainSum,
+          );
         });
       }
-    } catch (e) {
-      console.error(
-        "Nie udało się pobrać prognozy dla kalendarza, używam Clear:",
-        e.message,
-      );
+    } catch (error) {
+      writeLog("warn", "calendar_weather_fallback", {
+        provider: "open-meteo",
+        errorName: error.name,
+      });
     }
 
     const eventsWithOutfits = events.map((event) => {
-      const eventDateStr = new Date(event.date).toISOString().split("T")[0];
-      const forecastedWeather = dailyWeatherMap[eventDateStr] || "Clear";
+      const eventDate = new Date(event.date).toISOString().split("T")[0];
+      const weatherType = dailyWeatherMap[eventDate] || "Clear";
 
       const topOutfits = generateBestOutfits(
         clothes,
         user,
         event,
         event.occasion,
-        forecastedWeather,
+        weatherType,
       );
+
       const bestOutfitItems = topOutfits.length > 0 ? topOutfits[0].outfit : [];
 
       return {
