@@ -114,7 +114,64 @@ const resilientFetch = async (
   circuitBreakers.set(provider, circuit);
   throw lastError;
 };
+const resilientOperation = async (
+  provider,
+  operation,
+  { retries = 1, failureThreshold = 3, resetAfterMs = 30000 } = {},
+) => {
+  const circuit = circuitBreakers.get(provider) || {
+    failures: 0,
+    openUntil: 0,
+  };
 
+  if (circuit.openUntil > Date.now()) {
+    const error = new Error(`Circuit breaker otwarty: ${provider}`);
+    error.statusCode = 503;
+    error.publicMessage = "Usługa zewnętrzna jest chwilowo niedostępna.";
+    throw error;
+  }
+
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const result = await operation();
+
+      circuitBreakers.set(provider, {
+        failures: 0,
+        openUntil: 0,
+      });
+
+      return result;
+    } catch (error) {
+      lastError = error;
+
+      writeLog("warn", "external_operation_failed", {
+        provider,
+        attempt: attempt + 1,
+        errorName: error.name,
+      });
+
+      if (attempt < retries) {
+        await wait(500 * 2 ** attempt);
+      }
+    }
+  }
+
+  circuit.failures += 1;
+
+  if (circuit.failures >= failureThreshold) {
+    circuit.openUntil = Date.now() + resetAfterMs;
+
+    writeLog("warn", "circuit_breaker_opened", {
+      provider,
+      resetAfterMs,
+    });
+  }
+
+  circuitBreakers.set(provider, circuit);
+  throw lastError;
+};
 const missingEnvironment = Object.entries(requiredEnvironment)
   .filter(([, value]) => !value?.trim())
   .map(([name]) => name);
@@ -146,7 +203,11 @@ app.set("trust proxy", 1);
 const prisma = new PrismaClient();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+  timeout: 30000,
+  maxRetries: 2,
+});
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -540,7 +601,16 @@ async function askGemini(query, context, weatherType) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context, weatherType);
-    const result = await model.generateContent(prompt);
+    const result = await resilientOperation(
+      "gemini",
+      () =>
+        model.generateContent(prompt, {
+          timeout: 30000,
+        }),
+      {
+        retries: 1,
+      },
+    );
     return result.response.text();
   } catch (error) {
     writeLog("warn", "gemini_fallback", {
@@ -555,12 +625,20 @@ async function askGemini(query, context, weatherType) {
 async function askGroqCloud(query, context, weatherType) {
   try {
     const prompt = getBasePrompt(query, context, weatherType);
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: GROQ_MODEL,
-      reasoning_effort: "low",
-      max_completion_tokens: 512,
-    });
+    const chatCompletion = await resilientOperation(
+      "groq",
+      () =>
+        groq.chat.completions.create({
+          model: GROQ_MODEL,
+          messages: [{ role: "user", content: explanationPrompt }],
+          temperature: 0.2,
+          reasoning_effort: "low",
+          max_completion_tokens: 256,
+        }),
+      {
+        retries: 0,
+      },
+    );
     return (
       chatCompletion.choices[0]?.message?.content ||
       "Brak odpowiedzi ze strony modelu Groq."
@@ -621,13 +699,21 @@ async function askRAG(
     let explanation =
       "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
     try {
-      const chatCompletion = await groq.chat.completions.create({
-        model: GROQ_MODEL,
-        messages: [{ role: "user", content: explanationPrompt }],
-        temperature: 0.2,
-        reasoning_effort: "low",
-        max_completion_tokens: 256,
-      });
+      const chatCompletion = await resilientOperation(
+        "groq",
+        () =>
+          groq.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [{ role: "user", content: explanationPrompt }],
+            temperature: 0.2,
+            reasoning_effort: "low",
+            max_completion_tokens: 256,
+          }),
+        {
+          retries: 0,
+        },
+      );
+      chatCompletion;
       explanation = chatCompletion.choices[0]?.message?.content || explanation;
     } catch (explanationError) {
       writeLog("warn", "groq_explanation_fallback", {
