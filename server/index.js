@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const { randomUUID } = require("crypto");
 const requiredEnvironment = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
@@ -88,7 +88,11 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
-
+app.use((req, res, next) => {
+  req.requestId = randomUUID();
+  res.setHeader("X-Request-Id", req.requestId);
+  next();
+});
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
@@ -944,7 +948,7 @@ app.post(
   authenticateToken,
   uploadLimiter,
   upload.single("image"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const userId = req.user.userId;
 
@@ -1018,12 +1022,10 @@ app.post(
       });
 
       res.json({ success: true, item: newCloth });
-    } catch (error) {
-      res.status(500).json({
-        error: "Błąd serwera podczas dodawania ubrania",
-        details: error.message,
-      });
-    }
+} catch (error) {
+  error.publicMessage = "Błąd serwera podczas dodawania ubrania.";
+  next(error);
+}
   },
 );
 
@@ -1649,7 +1651,47 @@ app.delete("/api/events/:id", authenticateToken, async (req, res) => {
     });
   }
 });
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(error);
+  }
 
+  let statusCode = error.statusCode || error.status || 500;
+  let publicMessage = error.publicMessage;
+
+  if (error instanceof multer.MulterError) {
+    statusCode = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    publicMessage =
+      error.code === "LIMIT_FILE_SIZE"
+        ? "Plik przekracza maksymalny rozmiar 15 MB."
+        : "Nie udało się przesłać pliku.";
+  }
+
+  if (!publicMessage) {
+    publicMessage =
+      statusCode >= 500
+        ? "Wystąpił wewnętrzny błąd serwera."
+        : "Nie udało się wykonać żądania.";
+  }
+
+  console.error(
+    JSON.stringify({
+      level: "error",
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId,
+      method: req.method,
+      path: req.originalUrl,
+      statusCode,
+      errorName: error.name,
+      errorMessage: error.message,
+    }),
+  );
+
+  res.status(statusCode).json({
+    error: publicMessage,
+    requestId: req.requestId,
+  });
+});
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () =>
   console.log(`Serwer Fitte działa stabilnie na porcie ${PORT}`),
