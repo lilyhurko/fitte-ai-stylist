@@ -31,9 +31,9 @@ const missingEnvironment = Object.entries(requiredEnvironment)
   .map(([name]) => name);
 
 if (missingEnvironment.length > 0) {
-  console.error(
-    `Brak wymaganych zmiennych środowiskowych: ${missingEnvironment.join(", ")}`,
-  );
+  writeLog("error", "missing_environment_variables", {
+    variables: missingEnvironment,
+  });
   process.exit(1);
 }
 const express = require("express");
@@ -337,21 +337,17 @@ async function getLiveWeather(lat, lon) {
     const temp = data.current.temperature_2m;
     const rain = data.current.rain;
     const snow = data.current.snow_depth;
-
-    console.log(
-      `[Weather API Live @ GPS ${lat}, ${lon}]: Temperatura: ${temp}°C, Opady: ${rain}mm`,
-    );
-
     if (rain > 0.1 || snow > 0) return "Rain";
     if (temp >= 24) return "Hot";
     if (temp <= 10) return "Cold";
 
     return "Clear";
   } catch (error) {
-    console.error(
-      " Problem z Weather API, zwracam domyślne Clear:",
-      error.message,
-    );
+    writeLog("warn", "weather_fallback", {
+      provider: "open-meteo",
+      errorName: error.name,
+    });
+
     return "Clear";
   }
 }
@@ -606,9 +602,6 @@ app.post(
       const userId = req.user.userId;
 
       const weatherType = await getLiveWeather(latitude, longitude);
-      console.log(
-        `\n[Weather Engine]: Dynamiczna geopozycja GPS [${latitude}, ${longitude}] zmapowana na stan -> ${weatherType}`,
-      );
 
       let selectedOccasion = "Casual";
       const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
@@ -655,17 +648,12 @@ app.post(
       if (currentEvent) {
         wardrobeContext += `\nAKTYWNE WYDARZENIE Z KALENDARZA: ${currentEvent.title} (Okazja: ${currentEvent.occasion}, Formalność: ${currentEvent.formality})\n`;
       }
-
-      console.log(
-        "[RAG Engine]: Generowanie odpowiedzi ze wszystkich silników AI...",
-      );
+      writeLog("info", "ai_analysis_started", {
+        requestId: req.requestId,
+      });
 
       const startGemini = Date.now();
-      const geminiOdp = await askGemini(
-        query,
-        wardrobeContext,
-        weatherType,
-      ).catch((err) => "Błąd Gemini: " + err.message);
+      const geminiOdp = await askGemini(query, wardrobeContext, weatherType);
       const latGemini = Date.now() - startGemini;
 
       const startMistral = Date.now();
@@ -673,7 +661,7 @@ app.post(
         query,
         wardrobeContext,
         weatherType,
-      ).catch((err) => "Błąd modelu Groq: " + err.message);
+      );
       const latMistral = Date.now() - startMistral;
 
       const startRag = Date.now();
@@ -986,8 +974,9 @@ app.post(
       const userId = req.user.userId;
 
       if (!req.file) {
-        console.log("[Multer]: Brak pliku obrazu w żądaniu.");
-
+        writeLog("warn", "upload_without_file", {
+          requestId: req.requestId,
+        });
         return res.status(400).json({
           error: "Brak pliku obrazu.",
         });
@@ -1728,7 +1717,7 @@ app.use((error, req, res, next) => {
       path: req.originalUrl,
       statusCode,
       errorName: error.name,
-      errorMessage: error.message,
+      errorCode: error.code || null,
     }),
   );
 
@@ -1739,5 +1728,7 @@ app.use((error, req, res, next) => {
 });
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () =>
-  console.log(`Serwer Fitte działa stabilnie na porcie ${PORT}`),
+  writeLog("info", "server_started", {
+    port: Number(PORT),
+  }),
 );
