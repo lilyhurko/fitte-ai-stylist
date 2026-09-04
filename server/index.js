@@ -630,7 +630,7 @@ async function askGroqCloud(query, context, weatherType) {
       () =>
         groq.chat.completions.create({
           model: GROQ_MODEL,
-          messages: [{ role: "user", content: explanationPrompt }],
+          messages: [{ role: "user", content: prompt }],
           temperature: 0.2,
           reasoning_effort: "low",
           max_completion_tokens: 256,
@@ -713,7 +713,6 @@ async function askRAG(
           retries: 0,
         },
       );
-      chatCompletion;
       explanation = chatCompletion.choices[0]?.message?.content || explanation;
     } catch (explanationError) {
       writeLog("warn", "groq_explanation_fallback", {
