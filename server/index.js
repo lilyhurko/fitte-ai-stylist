@@ -562,129 +562,134 @@ const aiLimiter = rateLimit({
   },
 });
 
-app.post("/api/analyze", authenticateToken, aiLimiter, async (req, res) => {
-  try {
-    const validation = analyzeSchema.safeParse(req.body);
+app.post(
+  "/api/analyze",
+  authenticateToken,
+  aiLimiter,
+  async (req, res, next) => {
+    try {
+      const validation = analyzeSchema.safeParse(req.body);
 
-    if (!validation.success) {
-      return res.status(400).json({
-        error: validation.error.issues[0].message,
-      });
-    }
+      if (!validation.success) {
+        return res.status(400).json({
+          error: validation.error.issues[0].message,
+        });
+      }
 
-    const { query, latitude, longitude } = validation.data;
-    const userId = req.user.userId;
+      const { query, latitude, longitude } = validation.data;
+      const userId = req.user.userId;
 
-    const weatherType = await getLiveWeather(latitude, longitude);
-    console.log(
-      `\n[Weather Engine]: Dynamiczna geopozycja GPS [${latitude}, ${longitude}] zmapowana na stan -> ${weatherType}`,
-    );
+      const weatherType = await getLiveWeather(latitude, longitude);
+      console.log(
+        `\n[Weather Engine]: Dynamiczna geopozycja GPS [${latitude}, ${longitude}] zmapowana na stan -> ${weatherType}`,
+      );
 
-    let selectedOccasion = "Casual";
-    const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
-    if (occasionMatch && occasionMatch[1]) {
-      selectedOccasion = occasionMatch[1].trim();
-    }
+      let selectedOccasion = "Casual";
+      const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
+      if (occasionMatch && occasionMatch[1]) {
+        selectedOccasion = occasionMatch[1].trim();
+      }
 
-    const [user, allClothes, events] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId } }),
-      prisma.cloth.findMany({ where: { userId } }),
-      prisma.event.findMany({
-        where: { userId },
-        orderBy: { date: "asc" },
-        take: 3,
-      }),
-    ]);
+      const [user, allClothes, events] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId } }),
+        prisma.cloth.findMany({ where: { userId } }),
+        prisma.event.findMany({
+          where: { userId },
+          orderBy: { date: "asc" },
+          take: 3,
+        }),
+      ]);
 
-    const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
+      const clothes = allClothes.filter((c) => !isNonOutfitItem(c));
 
-    const textLower = query.toLowerCase();
-    const czyUzytkownikZmieniaTemat =
-      textLower.includes("spacer") ||
-      textLower.includes("kino") ||
-      textLower.includes("impreza") ||
-      textLower.includes("sport") ||
-      textLower.includes("zajęć") ||
-      textLower.includes("uczeln");
+      const textLower = query.toLowerCase();
+      const czyUzytkownikZmieniaTemat =
+        textLower.includes("spacer") ||
+        textLower.includes("kino") ||
+        textLower.includes("impreza") ||
+        textLower.includes("sport") ||
+        textLower.includes("zajęć") ||
+        textLower.includes("uczeln");
 
-    const dzis = new Date().toISOString().split("T")[0];
-    let currentEvent =
-      events.find((e) => {
-        const eventDate = new Date(e.date).toISOString().split("T")[0];
-        return eventDate === dzis;
-      }) ||
-      events[0] ||
-      null;
+      const dzis = new Date().toISOString().split("T")[0];
+      let currentEvent =
+        events.find((e) => {
+          const eventDate = new Date(e.date).toISOString().split("T")[0];
+          return eventDate === dzis;
+        }) ||
+        events[0] ||
+        null;
 
-    if (czyUzytkownikZmieniaTemat) {
-      currentEvent = null;
-    }
+      if (czyUzytkownikZmieniaTemat) {
+        currentEvent = null;
+      }
 
-    let wardrobeContext = generateContextString(clothes, user);
+      let wardrobeContext = generateContextString(clothes, user);
 
-    if (currentEvent) {
-      wardrobeContext += `\nAKTYWNE WYDARZENIE Z KALENDARZA: ${currentEvent.title} (Okazja: ${currentEvent.occasion}, Formalność: ${currentEvent.formality})\n`;
-    }
+      if (currentEvent) {
+        wardrobeContext += `\nAKTYWNE WYDARZENIE Z KALENDARZA: ${currentEvent.title} (Okazja: ${currentEvent.occasion}, Formalność: ${currentEvent.formality})\n`;
+      }
 
-    console.log(
-      "[RAG Engine]: Generowanie odpowiedzi ze wszystkich silników AI...",
-    );
+      console.log(
+        "[RAG Engine]: Generowanie odpowiedzi ze wszystkich silników AI...",
+      );
 
-    const startGemini = Date.now();
-    const geminiOdp = await askGemini(
-      query,
-      wardrobeContext,
-      weatherType,
-    ).catch((err) => "Błąd Gemini: " + err.message);
-    const latGemini = Date.now() - startGemini;
-
-    const startMistral = Date.now();
-    const mistralOdp = await askGroqCloud(
-      query,
-      wardrobeContext,
-      weatherType,
-    ).catch((err) => "Błąd modelu Groq: " + err.message);
-    const latMistral = Date.now() - startMistral;
-
-    const startRag = Date.now();
-    const ragResult = await askRAG(
-      query,
-      clothes,
-      user,
-      currentEvent,
-      selectedOccasion,
-      weatherType,
-    );
-    const latRag = Date.now() - startRag;
-
-    const geminiResolved = resolveMatchedItems(geminiOdp, clothes);
-    const llamaResolved = resolveMatchedItems(mistralOdp, clothes);
-
-    const analysisRecord = await prisma.analysis.create({
-      data: {
+      const startGemini = Date.now();
+      const geminiOdp = await askGemini(
         query,
-        geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
-        mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
-        ragResponse: `${ragResult.explanation} (Czas: ${latRag}ms)`,
-        contextUsed: wardrobeContext,
-        userId,
-      },
-    });
+        wardrobeContext,
+        weatherType,
+      ).catch((err) => "Błąd Gemini: " + err.message);
+      const latGemini = Date.now() - startGemini;
 
-    res.json({
-      ...analysisRecord,
-      geminiResponse: `${geminiResolved.cleanText} (Czas: ${latGemini}ms)`,
-      mistralResponse: `${llamaResolved.cleanText} (Czas: ${latMistral}ms)`,
-      recommendationId: ragResult.recommendationId,
-      ragItems: ragResult.ragItems,
-      geminiItems: geminiResolved.items,
-      llamaItems: llamaResolved.items,
-    });
-  } catch (error) {
-    console.error(" [KRYTYCZNY BŁĄD]:", error);
-    res.status(500).json({ error: "Błąd serwera podczas analizy AI" });
-  }
-});
+      const startMistral = Date.now();
+      const mistralOdp = await askGroqCloud(
+        query,
+        wardrobeContext,
+        weatherType,
+      ).catch((err) => "Błąd modelu Groq: " + err.message);
+      const latMistral = Date.now() - startMistral;
+
+      const startRag = Date.now();
+      const ragResult = await askRAG(
+        query,
+        clothes,
+        user,
+        currentEvent,
+        selectedOccasion,
+        weatherType,
+      );
+      const latRag = Date.now() - startRag;
+
+      const geminiResolved = resolveMatchedItems(geminiOdp, clothes);
+      const llamaResolved = resolveMatchedItems(mistralOdp, clothes);
+
+      const analysisRecord = await prisma.analysis.create({
+        data: {
+          query,
+          geminiResponse: `${geminiOdp} (Czas: ${latGemini}ms)`,
+          mistralResponse: `${mistralOdp} (Czas: ${latMistral}ms)`,
+          ragResponse: `${ragResult.explanation} (Czas: ${latRag}ms)`,
+          contextUsed: wardrobeContext,
+          userId,
+        },
+      });
+
+      res.json({
+        ...analysisRecord,
+        geminiResponse: `${geminiResolved.cleanText} (Czas: ${latGemini}ms)`,
+        mistralResponse: `${llamaResolved.cleanText} (Czas: ${latMistral}ms)`,
+        recommendationId: ragResult.recommendationId,
+        ragItems: ragResult.ragItems,
+        geminiItems: geminiResolved.items,
+        llamaItems: llamaResolved.items,
+      });
+    } catch (error) {
+      error.publicMessage = "Błąd serwera podczas analizy AI.";
+      next(error);
+    }
+  },
+);
 
 app.get("/", (req, res) => {
   res.json({
@@ -871,7 +876,7 @@ const tripCapsuleSchema = z.object({
     .max(16, "Możesz wygenerować kapsułę maksymalnie na 16 dni"),
 });
 
-app.post("/api/register", authLimiter, async (req, res) => {
+app.post("/api/register", authLimiter, async (req, res, next) => {
   const validation = registerSchema.safeParse(req.body);
 
   if (!validation.success) {
@@ -902,11 +907,12 @@ app.post("/api/register", authLimiter, async (req, res) => {
     });
     res.json({ user, token });
   } catch (error) {
-    res.status(500).json({ error: "Błąd rejestracji." });
+    error.publicMessage = "Błąd rejestracji.";
+    next(error);
   }
 });
 
-app.post("/api/login", authLimiter, async (req, res) => {
+app.post("/api/login", authLimiter, async (req, res, next) => {
   const validation = loginSchema.safeParse(req.body);
 
   if (!validation.success) {
@@ -939,7 +945,8 @@ app.post("/api/login", authLimiter, async (req, res) => {
 
     res.json({ user, token });
   } catch (error) {
-    res.status(500).json({ error: "Błąd logowania." });
+    error.publicMessage = "Błąd logowania.";
+    next(error);
   }
 });
 
@@ -959,12 +966,6 @@ app.post(
           error: "Brak pliku obrazu.",
         });
       }
-
-      console.log("Typ przesłanego zdjęcia:", {
-        name: req.file.originalname,
-        mime: req.file.mimetype,
-        size: req.file.size,
-      });
       const nativeForm = new FormData();
       const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
       nativeForm.append("file", fileBlob, req.file.originalname || "upload");
@@ -1022,14 +1023,14 @@ app.post(
       });
 
       res.json({ success: true, item: newCloth });
-} catch (error) {
-  error.publicMessage = "Błąd serwera podczas dodawania ubrania.";
-  next(error);
-}
+    } catch (error) {
+      error.publicMessage = "Błąd serwera podczas dodawania ubrania.";
+      next(error);
+    }
   },
 );
 
-app.get("/api/wardrobe", authenticateToken, async (req, res) => {
+app.get("/api/wardrobe", authenticateToken, async (req, res, next) => {
   try {
     const clothes = await prisma.cloth.findMany({
       where: { userId: req.user.userId },
@@ -1041,7 +1042,7 @@ app.get("/api/wardrobe", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
+app.delete("/api/wardrobe/:id", authenticateToken, async (req, res, next) => {
   const idValidation = objectIdSchema.safeParse(req.params.id);
 
   if (!idValidation.success) {
@@ -1076,7 +1077,7 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
+app.patch("/api/wardrobe/:id", authenticateToken, async (req, res, next) => {
   const idValidation = objectIdSchema.safeParse(req.params.id);
   const bodyValidation = updateClothSchema.safeParse(req.body);
 
@@ -1106,7 +1107,7 @@ app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.get("/api/capsule", authenticateToken, async (req, res) => {
+app.get("/api/capsule", authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const validation = capsuleQuerySchema.safeParse(req.query);
@@ -1136,7 +1137,7 @@ app.get("/api/capsule", authenticateToken, async (req, res) => {
 
 const MAX_TRIP_DAYS = 16;
 
-app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
+app.post("/api/capsule/trip", authenticateToken, async (req, res, next) => {
   try {
     const validation = tripCapsuleSchema.safeParse(req.body);
 
@@ -1194,58 +1195,62 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/analyze/:id/feedback", authenticateToken, async (req, res) => {
-  const idValidation = objectIdSchema.safeParse(req.params.id);
-  const bodyValidation = analysisFeedbackSchema.safeParse(req.body);
+app.post(
+  "/api/analyze/:id/feedback",
+  authenticateToken,
+  async (req, res, next) => {
+    const idValidation = objectIdSchema.safeParse(req.params.id);
+    const bodyValidation = analysisFeedbackSchema.safeParse(req.body);
 
-  if (!idValidation.success || !bodyValidation.success) {
-    return res.status(400).json({
-      error:
-        idValidation.error?.issues[0].message ||
-        bodyValidation.error?.issues[0].message,
-    });
-  }
-
-  const id = idValidation.data;
-  const { modelType, feedback } = bodyValidation.data;
-
-  try {
-    const scoreValue = feedback === "LIKE" ? 1 : 0;
-    const updateData = {};
-
-    if (modelType === "gemini") {
-      updateData.geminiScore = scoreValue;
-    } else if (modelType === "llama") {
-      updateData.mistralScore = scoreValue;
-    }
-
-    const updateResult = await prisma.analysis.updateMany({
-      where: {
-        id,
-        userId: req.user.userId,
-      },
-      data: updateData,
-    });
-
-    if (updateResult.count === 0) {
-      return res.status(404).json({
-        error: "Nie znaleziono analizy należącej do tego użytkownika",
+    if (!idValidation.success || !bodyValidation.success) {
+      return res.status(400).json({
+        error:
+          idValidation.error?.issues[0].message ||
+          bodyValidation.error?.issues[0].message,
       });
     }
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Błąd zapisu feedbacku analizy:", error);
-    res.status(500).json({
-      error: "Nie udało się zapisać feedbacku.",
-    });
-  }
-});
+    const id = idValidation.data;
+    const { modelType, feedback } = bodyValidation.data;
+
+    try {
+      const scoreValue = feedback === "LIKE" ? 1 : 0;
+      const updateData = {};
+
+      if (modelType === "gemini") {
+        updateData.geminiScore = scoreValue;
+      } else if (modelType === "llama") {
+        updateData.mistralScore = scoreValue;
+      }
+
+      const updateResult = await prisma.analysis.updateMany({
+        where: {
+          id,
+          userId: req.user.userId,
+        },
+        data: updateData,
+      });
+
+      if (updateResult.count === 0) {
+        return res.status(404).json({
+          error: "Nie znaleziono analizy należącej do tego użytkownika",
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Błąd zapisu feedbacku analizy:", error);
+      res.status(500).json({
+        error: "Nie udało się zapisać feedbacku.",
+      });
+    }
+  },
+);
 
 app.post(
   "/api/recommendations/:id/feedback",
   authenticateToken,
-  async (req, res) => {
+  async (req, res, next) => {
     const idValidation = objectIdSchema.safeParse(req.params.id);
     const bodyValidation = recommendationFeedbackSchema.safeParse(req.body);
 
@@ -1392,7 +1397,7 @@ app.post(
   },
 );
 
-app.get("/api/profile", authenticateToken, async (req, res) => {
+app.get("/api/profile", authenticateToken, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
@@ -1404,7 +1409,7 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
   }
 });
 
-app.patch("/api/profile", authenticateToken, async (req, res) => {
+app.patch("/api/profile", authenticateToken, async (req, res, next) => {
   const validation = updateProfileSchema.safeParse(req.body);
 
   if (!validation.success) {
@@ -1433,7 +1438,7 @@ app.patch("/api/profile", authenticateToken, async (req, res) => {
 app.post(
   "/api/profile/change-password",
   authenticateToken,
-  async (req, res) => {
+  async (req, res, next) => {
     const validation = changePasswordSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -1461,11 +1466,10 @@ app.post(
   },
 );
 
-app.get("/api/history", authenticateToken, async (req, res) => {
+app.get("/api/history", authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
-    // 1. Pobieramy historię analiz, rekomendacje ubrań RAG oraz całą szafę
     const [history, recommendations, allClothes] = await Promise.all([
       prisma.analysis.findMany({
         where: { userId },
@@ -1525,7 +1529,7 @@ app.get("/api/history", authenticateToken, async (req, res) => {
   }
 });
 
-app.get("/api/events", authenticateToken, async (req, res) => {
+app.get("/api/events", authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const [events, user, clothes] = await Promise.all([
@@ -1584,7 +1588,7 @@ app.get("/api/events", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/events", authenticateToken, async (req, res) => {
+app.post("/api/events", authenticateToken, async (req, res, next) => {
   const validation = createEventSchema.safeParse(req.body);
 
   if (!validation.success) {
@@ -1612,7 +1616,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/api/events/:id", authenticateToken, async (req, res) => {
+app.delete("/api/events/:id", authenticateToken, async (req, res, next) => {
   const idValidation = objectIdSchema.safeParse(req.params.id);
 
   if (!idValidation.success) {
