@@ -814,6 +814,31 @@ const createEventSchema = z.object({
   outfitIds: z.array(objectIdSchema).max(20).default([]),
 });
 
+const updateClothSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+
+    category: z
+      .enum([
+        "Góra",
+        "Dół",
+        "Sukienki",
+        "Obuwie",
+        "Okrycia wierzchnie",
+        "Akcesoria",
+        "Torby",
+        "Bielizna",
+      ])
+      .optional(),
+
+    style: z.string().trim().min(1).max(300).optional(),
+    color: z.string().trim().min(1).max(50).optional(),
+  })
+  .refine(
+    (data) => Object.values(data).some((value) => value !== undefined),
+    "Brak danych do aktualizacji",
+  );
+
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
 
@@ -987,7 +1012,15 @@ app.get("/api/wardrobe", authenticateToken, async (req, res) => {
 });
 
 app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
-  const { id } = req.params;
+  const idValidation = objectIdSchema.safeParse(req.params.id);
+
+  if (!idValidation.success) {
+    return res.status(400).json({
+      error: idValidation.error.issues[0].message,
+    });
+  }
+
+  const id = idValidation.data;
   try {
     const cloth = await prisma.cloth.findUnique({ where: { id } });
     if (!cloth || cloth.userId !== req.user.userId)
@@ -1014,37 +1047,35 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res) => {
 });
 
 app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const { name, category, style, color } = req.body;
+  const idValidation = objectIdSchema.safeParse(req.params.id);
+  const bodyValidation = updateClothSchema.safeParse(req.body);
+
+  if (!idValidation.success || !bodyValidation.success) {
+    return res.status(400).json({
+      error:
+        idValidation.error?.issues[0].message ||
+        bodyValidation.error?.issues[0].message,
+    });
+  }
+
+  const id = idValidation.data;
+  const updateData = bodyValidation.data;
 
   try {
     const cloth = await prisma.cloth.findUnique({ where: { id } });
     if (!cloth || cloth.userId !== req.user.userId)
       return res.status(403).json({ error: "Brak uprawnień" });
 
-    const updateData = {};
-    if (typeof name === "string" && name.trim()) updateData.name = name.trim();
-    if (typeof category === "string" && category.trim())
-      updateData.category = category.trim();
-    if (typeof style === "string" && style.trim())
-      updateData.style = style.trim();
-    if (typeof color === "string" && color.trim())
-      updateData.color = color.trim();
-
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ error: "Brak danych do aktualizacji." });
-    }
-
     const updatedCloth = await prisma.cloth.update({
       where: { id },
       data: updateData,
     });
-
     res.json({ success: true, item: updatedCloth });
   } catch (error) {
     res.status(500).json({ error: "Błąd aktualizacji ubrania." });
   }
 });
+
 app.get("/api/capsule", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
