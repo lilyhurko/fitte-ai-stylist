@@ -1210,23 +1210,35 @@ app.post(
       const aiAnalysis = JSON.parse(decodedAnalysis);
 
       const imageBuffer = await hfResponse.arrayBuffer();
-      const uploadedImage = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "fitte_wardrobe" },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve({
-                imageUrl: result.secure_url,
-                publicId: result.public_id,
-              });
-            }
-          },
-        );
+      const uploadedImage = await resilientOperation(
+        "cloudinary",
+        () =>
+          new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: "fitte_wardrobe",
+                public_id: req.requestId,
+                overwrite: true,
+                timeout: 30000,
+              },
+              (error, result) => {
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve({
+                    imageUrl: result.secure_url,
+                    publicId: result.public_id,
+                  });
+                }
+              },
+            );
 
-        stream.end(Buffer.from(imageBuffer));
-      });
+            stream.end(Buffer.from(imageBuffer));
+          }),
+        {
+          retries: 1,
+        },
+      );
 
       const newCloth = await prisma.cloth.create({
         data: {
@@ -1277,11 +1289,16 @@ app.delete("/api/wardrobe/:id", authenticateToken, async (req, res, next) => {
       return res.status(403).json({ error: "Brak uprawnień" });
 
     if (cloth.cloudinaryPublicId) {
-      const cloudinaryResult = await cloudinary.uploader.destroy(
-        cloth.cloudinaryPublicId,
+      const cloudinaryResult = await resilientOperation(
+        "cloudinary",
+        () =>
+          cloudinary.uploader.destroy(cloth.cloudinaryPublicId, {
+            resource_type: "image",
+            invalidate: true,
+            timeout: 30000,
+          }),
         {
-          resource_type: "image",
-          invalidate: true,
+          retries: 1,
         },
       );
 
