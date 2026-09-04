@@ -839,6 +839,34 @@ const updateClothSchema = z
     "Brak danych do aktualizacji",
   );
 
+const capsuleQuerySchema = z.object({
+  latitude: z.coerce
+    .number()
+    .min(-90, "Nieprawidłowa szerokość geograficzna")
+    .max(90, "Nieprawidłowa szerokość geograficzna")
+    .default(51.2465),
+
+  longitude: z.coerce
+    .number()
+    .min(-180, "Nieprawidłowa długość geograficzna")
+    .max(180, "Nieprawidłowa długość geograficzna")
+    .default(22.5684),
+});
+
+const tripCapsuleSchema = z.object({
+  city: z
+    .string()
+    .trim()
+    .min(1, "Podaj nazwę miasta")
+    .max(100, "Nazwa miasta jest za długa"),
+
+  days: z.coerce
+    .number()
+    .int("Liczba dni musi być całkowita")
+    .min(1, "Podaj minimum jeden dzień")
+    .max(16, "Możesz wygenerować kapsułę maksymalnie na 16 dni"),
+});
+
 app.post("/api/register", authLimiter, async (req, res) => {
   const validation = registerSchema.safeParse(req.body);
 
@@ -1079,8 +1107,15 @@ app.patch("/api/wardrobe/:id", authenticateToken, async (req, res) => {
 app.get("/api/capsule", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const latitude = parseFloat(req.query.latitude) || 51.2465;
-    const longitude = parseFloat(req.query.longitude) || 22.5684;
+    const validation = capsuleQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        error: validation.error.issues[0].message,
+      });
+    }
+
+    const { latitude, longitude } = validation.data;
 
     const [user, clothes] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
@@ -1101,20 +1136,16 @@ const MAX_TRIP_DAYS = 16;
 
 app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
   try {
+    const validation = tripCapsuleSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        error: validation.error.issues[0].message,
+      });
+    }
+
     const userId = req.user.userId;
-    const { city, days } = req.body;
-
-    if (!city || typeof city !== "string" || !city.trim()) {
-      return res.status(400).json({ error: "Podaj nazwę miasta." });
-    }
-
-    const parsedDays = parseInt(days, 10);
-    if (!Number.isFinite(parsedDays) || parsedDays < 1) {
-      return res
-        .status(400)
-        .json({ error: "Podaj poprawną liczbę dni (minimum 1)." });
-    }
-    const tripDays = Math.min(parsedDays, MAX_TRIP_DAYS);
+    const { city, days: tripDays } = validation.data;
 
     const location = await geocodeCity(city.trim());
     if (!location) {
@@ -1151,7 +1182,7 @@ app.post("/api/capsule/trip", authenticateToken, async (req, res) => {
       city: location.name,
       country: location.country,
       days: tripDays,
-      requestedDays: parsedDays,
+      requestedDays: tripDays,
       dailyForecast,
       weatherTypes,
     });
