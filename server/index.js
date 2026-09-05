@@ -1,18 +1,4 @@
-require("dotenv").config();
-const requiredEnvironment = {
-  DATABASE_URL: process.env.DATABASE_URL,
-  JWT_SECRET: process.env.JWT_SECRET,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-  GROQ_API_KEY: process.env.GROQ_API_KEY,
-  AI_SERVICE_TOKEN: process.env.AI_SERVICE_TOKEN,
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
-
-  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY:
-    process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET:
-    process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
-};
+require("./config/env");
 const { updateProfileSchema } = require("./validators/profileValidators");
 const { createEventSchema } = require("./validators/eventValidators");
 const { updateClothSchema } = require("./validators/wardrobeValidators");
@@ -31,9 +17,14 @@ const {
   AUTH_COOKIE_OPTIONS,
   AUTH_COOKIE_CLEAR_OPTIONS,
 } = require("./config/auth");
-
+const { prisma } = require("./config/prisma");
+const { cloudinary } = require("./config/cloudinary");
+const { genAI, groq, GROQ_MODEL } = require("./config/aiClients");
 const { authenticateToken } = require("./middleware/authenticate");
-
+const {
+  resilientFetch,
+  resilientOperation,
+} = require("./services/resilienceService");
 const {
   authLimiter,
   uploadLimiter,
@@ -41,166 +32,12 @@ const {
 } = require("./middleware/rateLimiters");
 
 const { upload } = require("./middleware/upload");
-const wait = (milliseconds) =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const resilientFetch = async (
-  provider,
-  url,
-  fetchOptions = {},
-  {
-    timeoutMs = 10000,
-    retries = 2,
-    failureThreshold = 3,
-    resetAfterMs = 30000,
-  } = {},
-) => {
-  const now = Date.now();
 
-  const circuit = circuitBreakers.get(provider) || {
-    failures: 0,
-    openUntil: 0,
-  };
-
-  if (circuit.openUntil > now) {
-    const error = new Error(`Circuit breaker otwarty: ${provider}`);
-    error.statusCode = 503;
-    error.publicMessage = "Usługa zewnętrzna jest chwilowo niedostępna.";
-    throw error;
-  }
-
-  let lastError;
-
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
-      });
-
-      const retryableStatus =
-        response.status === 408 ||
-        response.status === 429 ||
-        response.status >= 500;
-
-      if (!response.ok && retryableStatus) {
-        throw new Error(`${provider} odpowiedział kodem ${response.status}`);
-      }
-
-      circuitBreakers.set(provider, {
-        failures: 0,
-        openUntil: 0,
-      });
-
-      return response;
-    } catch (error) {
-      lastError = error;
-
-      writeLog("warn", "external_request_failed", {
-        provider,
-        attempt: attempt + 1,
-        errorName: error.name,
-      });
-
-      if (attempt < retries) {
-        await wait(500 * 2 ** attempt);
-      }
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  circuit.failures += 1;
-
-  if (circuit.failures >= failureThreshold) {
-    circuit.openUntil = Date.now() + resetAfterMs;
-
-    writeLog("warn", "circuit_breaker_opened", {
-      provider,
-      resetAfterMs,
-    });
-  }
-
-  circuitBreakers.set(provider, circuit);
-  throw lastError;
-};
-const resilientOperation = async (
-  provider,
-  operation,
-  { retries = 1, failureThreshold = 3, resetAfterMs = 30000 } = {},
-) => {
-  const circuit = circuitBreakers.get(provider) || {
-    failures: 0,
-    openUntil: 0,
-  };
-
-  if (circuit.openUntil > Date.now()) {
-    const error = new Error(`Circuit breaker otwarty: ${provider}`);
-    error.statusCode = 503;
-    error.publicMessage = "Usługa zewnętrzna jest chwilowo niedostępna.";
-    throw error;
-  }
-
-  let lastError;
-
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    try {
-      const result = await operation();
-
-      circuitBreakers.set(provider, {
-        failures: 0,
-        openUntil: 0,
-      });
-
-      return result;
-    } catch (error) {
-      lastError = error;
-
-      writeLog("warn", "external_operation_failed", {
-        provider,
-        attempt: attempt + 1,
-        errorName: error.name,
-      });
-
-      if (attempt < retries) {
-        await wait(500 * 2 ** attempt);
-      }
-    }
-  }
-
-  circuit.failures += 1;
-
-  if (circuit.failures >= failureThreshold) {
-    circuit.openUntil = Date.now() + resetAfterMs;
-
-    writeLog("warn", "circuit_breaker_opened", {
-      provider,
-      resetAfterMs,
-    });
-  }
-
-  circuitBreakers.set(provider, circuit);
-  throw lastError;
-};
-const missingEnvironment = Object.entries(requiredEnvironment)
-  .filter(([, value]) => !value?.trim())
-  .map(([name]) => name);
-
-if (missingEnvironment.length > 0) {
-  writeLog("error", "missing_environment_variables", {
-    variables: missingEnvironment,
-  });
-  process.exit(1);
-}
 const express = require("express");
 const cors = require("cors");
-const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const cloudinary = require("cloudinary").v2;
 const {
   generateCapsuleWardrobe,
   generateTripCapsuleWardrobe,
@@ -220,20 +57,9 @@ const {
   recommendationFeedbackSchema,
 } = require("./validators/analysisValidators");
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { Groq = require("groq-sdk") } = require("groq-sdk");
 
 const app = express();
 app.set("trust proxy", 1);
-const prisma = new PrismaClient();
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-  timeout: 30000,
-  maxRetries: 2,
-});
-const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 
 const PUBLIC_USER_SELECT = {
@@ -272,12 +98,6 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
 app.use(cookieParser());
 app.use(requestId);
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
-  api_secret:
-    process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
-});
 
 function findMatchingClothes(llmResponse, clothes) {
   if (!llmResponse || !clothes || clothes.length === 0) return [];
