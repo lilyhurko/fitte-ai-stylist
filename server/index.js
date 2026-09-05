@@ -1,5 +1,4 @@
 require("dotenv").config();
-const { randomUUID } = require("crypto");
 const requiredEnvironment = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
@@ -14,21 +13,34 @@ const requiredEnvironment = {
   CLOUDINARY_API_SECRET:
     process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 };
+const { updateProfileSchema } = require("./validators/profileValidators");
+const { createEventSchema } = require("./validators/eventValidators");
+const { updateClothSchema } = require("./validators/wardrobeValidators");
+const {
+  capsuleQuerySchema,
+  tripCapsuleSchema,
+} = require("./validators/capsuleValidators");
+const { writeLog } = require("./services/logger");
+const { requestId } = require("./middleware/requestId");
+const { errorHandler } = require("./middleware/errorHandler");
 const cookieParser = require("cookie-parser");
-const writeLog = (level, event, metadata = {}) => {
-  const method = ["error", "warn", "info"].includes(level) ? level : "log";
+const {
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+  AUTH_COOKIE_CLEAR_OPTIONS,
+} = require("./config/auth");
 
-  console[method](
-    JSON.stringify({
-      level,
-      timestamp: new Date().toISOString(),
-      event,
-      ...metadata,
-    }),
-  );
-};
-const circuitBreakers = new Map();
+const { authenticateToken } = require("./middleware/authenticate");
 
+const {
+  authLimiter,
+  uploadLimiter,
+  aiLimiter,
+} = require("./middleware/rateLimiters");
+
+const { upload } = require("./middleware/upload");
 const wait = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -185,17 +197,29 @@ if (missingEnvironment.length > 0) {
 }
 const express = require("express");
 const cors = require("cors");
-const { rateLimit } = require("express-rate-limit");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const {
   generateCapsuleWardrobe,
   generateTripCapsuleWardrobe,
 } = require("./capsuleEngine");
-const { z } = require("zod");
+const {
+  emailSchema,
+  loginSchema,
+  registerSchema,
+  changePasswordSchema,
+} = require("./validators/authValidators");
+
+const { objectIdSchema } = require("./validators/commonValidators");
+
+const {
+  analyzeSchema,
+  analysisFeedbackSchema,
+  recommendationFeedbackSchema,
+} = require("./validators/analysisValidators");
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq = require("groq-sdk") } = require("groq-sdk");
 
@@ -211,24 +235,6 @@ const groq = new Groq({
 });
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "30d";
-const AUTH_COOKIE_NAME = "fitte_session";
-
-const AUTH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  path: "/",
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-};
-
-const AUTH_COOKIE_CLEAR_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  path: "/",
-};
 
 const PUBLIC_USER_SELECT = {
   id: true,
@@ -242,11 +248,6 @@ const PUBLIC_USER_SELECT = {
   createdAt: true,
 };
 const { generateBestOutfits, isNonOutfitItem } = require("./outfitEngine");
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 15 * 1024 * 1024 },
-});
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
@@ -270,31 +271,13 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
 app.use(cookieParser());
-app.use((req, res, next) => {
-  req.requestId = randomUUID();
-  res.setHeader("X-Request-Id", req.requestId);
-  next();
-});
+app.use(requestId);
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEY,
   api_secret:
     process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 });
-
-const authenticateToken = (req, res, next) => {
-  const token = req.cookies?.[AUTH_COOKIE_NAME];
-  if (!token) return res.status(401).json({ error: "Brak autoryzacji" });
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_CLEAR_OPTIONS);
-      return res.status(401).json({ error: "Sesja wygasła" });
-    }
-    req.user = decoded;
-    next();
-  });
-};
 
 function findMatchingClothes(llmResponse, clothes) {
   if (!llmResponse || !clothes || clothes.length === 0) return [];
@@ -775,37 +758,6 @@ async function askRAG(
   }
 }
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: {
-    error: "Zbyt wiele prób. Spróbuj ponownie za 15 minut.",
-  },
-});
-
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    error: "Zbyt wiele przesłanych zdjęć. Spróbuj ponownie za minutę.",
-  },
-});
-
-const aiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    error: "Zbyt wiele zapytań do AI. Spróbuj ponownie za minutę.",
-  },
-});
-
 app.post(
   "/api/analyze",
   authenticateToken,
@@ -933,183 +885,6 @@ app.get("/", (req, res) => {
     service: "Fitte Adaptive AI Stylist Backend",
     academicProject: "Politechnika Lubelska - Praca Magisterska",
   });
-});
-
-const emailSchema = z
-  .string()
-  .trim()
-  .max(254)
-  .pipe(z.email("Nieprawidłowy adres e-mail"));
-
-const loginSchema = z.object({
-  email: emailSchema,
-  password: z
-    .string()
-    .min(1, "Hasło jest wymagane")
-    .max(128, "Hasło jest za długie"),
-});
-
-const registerSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Imię musi mieć minimum 2 znaki")
-    .max(80, "Imię jest za długie"),
-  email: emailSchema,
-  password: z
-    .string()
-    .min(8, "Hasło musi mieć minimum 8 znaków")
-    .max(128, "Hasło jest za długie"),
-  styleTags: z.array(z.string().max(50)).max(20).default([]),
-  favoriteColors: z.array(z.string().max(30)).max(20).default([]),
-});
-
-const analyzeSchema = z.object({
-  query: z
-    .string()
-    .trim()
-    .min(3, "Zapytanie jest za krótkie")
-    .max(2000, "Zapytanie jest za długie"),
-
-  latitude: z.coerce
-    .number()
-    .min(-90, "Nieprawidłowa szerokość geograficzna")
-    .max(90, "Nieprawidłowa szerokość geograficzna")
-    .default(51.2465),
-
-  longitude: z.coerce
-    .number()
-    .min(-180, "Nieprawidłowa długość geograficzna")
-    .max(180, "Nieprawidłowa długość geograficzna")
-    .default(22.5684),
-});
-const objectIdSchema = z
-  .string()
-  .regex(/^[a-f\d]{24}$/i, "Nieprawidłowy identyfikator");
-
-const analysisFeedbackSchema = z.object({
-  modelType: z.enum(["gemini", "llama"], {
-    error: "Nieprawidłowy typ modelu",
-  }),
-  feedback: z.enum(["LIKE", "DISLIKE"], {
-    error: "Nieprawidłowa wartość feedbacku",
-  }),
-});
-
-const recommendationFeedbackSchema = z.object({
-  feedback: z.enum(["LIKE", "DISLIKE"], {
-    error: "Nieprawidłowa wartość feedbacku",
-  }),
-  analysisId: objectIdSchema.optional(),
-});
-const changePasswordSchema = z
-  .object({
-    currentPassword: z
-      .string()
-      .min(1, "Obecne hasło jest wymagane")
-      .max(128, "Hasło jest za długie"),
-
-    newPassword: z
-      .string()
-      .min(8, "Nowe hasło musi mieć minimum 8 znaków")
-      .max(128, "Nowe hasło jest za długie"),
-  })
-  .refine((data) => data.currentPassword !== data.newPassword, {
-    message: "Nowe hasło musi różnić się od obecnego",
-    path: ["newPassword"],
-  });
-
-const updateProfileSchema = z.object({
-  firstName: z
-    .string()
-    .trim()
-    .min(2, "Imię musi mieć minimum 2 znaki")
-    .max(80, "Imię jest za długie"),
-
-  email: emailSchema,
-
-  gender: z.enum(["Kobieta", "Mężczyzna", "Inna"], {
-    error: "Nieprawidłowa wartość płci",
-  }),
-});
-
-const createEventSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "Nazwa wydarzenia jest wymagana")
-    .max(120, "Nazwa wydarzenia jest za długa"),
-
-  date: z
-    .string()
-    .refine(
-      (value) => !Number.isNaN(Date.parse(value)),
-      "Nieprawidłowa data wydarzenia",
-    ),
-
-  occasion: z.enum(
-    ["Casual", "Praca", "Randka", "Impreza", "Sport", "Podróż"],
-    { error: "Nieprawidłowa okazja" },
-  ),
-
-  formality: z.enum(["Casual", "Smart Casual", "Formal"], {
-    error: "Nieprawidłowy poziom formalności",
-  }),
-
-  outfitIds: z.array(objectIdSchema).max(20).default([]),
-});
-
-const updateClothSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120).optional(),
-
-    category: z
-      .enum([
-        "Góra",
-        "Dół",
-        "Sukienki",
-        "Obuwie",
-        "Okrycia wierzchnie",
-        "Akcesoria",
-        "Torby",
-        "Bielizna",
-      ])
-      .optional(),
-
-    style: z.string().trim().min(1).max(300).optional(),
-    color: z.string().trim().min(1).max(50).optional(),
-  })
-  .refine(
-    (data) => Object.values(data).some((value) => value !== undefined),
-    "Brak danych do aktualizacji",
-  );
-
-const capsuleQuerySchema = z.object({
-  latitude: z.coerce
-    .number()
-    .min(-90, "Nieprawidłowa szerokość geograficzna")
-    .max(90, "Nieprawidłowa szerokość geograficzna")
-    .default(51.2465),
-
-  longitude: z.coerce
-    .number()
-    .min(-180, "Nieprawidłowa długość geograficzna")
-    .max(180, "Nieprawidłowa długość geograficzna")
-    .default(22.5684),
-});
-
-const tripCapsuleSchema = z.object({
-  city: z
-    .string()
-    .trim()
-    .min(1, "Podaj nazwę miasta")
-    .max(100, "Nazwa miasta jest za długa"),
-
-  days: z.coerce
-    .number()
-    .int("Liczba dni musi być całkowita")
-    .min(1, "Podaj minimum jeden dzień")
-    .max(16, "Możesz wygenerować kapsułę maksymalnie na 16 dni"),
 });
 
 app.post("/api/register", authLimiter, async (req, res, next) => {
@@ -1960,47 +1735,7 @@ app.delete("/api/events/:id", authenticateToken, async (req, res, next) => {
     next(error);
   }
 });
-app.use((error, req, res, next) => {
-  if (res.headersSent) {
-    return next(error);
-  }
-
-  let statusCode = error.statusCode || error.status || 500;
-  let publicMessage = error.publicMessage;
-
-  if (error instanceof multer.MulterError) {
-    statusCode = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-    publicMessage =
-      error.code === "LIMIT_FILE_SIZE"
-        ? "Plik przekracza maksymalny rozmiar 15 MB."
-        : "Nie udało się przesłać pliku.";
-  }
-
-  if (!publicMessage) {
-    publicMessage =
-      statusCode >= 500
-        ? "Wystąpił wewnętrzny błąd serwera."
-        : "Nie udało się wykonać żądania.";
-  }
-
-  console.error(
-    JSON.stringify({
-      level: "error",
-      timestamp: new Date().toISOString(),
-      requestId: req.requestId,
-      method: req.method,
-      path: req.originalUrl,
-      statusCode,
-      errorName: error.name,
-      errorCode: error.code || null,
-    }),
-  );
-
-  res.status(statusCode).json({
-    error: publicMessage,
-    requestId: req.requestId,
-  });
-});
+app.use(errorHandler);
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () =>
   writeLog("info", "server_started", {
