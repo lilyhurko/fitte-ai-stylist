@@ -115,14 +115,12 @@ const Wardrobe = () => {
   };
 
   const handleUpdateItem = async (id, updatedFields) => {
-    const token = localStorage.getItem("fitte_token");
-
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedFields),
       });

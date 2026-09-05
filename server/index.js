@@ -14,6 +14,7 @@ const requiredEnvironment = {
   CLOUDINARY_API_SECRET:
     process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_API_SECRET,
 };
+const cookieParser = require("cookie-parser");
 const writeLog = (level, event, metadata = {}) => {
   const method = ["error", "warn", "info"].includes(level) ? level : "log";
 
@@ -212,6 +213,23 @@ const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "30d";
+const AUTH_COOKIE_NAME = "fitte_session";
+
+const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+};
+
+const AUTH_COOKIE_CLEAR_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+};
+
 const PUBLIC_USER_SELECT = {
   id: true,
   email: true,
@@ -243,12 +261,15 @@ app.use(
 
       return callback(new Error("Origin niedozwolony przez CORS"));
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type"],
   }),
 );
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
+app.use(cookieParser());
 app.use((req, res, next) => {
   req.requestId = randomUUID();
   res.setHeader("X-Request-Id", req.requestId);
@@ -262,11 +283,14 @@ cloudinary.config({
 });
 
 const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.[AUTH_COOKIE_NAME];
   if (!token) return res.status(401).json({ error: "Brak autoryzacji" });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Sesja wygasła" });
+    if (err) {
+      res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_CLEAR_OPTIONS);
+      return res.status(401).json({ error: "Sesja wygasła" });
+    }
     req.user = decoded;
     next();
   });
@@ -1117,7 +1141,8 @@ app.post("/api/register", authLimiter, async (req, res, next) => {
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
     });
-    res.json({ user, token });
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.json({ user });
   } catch (error) {
     error.publicMessage = "Błąd rejestracji.";
     next(error);
@@ -1155,11 +1180,35 @@ app.post("/api/login", authLimiter, async (req, res, next) => {
 
     const { password: _password, ...user } = userWithPassword;
 
-    res.json({ user, token });
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.json({ user });
   } catch (error) {
     error.publicMessage = "Błąd logowania.";
     next(error);
   }
+});
+
+app.get("/api/session", authenticateToken, async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: PUBLIC_USER_SELECT,
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Sesja jest nieprawidłowa." });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    error.publicMessage = "Nie udało się sprawdzić sesji.";
+    next(error);
+  }
+});
+
+app.post("/api/logout", (req, res) => {
+  res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_CLEAR_OPTIONS);
+  res.json({ success: true });
 });
 
 app.post(

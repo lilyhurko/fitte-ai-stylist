@@ -48,12 +48,9 @@ const Profile = () => {
   }, [user]);
 
   const fetchProfileData = async () => {
-    const token = localStorage.getItem("fitte_token");
-    if (!token) return;
-
     try {
       const response = await fetch(`${API_BASE_URL}/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await response.json();
 
@@ -69,15 +66,6 @@ const Profile = () => {
         };
 
         setFormData(fetchedData);
-
-        const storedUser = JSON.parse(
-          localStorage.getItem("fitte_user") || "{}",
-        );
-        storedUser.name = fetchedData.firstName;
-        storedUser.email = fetchedData.email;
-        storedUser.gender = fetchedData.gender;
-        storedUser.styleTags = JSON.stringify(fetchedData.styleTags);
-        localStorage.setItem("fitte_user", JSON.stringify(storedUser));
       }
     } catch (error) {
       console.error("Nie udało się pobrać profilu:", error);
@@ -89,14 +77,13 @@ const Profile = () => {
 
     setLoadingProfile(true);
     setProfileMessage({ type: "", text: "" });
-    const token = localStorage.getItem("fitte_token");
 
     try {
       const response = await fetch(`${API_BASE_URL}/profile`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -107,15 +94,6 @@ const Profile = () => {
           type: "success",
           text: "Profil zaktualizowany pomyślnie!",
         });
-
-        const storedUser = JSON.parse(
-          localStorage.getItem("fitte_user") || "{}",
-        );
-        storedUser.name = formData.firstName;
-        storedUser.email = formData.email;
-        storedUser.gender = formData.gender;
-        localStorage.setItem("fitte_user", JSON.stringify(storedUser));
-
         await fetchProfileData();
       } else {
         setProfileMessage({
@@ -148,14 +126,13 @@ const Profile = () => {
 
     setLoadingPassword(true);
     setPasswordMessage({ type: "", text: "" });
-    const token = localStorage.getItem("fitte_token");
 
     try {
       const response = await fetch(`${API_BASE_URL}/profile/change-password`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,

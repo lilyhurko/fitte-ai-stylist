@@ -21,10 +21,9 @@ const History = () => {
   }, []);
 
   const fetchHistory = async () => {
-    const token = localStorage.getItem("fitte_token");
     try {
       const response = await fetch(`${API_BASE_URL}/history`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await response.json();
       if (response.ok) {

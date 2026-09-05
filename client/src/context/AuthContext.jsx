@@ -18,17 +18,6 @@ const isStandalonePWA = () => {
   );
 };
 
-const isTokenExpired = (token) => {
-  if (!token) return true;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (!payload.exp) return false;
-    return Date.now() >= payload.exp * 1000;
-  } catch (e) {
-    return true;
-  }
-};
-
 const clearPrivateApiCache = async () => {
   if ("caches" in window) {
     await window.caches.delete("fitte-user-data");
@@ -78,35 +67,38 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       clearPrivateApiCache().catch((error) => {
         console.error("Nie udało się usunąć starego cache PWA:", error);
       });
-      const token = localStorage.getItem("fitte_token");
-      const savedUser = localStorage.getItem("fitte_user");
 
-      if (token && savedUser && !isTokenExpired(token)) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          console.error("Błąd odczytu fitte_user z localStorage:", e);
-          logout();
+      localStorage.removeItem("fitte_token");
+      localStorage.removeItem("fitte_user");
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/session`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          saveSession(data.user);
+        } else {
+          setUser(null);
         }
-      } else {
-        if (token || savedUser) {
-          logout();
-        }
+      } catch (error) {
+        console.error("Nie udało się sprawdzić sesji:", error);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
   }, []);
 
-  const saveSession = (userData, token) => {
+  const saveSession = (userData) => {
     const { password: _password, ...safeUserData } = userData;
-
-    localStorage.setItem("fitte_token", token);
 
     const processedUser = {
       ...safeUserData,
@@ -120,7 +112,6 @@ export const AuthProvider = ({ children }) => {
           : safeUserData.favoriteColors,
     };
 
-    localStorage.setItem("fitte_user", JSON.stringify(processedUser));
     setUser(processedUser);
   };
 
@@ -129,12 +120,13 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
       const data = await response.json();
 
       if (response.ok) {
-        saveSession(data.user, data.token);
+        saveSession(data.user);
         return { success: true };
       }
       return { success: false, error: data.error };
@@ -148,13 +140,14 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(userData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        saveSession(data.user, data.token);
+        saveSession(data.user);
         return { success: true };
       } else {
         return { success: false, error: data.error || "Błąd rejestracji" };
@@ -164,11 +157,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     localStorage.removeItem("fitte_token");
     localStorage.removeItem("fitte_user");
+
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Nie udało się zakończyć sesji na serwerze:", error);
+    }
 
     clearPrivateApiCache().catch((error) => {
       console.error("Nie udało się wyczyścić prywatnego cache:", error);

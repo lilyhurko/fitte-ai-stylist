@@ -10,15 +10,10 @@ export const WardrobeProvider = ({ children }) => {
   const { user } = useAuth();
 
   const deleteCloth = async (id) => {
-    const token = localStorage.getItem("fitte_token");
-    if (!token) return;
-
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -35,15 +30,10 @@ export const WardrobeProvider = ({ children }) => {
     }
   };
   const fetchClothes = async () => {
-    const token = localStorage.getItem("fitte_token");
-    if (!token) return;
-
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
       const data = await response.json();
 

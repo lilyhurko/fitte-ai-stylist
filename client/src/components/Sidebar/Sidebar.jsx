@@ -199,12 +199,6 @@ const Sidebar = () => {
   const handleOpenCapsule = async () => {
     setIsOpen(false);
     setIsCapsuleOpen(true);
-    const token = localStorage.getItem("fitte_token");
-    if (!token) {
-      setIsCapsuleOpen(false);
-      logout();
-      return;
-    }
 
     const getCoordinates = () => {
       return new Promise((resolve) => {
@@ -228,11 +222,11 @@ const Sidebar = () => {
       const coords = await getCoordinates();
       const res = await fetch(
         `${API_BASE_URL}/capsule?latitude=${coords.latitude}&longitude=${coords.longitude}`,
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          } 
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
       );
 
@@ -689,16 +683,13 @@ const CapsuleModal = ({
       return;
     }
 
-    const token = localStorage.getItem("fitte_token");
-    if (!token) return;
-
     setTripLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/capsule/trip`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ city: tripCity.trim(), days: daysNum }),
       });

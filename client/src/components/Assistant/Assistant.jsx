@@ -34,12 +34,6 @@ const Assistant = () => {
     setLlamaFeedback(null);
     setRagFeedback(null);
 
-    const token = localStorage.getItem("fitte_token");
-    if (!token) {
-      logout();
-      return;
-    }
-
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
     const getCoordinates = () => {
@@ -69,9 +63,9 @@ const Assistant = () => {
 
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ 
           query: fullQuery,
@@ -83,7 +77,6 @@ const Assistant = () => {
       // ОБРОБКА 401/403: Скидаємо сесію, якщо токен вигас
       if (response.status === 401 || response.status === 403) {
         console.warn("Sesja wygasła. Wylogowywanie...");
-        localStorage.removeItem("fitte_token");
         logout();
         return;
       }
@@ -100,26 +93,24 @@ const Assistant = () => {
   };
 
   const handleModelFeedback = async (modelType, feedbackType) => {
-    const token = localStorage.getItem("fitte_token");
     const analysisId = results._id || results.id;
 
-    if (!analysisId || !token) return;
+    if (!analysisId) return;
 
     try {
       const response = await fetch(
         `${API_BASE_URL}/analyze/${analysisId}/feedback`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ modelType, feedback: feedbackType }),
         },
       );
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("fitte_token");
         logout();
         return;
       }
@@ -136,19 +127,16 @@ const Assistant = () => {
   const handleRagFeedback = async (feedbackType) => {
     if (!results?.recommendationId) return;
 
-    const token = localStorage.getItem("fitte_token");
     const analysisId = results.id || results._id;
-
-    if (!token) return;
 
     try {
       const response = await fetch(
         `${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             feedback: feedbackType,
@@ -158,7 +146,6 @@ const Assistant = () => {
       );
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("fitte_token");
         logout();
         return;
       }

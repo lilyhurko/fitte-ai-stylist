@@ -55,7 +55,6 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     if (!file || isProcessing) return;
 
     setIsProcessing(true);
-    const token = localStorage.getItem("fitte_token");
 
     const formData = new FormData();
     formData.append("image", file);
@@ -65,10 +64,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Connection: "keep-alive",
-        },
+        credentials: "include",
         body: formData,
         signal: controller.signal,
       });
