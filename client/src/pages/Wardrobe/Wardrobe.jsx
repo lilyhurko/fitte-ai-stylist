@@ -31,12 +31,13 @@ const Wardrobe = () => {
 
   useEffect(() => {
     fetchClothes();
-  }, []);
+  }, [fetchClothes]);
 
-  useEffect(() => {
+  const handleActiveTabChange = (category) => {
+    setActiveTab(category);
     setSelectedColors([]);
     setSelectedStyles([]);
-  }, [activeTab]);
+  };
 
   const parseStyles = (styleString) =>
     (styleString || "")
@@ -183,7 +184,7 @@ const Wardrobe = () => {
                 ? "text-fitte-brown-dark border-b-2 border-fitte-brown-dark font-semibold"
                 : "text-gray-400 hover:text-fitte-brown-dark"
             }`}
-            onClick={() => setActiveTab(cat)}
+            onClick={() => handleActiveTabChange(cat)}
           >
             {cat}
           </button>

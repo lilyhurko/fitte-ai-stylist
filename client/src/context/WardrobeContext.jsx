@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useState,
+  useContext,
+  useEffect,
+} from "react";
 import { useAuth } from "./AuthContext";
 import { API_BASE_URL } from "../config";
 
@@ -29,7 +35,7 @@ export const WardrobeProvider = ({ children }) => {
       console.error("Błąd sieci podczas usuwania ubrania:", error);
     }
   };
-  const fetchClothes = async () => {
+  const fetchClothes = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/wardrobe`, {
@@ -45,16 +51,20 @@ export const WardrobeProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      console.log("Wykryto zalogowanego użytkownika, pobieram szafę...");
-      fetchClothes();
-    } else {
-      setClothes([]);
-    }
-  }, [user]);
+    const timeoutId = window.setTimeout(() => {
+      if (user) {
+        console.log("Wykryto zalogowanego użytkownika, pobieram szafę...");
+        fetchClothes();
+      } else {
+        setClothes([]);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchClothes, user]);
 
   const addCloth = (item) => setClothes((prev) => [item, ...prev]);
 

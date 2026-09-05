@@ -16,11 +16,7 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
+  async function fetchHistory() {
     try {
       const response = await fetch(`${API_BASE_URL}/history`, {
         credentials: "include",
@@ -34,7 +30,12 @@ const History = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(fetchHistory, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);

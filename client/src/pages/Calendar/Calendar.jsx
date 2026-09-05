@@ -22,7 +22,7 @@ const Calendar = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [fetchEvents]);
 
   // --- LOGIKA GENEROWANIA BIEŻĄCEGO TYGODNIA ---
   const currentWeekDays = React.useMemo(() => {

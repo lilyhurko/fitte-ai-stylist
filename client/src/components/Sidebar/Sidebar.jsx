@@ -445,6 +445,7 @@ const Sidebar = () => {
         stats={stats}
       />
       <CapsuleModal
+        key={capsuleData?.capsuleItems?.map((item) => item.id).join(",") || "empty"}
         isOpen={isCapsuleOpen}
         onClose={() => setIsCapsuleOpen(false)}
         data={capsuleData}
@@ -625,22 +626,13 @@ const CapsuleModal = ({
   onDataChange,
   allClothes = [],
 }) => {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => data?.capsuleItems || []);
   const [showPicker, setShowPicker] = useState(false);
   const [mode, setMode] = useState("today");
   const [tripCity, setTripCity] = useState("");
   const [tripDays, setTripDays] = useState(5);
   const [tripLoading, setTripLoading] = useState(false);
   const [tripError, setTripError] = useState("");
-
-  useEffect(() => {
-    if (data?.capsuleItems) {
-      setItems(data.capsuleItems);
-    } else {
-      setItems([]);
-    }
-    setShowPicker(false);
-  }, [data]);
 
   const combinations = useMemo(() => {
     const goras = items.filter((i) => i.category === "Góra");
@@ -700,7 +692,7 @@ const CapsuleModal = ({
       } else {
         setTripError(result.error || "Nie udało się wygenerować kapsuły.");
       }
-    } catch (e) {
+    } catch {
       setTripError("Błąd sieci.");
     } finally {
       setTripLoading(false);

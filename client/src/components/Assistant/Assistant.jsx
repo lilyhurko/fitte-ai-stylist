@@ -74,7 +74,6 @@ const Assistant = () => {
         }),
       });
 
-      // ОБРОБКА 401/403: Скидаємо сесію, якщо токен вигас
       if (response.status === 401 || response.status === 403) {
         console.warn("Sesja wygasła. Wylogowywanie...");
         logout();
@@ -153,7 +152,7 @@ const Assistant = () => {
       if (response.ok) {
         setRagFeedback(feedbackType);
       }
-    } catch (error) {
+    } catch(error) {
       console.error("Błąd feedbacku RAG:", error);
     }
   };

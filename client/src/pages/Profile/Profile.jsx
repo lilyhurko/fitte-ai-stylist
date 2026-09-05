@@ -31,23 +31,7 @@ const Profile = () => {
     text: "",
   });
 
-  useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        firstName: user.firstName || user.name || prev.firstName,
-        email: user.email || prev.email,
-        gender: user.gender || prev.gender,
-        styleTags:
-          typeof user.styleTags === "string"
-            ? JSON.parse(user.styleTags || "[]")
-            : user.styleTags || prev.styleTags,
-      }));
-    }
-    fetchProfileData();
-  }, [user]);
-
-  const fetchProfileData = async () => {
+  async function fetchProfileData() {
     try {
       const response = await fetch(`${API_BASE_URL}/profile`, {
         credentials: "include",
@@ -70,7 +54,14 @@ const Profile = () => {
     } catch (error) {
       console.error("Nie udało się pobrać profilu:", error);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const timeoutId = window.setTimeout(fetchProfileData, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [user]);
 
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
@@ -101,7 +92,7 @@ const Profile = () => {
           text: data.error || "Wystąpił błąd.",
         });
       }
-    } catch (error) {
+    } catch  {
       setProfileMessage({ type: "error", text: "Błąd połączenia z serwerem." });
     } finally {
       setLoadingProfile(false);
@@ -157,7 +148,7 @@ const Profile = () => {
           text: data.error || "Błąd zmiany hasła.",
         });
       }
-    } catch (error) {
+    } catch {
       setPasswordMessage({ type: "error", text: "Błąd serwera." });
     } finally {
       setLoadingPassword(false);

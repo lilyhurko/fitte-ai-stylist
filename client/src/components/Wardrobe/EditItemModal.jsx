@@ -1,15 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X, Plus, Check } from "lucide-react";
-
-export const STYLE_OPTIONS = [
-  "Classic", "Minimalizm", "Casual", "Boho", "Chic", "Romantic",
-  "Streetwear", "Modern", "Sport", "Elegancki", "Vintage"
-];
-
-export const CATEGORY_OPTIONS = [
-  "Góra", "Dół", "Sukienki", "Obuwie",
-  "Okrycia wierzchnie", "Akcesoria", "Torby", "Bielizna"
-];
+import { CATEGORY_OPTIONS, STYLE_OPTIONS } from "./wardrobeOptions";
 
 const parseStyleString = (styleString) =>
   (styleString || "")
@@ -17,25 +8,15 @@ const parseStyleString = (styleString) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-const EditItemModal = ({ isOpen, onClose, item, onSave }) => {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [selectedStyles, setSelectedStyles] = useState([]);
+const EditItemModalForm = ({ onClose, item, onSave }) => {
+  const [name, setName] = useState(item.name || "");
+  const [category, setCategory] = useState(item.category || "");
+  const [selectedStyles, setSelectedStyles] = useState(() =>
+    parseStyleString(item.style),
+  );
   const [customStyleInput, setCustomStyleInput] = useState("");
   const [showCustomStyleInput, setShowCustomStyleInput] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setName(item.name || "");
-      setCategory(item.category || "");
-      setSelectedStyles(parseStyleString(item.style));
-      setCustomStyleInput("");
-      setShowCustomStyleInput(false);
-    }
-  }, [item]);
-
-  if (!isOpen || !item) return null;
 
   const canSave = name.trim().length > 0 && category.length > 0 && selectedStyles.length > 0;
 
@@ -203,6 +184,19 @@ const EditItemModal = ({ isOpen, onClose, item, onSave }) => {
         </form>
       </div>
     </div>
+  );
+};
+
+const EditItemModal = ({ isOpen, onClose, item, onSave }) => {
+  if (!isOpen || !item) return null;
+
+  return (
+    <EditItemModalForm
+      key={item.id}
+      item={item}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 };
 

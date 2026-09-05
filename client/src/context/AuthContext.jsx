@@ -4,10 +4,12 @@ import React, {
   useState,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import { API_BASE_URL } from "../config";
 
 const AuthContext = createContext();
+const INACTIVITY_LIMIT = 15 * 60 * 1000;
 
 const isStandalonePWA = () => {
   if (typeof window === "undefined") return false;
@@ -29,9 +31,47 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const timeoutRef = useRef(null);
 
-  const INACTIVITY_LIMIT = 15 * 60 * 1000;
+  const saveSession = useCallback((userData) => {
+    const { password: _password, ...safeUserData } = userData;
 
-  const resetInactivityTimer = () => {
+    const processedUser = {
+      ...safeUserData,
+      styleTags:
+        typeof safeUserData.styleTags === "string"
+          ? JSON.parse(safeUserData.styleTags)
+          : safeUserData.styleTags,
+      favoriteColors:
+        typeof safeUserData.favoriteColors === "string"
+          ? JSON.parse(safeUserData.favoriteColors)
+          : safeUserData.favoriteColors,
+    };
+
+    setUser(processedUser);
+  }, []);
+
+  const logout = useCallback(async () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    localStorage.removeItem("fitte_token");
+    localStorage.removeItem("fitte_user");
+
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Nie udało się zakończyć sesji na serwerze:", error);
+    }
+
+    clearPrivateApiCache().catch((error) => {
+      console.error("Nie udało się wyczyścić prywatnego cache:", error);
+    });
+
+    setUser(null);
+  }, []);
+
+  const resetInactivityTimer = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     if (user && !isStandalonePWA()) {
@@ -40,7 +80,7 @@ export const AuthProvider = ({ children }) => {
         logout();
       }, INACTIVITY_LIMIT);
     }
-  };
+  }, [logout, user]);
 
   useEffect(() => {
     if (user && !isStandalonePWA()) {
@@ -64,7 +104,7 @@ export const AuthProvider = ({ children }) => {
         );
       };
     }
-  }, [user]);
+  }, [resetInactivityTimer, user]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -95,25 +135,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
-  }, []);
-
-  const saveSession = (userData) => {
-    const { password: _password, ...safeUserData } = userData;
-
-    const processedUser = {
-      ...safeUserData,
-      styleTags:
-        typeof safeUserData.styleTags === "string"
-          ? JSON.parse(safeUserData.styleTags)
-          : safeUserData.styleTags,
-      favoriteColors:
-        typeof safeUserData.favoriteColors === "string"
-          ? JSON.parse(safeUserData.favoriteColors)
-          : safeUserData.favoriteColors,
-    };
-
-    setUser(processedUser);
-  };
+  }, [saveSession]);
 
   const login = async (email, password) => {
     try {
@@ -130,7 +152,7 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       }
       return { success: false, error: data.error };
-    } catch (err) {
+    } catch {
       return { success: false, error: "Błąd połączenia z serwerem." };
     }
   };
@@ -152,31 +174,9 @@ export const AuthProvider = ({ children }) => {
       } else {
         return { success: false, error: data.error || "Błąd rejestracji" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: "Serwer nie odpowiada." };
     }
-  };
-
-  const logout = async () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    localStorage.removeItem("fitte_token");
-    localStorage.removeItem("fitte_user");
-
-    try {
-      await fetch(`${API_BASE_URL}/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("Nie udało się zakończyć sesji na serwerze:", error);
-    }
-
-    clearPrivateApiCache().catch((error) => {
-      console.error("Nie udało się wyczyścić prywatnego cache:", error);
-    });
-
-    setUser(null);
   };
 
   return (
