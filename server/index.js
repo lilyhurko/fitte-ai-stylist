@@ -19,12 +19,25 @@ const {
 } = require("./config/auth");
 const { prisma } = require("./config/prisma");
 const { cloudinary } = require("./config/cloudinary");
-const { genAI, groq, GROQ_MODEL } = require("./config/aiClients");
+const { groq, GROQ_MODEL } = require("./config/aiClients");
 const { authenticateToken } = require("./middleware/authenticate");
 const {
   resilientFetch,
   resilientOperation,
 } = require("./services/resilienceService");
+
+const {
+  askGemini,
+  askGroqCloud,
+} = require("./services/aiService");
+
+const {
+  classifyDailyWeather,
+  getLiveWeather,
+  geocodeCity,
+  getMultiDayForecast,
+} = require("./services/weatherService");
+
 const {
   authLimiter,
   uploadLimiter,
@@ -297,188 +310,7 @@ const generateContextString = (clothes, user) => {
   return context;
 };
 
-function classifyDailyWeather(maxTemp, rainSum) {
-  if (rainSum > 0.2) return "Rain";
-  if (maxTemp >= 24) return "Hot";
-  if (maxTemp <= 10) return "Cold";
-  return "Clear";
-}
 
-async function getLiveWeather(lat, lon) {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,rain,snow_depth`;
-    const response = await resilientFetch(
-      "open-meteo",
-      url,
-      {},
-      {
-        timeoutMs: 5000,
-        retries: 2,
-      },
-    );
-    if (!response.ok) throw new Error("Błąd pobierania pogody");
-
-    const data = await response.json();
-    const temp = data.current.temperature_2m;
-    const rain = data.current.rain;
-    const snow = data.current.snow_depth;
-    if (rain > 0.1 || snow > 0) return "Rain";
-    if (temp >= 24) return "Hot";
-    if (temp <= 10) return "Cold";
-
-    return "Clear";
-  } catch (error) {
-    writeLog("warn", "weather_fallback", {
-      provider: "open-meteo",
-      errorName: error.name,
-    });
-
-    return "Clear";
-  }
-}
-
-async function geocodeCity(cityName) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pl&format=json`;
-  const response = await resilientFetch(
-    "open-meteo",
-    url,
-    {},
-    {
-      timeoutMs: 5000,
-      retries: 2,
-    },
-  );
-  if (!response.ok) throw new Error("Błąd geokodowania miasta");
-
-  const data = await response.json();
-  if (!data.results || data.results.length === 0) return null;
-
-  const best = data.results[0];
-  return {
-    name: best.name,
-    country: best.country,
-    latitude: best.latitude,
-    longitude: best.longitude,
-  };
-}
-
-async function getMultiDayForecast(lat, lon, days) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,rain_sum&forecast_days=${days}&timezone=auto`;
-  const response = await resilientFetch(
-    "open-meteo",
-    url,
-    {},
-    {
-      timeoutMs: 5000,
-      retries: 2,
-    },
-  );
-  if (!response.ok) throw new Error("Błąd pobierania prognozy wielodniowej");
-
-  const data = await response.json();
-  if (!data.daily || !data.daily.time) return [];
-
-  return data.daily.time.map((dateStr, index) => {
-    const maxTemp = data.daily.temperature_2m_max[index];
-    const rainSum = data.daily.rain_sum[index];
-    return {
-      date: dateStr,
-      maxTemp,
-      rainSum,
-      weatherType: classifyDailyWeather(maxTemp, rainSum),
-    };
-  });
-}
-
-const getBasePrompt = (query, context, weatherType = "Clear") => {
-  let opisPogody = "Słonecznie i przyjemnie";
-  if (weatherType === "Rain") opisPogody = "Pada deszcz / ulewa (jest mokro)";
-  if (weatherType === "Hot")
-    opisPogody = "Jest bardzo gorąco, upał (powyżej 24°C)";
-  if (weatherType === "Cold")
-    opisPogody = "Jest zimno / chłodno (poniżej 14°C)";
-
-  return `
-Jesteś profesjonalnym osobistym stylistą mody. 
-
-AKTUALNE WARUNKI POGODOWE:
--> Stan pogody: ${opisPogody} (Weź to bezwzględnie pod uwagę przy doborze warstw ubrań!)
-
-INFORMACJE O UŻYTKOWNIKU I SZAFIE:
-${context}
-
-ZASADY ODPOWIEDZI (KRYTYCZNE):
-1. Odpowiedz bardzo zwięźle (maksymalnie 2-3 konkretne zdania).
-2. Dopasuj ubiór adekwatnie do aktualnej pogody.
-3. Wybierz kompletny zestaw ubrań składający się z:
-   - GÓRY i DOŁU (lub Sukienki)
-   - ORAZ PASUJĄCEGO OBUWIA (butów) z listy ubrań w szafie.
-4. Wybieraj ubrania i obuwie WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań ani butów, których użytkownik nie ma w szafie.
-5. Nie pisz uprzejmościowych wstępów ani podsumowań.
-6. Na samym końcu odpowiedzi, w NOWEJ linii, podaj znacznik w dokładnie takim formacie:
-UBRANIA: [dokładna nazwa 1]|[dokładna nazwa 2]|[dokładna nazwa 3]
-Użyj DOKŁADNIE takich nazw ubrań, jakie widnieją na liście w sekcji "Ubrania w szafie" powyżej (bez odmiany przez przypadki, bez cudzysłowów). Wypisz tylko te ubrania, które faktycznie polecasz w tej odpowiedzi. Ta linia jest wyłącznie do przetworzenia maszynowego.
-7. Nigdy nie proponuj bielizny ani stroju kąpielowego jako elementu stylizacji na wyjście — to nie są ubrania wierzchnie, niezależnie od okazji.
-
-PYTANIE UŻYTKOWNIKA: ${query}
-`;
-};
-
-async function askGemini(query, context, weatherType) {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = getBasePrompt(query, context, weatherType);
-    const result = await resilientOperation(
-      "gemini",
-      () =>
-        model.generateContent(prompt, {
-          timeout: 30000,
-        }),
-      {
-        retries: 1,
-      },
-    );
-    return result.response.text();
-  } catch (error) {
-    writeLog("warn", "gemini_fallback", {
-      provider: "gemini",
-      errorName: error.name,
-    });
-
-    return "Model Gemini jest chwilowo niedostępny.";
-  }
-}
-
-async function askGroqCloud(query, context, weatherType) {
-  try {
-    const prompt = getBasePrompt(query, context, weatherType);
-    const chatCompletion = await resilientOperation(
-      "groq",
-      () =>
-        groq.chat.completions.create({
-          model: GROQ_MODEL,
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-          reasoning_effort: "low",
-          max_completion_tokens: 256,
-        }),
-      {
-        retries: 0,
-      },
-    );
-    return (
-      chatCompletion.choices[0]?.message?.content ||
-      "Brak odpowiedzi ze strony modelu Groq."
-    );
-  } catch (error) {
-    writeLog("warn", "groq_fallback", {
-      provider: "groq",
-      errorName: error.name,
-    });
-
-    return "Model Groq jest chwilowo niedostępny.";
-  }
-}
 async function askRAG(
   query,
   clothes,

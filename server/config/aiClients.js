@@ -1,3 +1,5 @@
+require("./env");
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Groq } = require("groq-sdk");
 
