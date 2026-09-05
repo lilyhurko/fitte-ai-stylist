@@ -128,9 +128,25 @@ const getMultiDayForecast = async (latitude, longitude, days) => {
   });
 };
 
+const getCalendarWeatherMap = async () => {
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=51.2465&longitude=22.5684&daily=temperature_2m_max,rain_sum&timezone=auto";
+  const response = await resilientFetch("open-meteo", url, {}, { timeoutMs: 5000, retries: 2 });
+  if (!response.ok) throw new Error("Błąd pobierania pogody kalendarza");
+  const data = await response.json();
+  const weatherMap = {};
+  data.daily?.time?.forEach((date, index) => {
+    weatherMap[date] = classifyDailyWeather(
+      data.daily.temperature_2m_max[index],
+      data.daily.rain_sum[index],
+    );
+  });
+  return weatherMap;
+};
+
 module.exports = {
   classifyDailyWeather,
   getLiveWeather,
   geocodeCity,
   getMultiDayForecast,
+  getCalendarWeatherMap,
 };
