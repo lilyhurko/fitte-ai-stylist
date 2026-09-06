@@ -33,10 +33,10 @@ model User {
   name            String
   gender          String?
   password        String
-  styleTags       String?
-  favoriteColors  String?
-  styleWeights    String?
-  colorWeights    String?
+  styleTags       Json?
+  favoriteColors  Json?
+  styleWeights    Json?
+  colorWeights    Json?
   clothes         Cloth[]
   analyses        Analysis[]
   recommendations OutfitRecommendation[]
@@ -84,7 +84,7 @@ model OutfitRecommendation {
 
   clothIds     String[] @db.ObjectId
   score        Float
-  scoreDetails String
+  scoreDetails Json
   explanation  String
   status       String   @default("PENDING")
   createdAt    DateTime @default(now())
