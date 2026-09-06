@@ -30,26 +30,26 @@ const getHistory = async (req, res, next) => {
         clothes,
       );
       const groqResolved = resolveMatchedItems(
-        item.mistralResponse || "",
+        item.groqResponse || "",
         clothes,
       );
       const matchingRecommendation = item.recommendations?.[0];
-      let ragItems = [];
+      let fitteItems = [];
       if (matchingRecommendation?.clothIds) {
         const ids = Array.isArray(matchingRecommendation.clothIds)
           ? matchingRecommendation.clothIds
           : JSON.parse(matchingRecommendation.clothIds || "[]");
-        ragItems = ids.map((id) => clothesMap.get(id)).filter(Boolean);
+        fitteItems = ids.map((id) => clothesMap.get(id)).filter(Boolean);
       }
-      if (ragItems.length === 0)
-        ragItems = findMatchingClothes(item.ragResponse || "", clothes);
+      if (fitteItems.length === 0)
+        fitteItems = findMatchingClothes(item.fitteResponse || "", clothes);
       return {
         ...analysis,
         geminiResponse: geminiResolved.cleanText,
-        mistralResponse: groqResolved.cleanText,
+        groqResponse: groqResolved.cleanText,
         geminiItems: geminiResolved.items,
-        llamaItems: groqResolved.items,
-        ragItems,
+        groqItems: groqResolved.items,
+        fitteItems,
       };
     });
     res.json(richHistory);

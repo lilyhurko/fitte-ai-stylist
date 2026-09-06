@@ -18,8 +18,8 @@ This repository is organized as a monorepo, separating the system logic into mod
 
 ## 🧠 Core AI Modules & Systems
 
-1.  **Retrieval-Augmented Generation (RAG):** A custom internal data injection process that pairs active database records (user-specific wardrobe items, category fields, preferred styles) with context prompts to ensure completely custom, non-generic styling responses.
-2.  **Multi-Model Benchmarking Interface:** A dedicated evaluation framework enabling users to review and benchmark generated outputs across multiple concurrent model infrastructures (**Google Gemini 2.5 API** vs. **GPT-OSS 120B via Groq Cloud**) and evaluate specific responses using a 1-5 star user rating system.
+1.  **Fitte Engine:** A hybrid recommendation system that scores wardrobe items using the user's clothes, preferences, occasion, and weather, then uses a language model to explain the selected outfit.
+2.  **Multi-Model Benchmarking Interface:** A dedicated evaluation framework for comparing **Google Gemini 2.5**, **GPT-OSS 120B via Groq Cloud**, and **Fitte Engine** using like/dislike feedback.
 
 ---
 

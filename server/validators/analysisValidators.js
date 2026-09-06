@@ -22,7 +22,7 @@ const analyzeSchema = z.object({
 });
 
 const analysisFeedbackSchema = z.object({
-  modelType: z.enum(["gemini", "llama"], {
+  modelType: z.enum(["gemini", "groq"], {
     error: "Nieprawidłowy typ modelu",
   }),
   feedback: z.enum(["LIKE", "DISLIKE"], {

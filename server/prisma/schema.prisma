@@ -11,20 +11,20 @@ model Analysis {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
   query String
 
-  geminiResponse  String?
-  mistralResponse String?
-  ragResponse     String?
+  geminiResponse String?
+  groqResponse   String? @map("mistralResponse")
+  fitteResponse  String? @map("ragResponse")
 
-  geminiScore  Int?
-  mistralScore Int?
-  ragScore     Int?
+  geminiScore Int?
+  groqScore   Int? @map("mistralScore")
+  fitteScore  Int? @map("ragScore")
 
   contextUsed String?
 
-  userId         String                 @db.ObjectId
-  user           User                   @relation(fields: [userId], references: [id])
-  recommendation OutfitRecommendation[]
-  createdAt      DateTime               @default(now())
+  userId          String                 @db.ObjectId
+  user            User                   @relation(fields: [userId], references: [id])
+  recommendations OutfitRecommendation[]
+  createdAt       DateTime               @default(now())
 }
 
 model User {

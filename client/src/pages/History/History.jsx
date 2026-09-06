@@ -160,12 +160,12 @@ const History = () => {
                             </span>
                           </div>
                           <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
-                            {item.mistralResponse || "Model nie zwrócił odpowiedzi."}
+                            {item.groqResponse || "Model nie zwrócił odpowiedzi."}
                           </p>
                         </div>
-                        {item.llamaItems && item.llamaItems.length > 0 && (
+                        {item.groqItems && item.groqItems.length > 0 && (
                           <div className="flex gap-1.5 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto overflow-x-auto">
-                            {item.llamaItems.map((cloth) => (
+                            {item.groqItems.map((cloth) => (
                               <img
                                 key={cloth.id}
                                 src={cloth.imageUrl}
@@ -182,16 +182,16 @@ const History = () => {
                         <div>
                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
                             <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-fitte-cream bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Sparkles size={10} /> FITTE AI (RAG)
+                              <Sparkles size={10} /> FITTE ENGINE
                             </span>
                           </div>
                           <p className="text-xs text-fitte-cream/90 leading-relaxed whitespace-pre-wrap font-light mb-3">
-                            {item.ragResponse || "System RAG nie zwrócił odpowiedzi."}
+                            {item.fitteResponse || "Fitte Engine nie zwrócił odpowiedzi."}
                           </p>
                         </div>
-                        {item.ragItems && item.ragItems.length > 0 && (
+                        {item.fitteItems && item.fitteItems.length > 0 && (
                           <div className="flex gap-1.5 bg-white/10 p-2 rounded-xl justify-center items-center backdrop-blur-sm border border-white/5 mt-auto overflow-x-auto">
-                            {item.ragItems.map((cloth) => (
+                            {item.fitteItems.map((cloth) => (
                               <img
                                 key={cloth.id}
                                 src={cloth.imageUrl}

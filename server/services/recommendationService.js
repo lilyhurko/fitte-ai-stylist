@@ -4,7 +4,7 @@ const { generateBestOutfits } = require("../outfitEngine");
 const { writeLog } = require("./logger");
 const { resilientOperation } = require("./resilienceService");
 
-async function askRAG(
+async function askFitteEngine(
   query,
   clothes,
   user,
@@ -26,7 +26,7 @@ async function askRAG(
         explanation:
           "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
         recommendationId: null,
-        ragItems: [],
+        fitteItems: [],
       };
     }
 
@@ -86,10 +86,10 @@ async function askRAG(
     return {
       explanation,
       recommendationId: newRec.id,
-      ragItems: bestSet.outfit,
+      fitteItems: bestSet.outfit,
     };
   } catch (error) {
-    writeLog("warn", "rag_fallback", {
+    writeLog("warn", "fitte_engine_fallback", {
       provider: "fitte-engine",
       errorName: error.name,
     });
@@ -97,11 +97,11 @@ async function askRAG(
     return {
       explanation: "Nie udało się przygotować rekomendacji Fitte.",
       recommendationId: null,
-      ragItems: [],
+      fitteItems: [],
     };
   }
 }
 
 module.exports = {
-  askRAG,
+  askFitteEngine,
 };

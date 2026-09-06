@@ -38,7 +38,7 @@ const saveAnalysisFeedback = async (req, res, next) => {
     const data =
       modelType === "gemini"
         ? { geminiScore: feedback === "LIKE" ? 1 : 0 }
-        : { mistralScore: feedback === "LIKE" ? 1 : 0 };
+        : { groqScore: feedback === "LIKE" ? 1 : 0 };
     const result = await prisma.analysis.updateMany({
       where: { id: idValidation.data, userId: req.user.userId },
       data,
@@ -128,7 +128,7 @@ const saveRecommendationFeedback = async (req, res, next) => {
       operations.push(
         prisma.analysis.updateMany({
           where: { id: analysisId, userId },
-          data: { ragScore: feedback === "LIKE" ? 1 : 0 },
+          data: { fitteScore: feedback === "LIKE" ? 1 : 0 },
         }),
       );
     await prisma.$transaction(operations);

@@ -19,8 +19,8 @@ const Assistant = () => {
   const [results, setResults] = useState(null);
 
   const [geminiFeedback, setGeminiFeedback] = useState(null);
-  const [llamaFeedback, setLlamaFeedback] = useState(null);
-  const [ragFeedback, setRagFeedback] = useState(null);
+  const [groqFeedback, setGroqFeedback] = useState(null);
+  const [fitteFeedback, setFitteFeedback] = useState(null);
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
@@ -31,8 +31,8 @@ const Assistant = () => {
     setResults(null);
 
     setGeminiFeedback(null);
-    setLlamaFeedback(null);
-    setRagFeedback(null);
+    setGroqFeedback(null);
+    setFitteFeedback(null);
 
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
@@ -116,14 +116,14 @@ const Assistant = () => {
 
       if (response.ok) {
         if (modelType === "gemini") setGeminiFeedback(feedbackType);
-        if (modelType === "llama") setLlamaFeedback(feedbackType);
+        if (modelType === "groq") setGroqFeedback(feedbackType);
       }
     } catch (error) {
       console.error(`Błąd feedbacku dla ${modelType}:`, error);
     }
   };
 
-  const handleRagFeedback = async (feedbackType) => {
+  const handleFitteFeedback = async (feedbackType) => {
     if (!results?.recommendationId) return;
 
     const analysisId = results.id || results._id;
@@ -150,10 +150,10 @@ const Assistant = () => {
       }
 
       if (response.ok) {
-        setRagFeedback(feedbackType);
+        setFitteFeedback(feedbackType);
       }
     } catch(error) {
-      console.error("Błąd feedbacku RAG:", error);
+      console.error("Błąd feedbacku Fitte Engine:", error);
     }
   };
 
@@ -205,7 +205,7 @@ const Assistant = () => {
               <span>•</span>
               <span>GPT-OSS 120B</span>
               <span>•</span>
-              <span>HYBRID RAG</span>
+              <span>FITTE ENGINE</span>
             </div>
             <button
               onClick={handleGenerate}
@@ -297,12 +297,12 @@ const Assistant = () => {
                   <Monitor size={14} /> GPT-OSS 120B (Groq)
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                  {results.mistralResponse}
+                  {results.groqResponse}
                 </p>
 
-                {results.llamaItems && results.llamaItems.length > 0 ? (
+                {results.groqItems && results.groqItems.length > 0 ? (
                   <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 overflow-x-auto">
-                    {results.llamaItems.map((cloth) => (
+                    {results.groqItems.map((cloth) => (
                       <img
                         key={cloth.id}
                         src={cloth.imageUrl}
@@ -324,10 +324,10 @@ const Assistant = () => {
                 </span>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleModelFeedback("llama", "LIKE")}
-                    disabled={llamaFeedback !== null}
+                    onClick={() => handleModelFeedback("groq", "LIKE")}
+                    disabled={groqFeedback !== null}
                     className={`p-2 rounded-xl border transition-all ${
-                      llamaFeedback === "LIKE"
+                      groqFeedback === "LIKE"
                         ? "bg-green-50 text-green-600 border-green-200 scale-105"
                         : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
                     }`}
@@ -335,10 +335,10 @@ const Assistant = () => {
                     <ThumbsUp size={15} />
                   </button>
                   <button
-                    onClick={() => handleModelFeedback("llama", "DISLIKE")}
-                    disabled={llamaFeedback !== null}
+                    onClick={() => handleModelFeedback("groq", "DISLIKE")}
+                    disabled={groqFeedback !== null}
                     className={`p-2 rounded-xl border transition-all ${
-                      llamaFeedback === "DISLIKE"
+                      groqFeedback === "DISLIKE"
                         ? "bg-red-50 text-red-600 border-red-200 scale-105"
                         : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
                     }`}
@@ -349,19 +349,19 @@ const Assistant = () => {
               </div>
             </div>
 
-            {/* COLUMN 3: FITTE HYBRID RAG */}
+            {/* COLUMN 3: FITTE ENGINE */}
             <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-3">
-                  <Brain size={14} /> Fitte AI (Hybrid RAG)
+                  <Brain size={14} /> Fitte Engine
                 </div>
                 <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-4">
-                  {results.ragResponse}
+                  {results.fitteResponse}
                 </p>
 
-                {results.ragItems && results.ragItems.length > 0 && (
+                {results.fitteItems && results.fitteItems.length > 0 && (
                   <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 overflow-x-auto">
-                    {results.ragItems.map((cloth) => (
+                    {results.fitteItems.map((cloth) => (
                       <img
                         key={cloth.id}
                         src={cloth.imageUrl}
@@ -380,10 +380,10 @@ const Assistant = () => {
                   </span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleRagFeedback("LIKE")}
-                      disabled={ragFeedback !== null}
+                      onClick={() => handleFitteFeedback("LIKE")}
+                      disabled={fitteFeedback !== null}
                       className={`p-2 rounded-xl transition-all ${
-                        ragFeedback === "LIKE"
+                        fitteFeedback === "LIKE"
                           ? "bg-green-600 text-white scale-105"
                           : "bg-white/10 text-white hover:bg-white/20"
                       }`}
@@ -391,10 +391,10 @@ const Assistant = () => {
                       <ThumbsUp size={15} />
                     </button>
                     <button
-                      onClick={() => handleRagFeedback("DISLIKE")}
-                      disabled={ragFeedback !== null}
+                      onClick={() => handleFitteFeedback("DISLIKE")}
+                      disabled={fitteFeedback !== null}
                       className={`p-2 rounded-xl transition-all ${
-                        ragFeedback === "DISLIKE"
+                        fitteFeedback === "DISLIKE"
                           ? "bg-red-600 text-white scale-105"
                           : "bg-white/10 text-white hover:bg-white/20"
                       }`}

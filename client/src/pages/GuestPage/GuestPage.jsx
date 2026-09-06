@@ -59,10 +59,10 @@ const GuestPage = () => {
       <section ref={featuresRef} className="features-grid">
         <div className="feature-card">
           <div className="feature-icon">🔍</div>
-          <h3>Personalizacja RAG</h3>
+          <h3>Hybrydowe rekomendacje</h3>
           <p>
-            Wykorzystujemy technologię Retrieval-Augmented Generation, aby
-            system proponował zestawy wyłącznie z Twoich realnych ubrań.
+            Fitte Engine łączy analizę garderoby, pogody, okazji i preferencji,
+            aby proponować zestawy wyłącznie z Twoich realnych ubrań.
           </p>
         </div>
         <div className="feature-card">

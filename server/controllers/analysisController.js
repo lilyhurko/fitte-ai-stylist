@@ -2,7 +2,9 @@ const { prisma } = require("../config/prisma");
 const { analyzeSchema } = require("../validators/analysisValidators");
 const { getLiveWeather } = require("../services/weatherService");
 const { askGemini, askGroqCloud } = require("../services/aiService");
-const { askRAG } = require("../services/ragService");
+const {
+  askFitteEngine,
+} = require("../services/recommendationService");
 const {
   generateContextString,
   resolveMatchedItems,
@@ -60,8 +62,8 @@ const analyze = async (req, res, next) => {
     const groqStart = Date.now();
     const groqResponse = await askGroqCloud(query, context, weatherType);
     const groqTime = Date.now() - groqStart;
-    const ragStart = Date.now();
-    const ragResult = await askRAG(
+    const fitteStart = Date.now();
+    const fitteResult = await askFitteEngine(
       query,
       clothes,
       user,
@@ -69,7 +71,7 @@ const analyze = async (req, res, next) => {
       selectedOccasion,
       weatherType,
     );
-    const ragTime = Date.now() - ragStart;
+    const fitteTime = Date.now() - fitteStart;
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
     const groqResolved = resolveMatchedItems(groqResponse, clothes);
 
@@ -77,17 +79,17 @@ const analyze = async (req, res, next) => {
       data: {
         query,
         geminiResponse: `${geminiResponse} (Czas: ${geminiTime}ms)`,
-        mistralResponse: `${groqResponse} (Czas: ${groqTime}ms)`,
-        ragResponse: `${ragResult.explanation} (Czas: ${ragTime}ms)`,
+        groqResponse: `${groqResponse} (Czas: ${groqTime}ms)`,
+        fitteResponse: `${fitteResult.explanation} (Czas: ${fitteTime}ms)`,
         contextUsed: context,
         userId,
       },
     });
     
-    if (ragResult.recommendationId) {
+    if (fitteResult.recommendationId) {
       const linkResult = await prisma.outfitRecommendation.updateMany({
         where: {
-          id: ragResult.recommendationId,
+          id: fitteResult.recommendationId,
           userId,
         },
         data: {
@@ -106,11 +108,11 @@ const analyze = async (req, res, next) => {
     res.json({
       ...record,
       geminiResponse: `${geminiResolved.cleanText} (Czas: ${geminiTime}ms)`,
-      mistralResponse: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
-      recommendationId: ragResult.recommendationId,
-      ragItems: ragResult.ragItems,
+      groqResponse: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
+      recommendationId: fitteResult.recommendationId,
+      fitteItems: fitteResult.fitteItems,
       geminiItems: geminiResolved.items,
-      llamaItems: groqResolved.items,
+      groqItems: groqResolved.items,
     });
   } catch (error) {
     error.publicMessage = "Błąd serwera podczas analizy AI.";
