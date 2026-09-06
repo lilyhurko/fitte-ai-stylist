@@ -15,6 +15,18 @@ const updateProfileSchema = z.object({
   }),
 });
 
+const deleteAccountSchema = z.object({
+  password: z
+    .string()
+    .min(1, "Hasło jest wymagane")
+    .max(128, "Hasło jest za długie"),
+
+  confirmation: z.literal("USUŃ KONTO", {
+    error: "Wpisz dokładnie: USUŃ KONTO",
+  }),
+});
+
 module.exports = {
   updateProfileSchema,
+  deleteAccountSchema,
 };

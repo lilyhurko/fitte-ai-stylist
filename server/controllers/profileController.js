@@ -1,7 +1,17 @@
 const bcrypt = require("bcryptjs");
 const { prisma } = require("../config/prisma");
 const { changePasswordSchema } = require("../validators/authValidators");
-const { updateProfileSchema } = require("../validators/profileValidators");
+const {
+  pdateProfileSchema,
+  deleteAccountSchema,
+} = require("../validators/profileValidators");
+const {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_CLEAR_OPTIONS,
+} = require("../config/auth");
+const {
+  deleteUserAccountWithDependencies,
+} = require("../services/deletionService");
 
 const getProfile = async (req, res, next) => {
   try {
@@ -18,7 +28,8 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   const validation = updateProfileSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: validation.error.issues[0].message });
+  if (!validation.success)
+    return res.status(400).json({ error: validation.error.issues[0].message });
 
   const { firstName, email, gender } = validation.data;
   try {
@@ -41,11 +52,14 @@ const updateProfile = async (req, res, next) => {
 
 const changePassword = async (req, res, next) => {
   const validation = changePasswordSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: validation.error.issues[0].message });
+  if (!validation.success)
+    return res.status(400).json({ error: validation.error.issues[0].message });
 
   const { currentPassword, newPassword } = validation.data;
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
     if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
       return res.status(400).json({ error: "Błędne hasło." });
     }
@@ -59,5 +73,59 @@ const changePassword = async (req, res, next) => {
     next(error);
   }
 };
+const deleteAccount = async (req, res, next) => {
+  const validation = deleteAccountSchema.safeParse(req.body);
 
-module.exports = { getProfile, updateProfile, changePassword };
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        password: true,
+      },
+    });
+
+    if (
+      !user ||
+      !(await bcrypt.compare(validation.data.password, user.password))
+    ) {
+      return res.status(401).json({
+        error: "Nieprawidłowe hasło.",
+      });
+    }
+
+    const deleted = await deleteUserAccountWithDependencies({
+      userId: user.id,
+      requestId: req.requestId,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: "Nie znaleziono konta.",
+      });
+    }
+
+    res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_CLEAR_OPTIONS);
+
+    res.json({
+      success: true,
+      message: "Konto i wszystkie powiązane dane zostały usunięte.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się usunąć konta.";
+    next(error);
+  }
+};
+
+module.exports = {
+  getProfile,
+  updateProfile,
+  changePassword,
+  deleteAccount,
+};
