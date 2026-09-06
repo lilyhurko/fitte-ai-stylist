@@ -8,76 +8,84 @@ datasource db {
 }
 
 model Analysis {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  query           String   
-  
-  geminiResponse  String?  
-  mistralResponse String?  
-  ragResponse     String?  
-  
-  geminiScore     Int?
-  mistralScore    Int?
-  ragScore        Int?
-  
-  contextUsed     String?  
-  
-  userId          String   @db.ObjectId
-  user            User     @relation(fields: [userId], references: [id])
-  createdAt       DateTime @default(now())
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  query String
+
+  geminiResponse  String?
+  mistralResponse String?
+  ragResponse     String?
+
+  geminiScore  Int?
+  mistralScore Int?
+  ragScore     Int?
+
+  contextUsed String?
+
+  userId         String                 @db.ObjectId
+  user           User                   @relation(fields: [userId], references: [id])
+  recommendation OutfitRecommendation[]
+  createdAt      DateTime               @default(now())
 }
 
 model User {
-  id             String     @id @default(auto()) @map("_id") @db.ObjectId
-  email          String     @unique
-  name           String
-  gender         String?
-  password       String
-  styleTags      String?   
-  favoriteColors String?
-  styleWeights    String? 
+  id              String                 @id @default(auto()) @map("_id") @db.ObjectId
+  email           String                 @unique
+  name            String
+  gender          String?
+  password        String
+  styleTags       String?
+  favoriteColors  String?
+  styleWeights    String?
   colorWeights    String?
-  clothes        Cloth[]
-  analyses       Analysis[]  
-  createdAt      DateTime   @default(now())
-  events         Event[]
+  clothes         Cloth[]
+  analyses        Analysis[]
+  recommendations OutfitRecommendation[]
+  createdAt       DateTime               @default(now())
+  events          Event[]
 }
 
 model Cloth {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  category  String
-  color     String?   
-  style     String? 
-  imageUrl  String?
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  category           String
+  color              String?
+  style              String?
+  imageUrl           String?
   cloudinaryPublicId String?
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  userId             String   @db.ObjectId
+  user               User     @relation(fields: [userId], references: [id])
+  createdAt          DateTime @default(now())
 }
 
 model Event {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String   
-  date        DateTime 
-  occasion    String   
-  formality   String  
-  
-  outfitIds   String[] @db.ObjectId 
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  date      DateTime
+  occasion  String
+  formality String
 
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfitIds String[] @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model OutfitRecommendation {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @db.ObjectId
-  clothIds     String[] @db.ObjectId 
-  score        Float    
-  scoreDetails String  
-  explanation  String  
-  status       String   @default("PENDING") 
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  analysisId String?   @db.ObjectId
+  analysis   Analysis? @relation(fields: [analysisId], references: [id])
+
+  clothIds     String[] @db.ObjectId
+  score        Float
+  scoreDetails String
+  explanation  String
+  status       String   @default("PENDING")
   createdAt    DateTime @default(now())
 }
