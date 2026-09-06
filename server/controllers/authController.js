@@ -13,7 +13,8 @@ const { loginSchema, registerSchema } = require("../validators/authValidators");
 
 const register = async (req, res, next) => {
   const validation = registerSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: validation.error.issues[0].message });
+  if (!validation.success)
+    return res.status(400).json({ error: validation.error.issues[0].message });
 
   const { name, email, password, styleTags, favoriteColors } = validation.data;
   try {
@@ -25,12 +26,14 @@ const register = async (req, res, next) => {
         name,
         email,
         password: await bcrypt.hash(password, 10),
-        styleTags: JSON.stringify(styleTags),
-        favoriteColors: JSON.stringify(favoriteColors),
+        styleTags,
+        favoriteColors,
       },
       select: PUBLIC_USER_SELECT,
     });
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
     res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
     res.json({ user });
   } catch (error) {
@@ -41,7 +44,8 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   const validation = loginSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: validation.error.issues[0].message });
+  if (!validation.success)
+    return res.status(400).json({ error: validation.error.issues[0].message });
 
   const { email, password } = validation.data;
   try {
@@ -49,10 +53,15 @@ const login = async (req, res, next) => {
       where: { email },
       select: { ...PUBLIC_USER_SELECT, password: true },
     });
-    if (!userWithPassword || !(await bcrypt.compare(password, userWithPassword.password))) {
+    if (
+      !userWithPassword ||
+      !(await bcrypt.compare(password, userWithPassword.password))
+    ) {
       return res.status(401).json({ error: "Błędne dane logowania" });
     }
-    const token = jwt.sign({ userId: userWithPassword.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const token = jwt.sign({ userId: userWithPassword.id }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
     const { password: _password, ...user } = userWithPassword;
     res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
     res.json({ user });
@@ -68,7 +77,8 @@ const getSession = async (req, res, next) => {
       where: { id: req.user.userId },
       select: PUBLIC_USER_SELECT,
     });
-    if (!user) return res.status(401).json({ error: "Sesja jest nieprawidłowa." });
+    if (!user)
+      return res.status(401).json({ error: "Sesja jest nieprawidłowa." });
     res.json({ user });
   } catch (error) {
     error.publicMessage = "Nie udało się sprawdzić sesji.";

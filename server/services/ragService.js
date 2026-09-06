@@ -78,7 +78,7 @@ async function askRAG(
         userId: user.id,
         clothIds: bestSet.outfit.map((i) => i.id),
         score: bestSet.totalScore,
-        scoreDetails: JSON.stringify(bestSet.details),
+        scoreDetails: bestSet.details,
         explanation,
       },
     });
