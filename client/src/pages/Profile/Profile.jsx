@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Save, Key, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, Key, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import "./Profile.css";
 import { API_BASE_URL } from "../../config";
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || user?.name || "",
@@ -22,7 +22,17 @@ const Profile = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [deleteData, setDeleteData] = useState({
+    password: "",
+    confirmation: "",
+  });
 
+  const [loadingDelete, setLoadingDelete] = useState(false);
+
+  const [deleteMessage, setDeleteMessage] = useState({
+    type: "",
+    text: "",
+  });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
@@ -92,7 +102,7 @@ const Profile = () => {
           text: data.error || "Wystąpił błąd.",
         });
       }
-    } catch  {
+    } catch {
       setProfileMessage({ type: "error", text: "Błąd połączenia z serwerem." });
     } finally {
       setLoadingProfile(false);
@@ -152,6 +162,63 @@ const Profile = () => {
       setPasswordMessage({ type: "error", text: "Błąd serwera." });
     } finally {
       setLoadingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteData.password) {
+      setDeleteMessage({
+        type: "error",
+        text: "Podaj aktualne hasło.",
+      });
+      return;
+    }
+
+    if (deleteData.confirmation !== "USUŃ KONTO") {
+      setDeleteMessage({
+        type: "error",
+        text: "Wpisz dokładnie: USUŃ KONTO",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Czy na pewno chcesz trwale usunąć konto, ubrania, historię i wydarzenia?",
+    );
+
+    if (!confirmed) return;
+
+    setLoadingDelete(true);
+    setDeleteMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deleteData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await logout();
+        return;
+      }
+
+      setDeleteMessage({
+        type: "error",
+        text: data.error || "Nie udało się usunąć konta.",
+      });
+    } catch {
+      setDeleteMessage({
+        type: "error",
+        text: "Błąd połączenia z serwerem.",
+      });
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -366,6 +433,79 @@ const Profile = () => {
             >
               <Key size={16} />
               {loadingPassword ? "Przetwarzanie..." : "Zresetuj hasło"}
+            </button>
+          </div>
+        </section>
+        <section className="profile-card md:col-span-2 bg-red-50/40 rounded-[24px] md:rounded-[40px] p-5 md:p-10 border border-red-200 w-full">
+          <div className="max-w-2xl">
+            <h3 className="font-playfair text-lg md:text-xl text-red-800">
+              Usuń konto
+            </h3>
+
+            <p className="text-xs md:text-sm text-red-700/80 mt-2 mb-5">
+              Ta operacja trwale usunie konto, ubrania, zdjęcia, wydarzenia,
+              rekomendacje i historię analiz. Nie można jej cofnąć.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold tracking-widest text-red-800">
+                  AKTUALNE HASŁO
+                </label>
+
+                <input
+                  type="password"
+                  value={deleteData.password}
+                  onChange={(event) =>
+                    setDeleteData({
+                      ...deleteData,
+                      password: event.target.value,
+                    })
+                  }
+                  className="profile-input"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold tracking-widest text-red-800">
+                  WPISZ „USUŃ KONTO”
+                </label>
+
+                <input
+                  type="text"
+                  value={deleteData.confirmation}
+                  onChange={(event) =>
+                    setDeleteData({
+                      ...deleteData,
+                      confirmation: event.target.value,
+                    })
+                  }
+                  className="profile-input"
+                  placeholder="USUŃ KONTO"
+                />
+              </div>
+            </div>
+
+            {deleteMessage.text && (
+              <div className="flex items-center gap-1.5 text-xs text-red-600 mt-4">
+                <AlertCircle size={14} />
+                {deleteMessage.text}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={
+                loadingDelete ||
+                !deleteData.password ||
+                deleteData.confirmation !== "USUŃ KONTO"
+              }
+              className="mt-5 bg-red-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 text-xs md:text-sm hover:bg-red-800 transition-colors touch-manipulation cursor-pointer"
+            >
+              <Trash2 size={16} />
+              {loadingDelete ? "Usuwanie konta..." : "Usuń konto na zawsze"}
             </button>
           </div>
         </section>
