@@ -3,13 +3,17 @@ const { analyzeSchema } = require("../validators/analysisValidators");
 const { getLiveWeather } = require("../services/weatherService");
 const { askGemini, askGroqCloud } = require("../services/aiService");
 const { askRAG } = require("../services/ragService");
-const { generateContextString, resolveMatchedItems } = require("../services/clothingMatchService");
+const {
+  generateContextString,
+  resolveMatchedItems,
+} = require("../services/clothingMatchService");
 const { writeLog } = require("../services/logger");
 const { isNonOutfitItem } = require("../outfitEngine");
 
 const analyze = async (req, res, next) => {
   const validation = analyzeSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: validation.error.issues[0].message });
+  if (!validation.success)
+    return res.status(400).json({ error: validation.error.issues[0].message });
 
   try {
     const { query, latitude, longitude } = validation.data;
@@ -20,13 +24,28 @@ const analyze = async (req, res, next) => {
     const [user, allClothes, events] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.cloth.findMany({ where: { userId } }),
-      prisma.event.findMany({ where: { userId }, orderBy: { date: "asc" }, take: 3 }),
+      prisma.event.findMany({
+        where: { userId },
+        orderBy: { date: "asc" },
+        take: 3,
+      }),
     ]);
     const clothes = allClothes.filter((cloth) => !isNonOutfitItem(cloth));
-    const changedTopic = ["spacer", "kino", "impreza", "sport", "zajęć", "uczeln"]
-      .some((phrase) => query.toLowerCase().includes(phrase));
+    const changedTopic = [
+      "spacer",
+      "kino",
+      "impreza",
+      "sport",
+      "zajęć",
+      "uczeln",
+    ].some((phrase) => query.toLowerCase().includes(phrase));
     const today = new Date().toISOString().split("T")[0];
-    let currentEvent = events.find((event) => new Date(event.date).toISOString().split("T")[0] === today) || events[0] || null;
+    let currentEvent =
+      events.find(
+        (event) => new Date(event.date).toISOString().split("T")[0] === today,
+      ) ||
+      events[0] ||
+      null;
     if (changedTopic) currentEvent = null;
 
     let context = generateContextString(clothes, user);
@@ -42,7 +61,14 @@ const analyze = async (req, res, next) => {
     const groqResponse = await askGroqCloud(query, context, weatherType);
     const groqTime = Date.now() - groqStart;
     const ragStart = Date.now();
-    const ragResult = await askRAG(query, clothes, user, currentEvent, selectedOccasion, weatherType);
+    const ragResult = await askRAG(
+      query,
+      clothes,
+      user,
+      currentEvent,
+      selectedOccasion,
+      weatherType,
+    );
     const ragTime = Date.now() - ragStart;
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
     const groqResolved = resolveMatchedItems(groqResponse, clothes);
@@ -57,6 +83,26 @@ const analyze = async (req, res, next) => {
         userId,
       },
     });
+    
+    if (ragResult.recommendationId) {
+      const linkResult = await prisma.outfitRecommendation.updateMany({
+        where: {
+          id: ragResult.recommendationId,
+          userId,
+        },
+        data: {
+          analysisId: record.id,
+        },
+      });
+
+      if (linkResult.count === 0) {
+        writeLog("warn", "recommendation_analysis_link_failed", {
+          requestId: req.requestId,
+          analysisId: record.id,
+        });
+      }
+    }
+
     res.json({
       ...record,
       geminiResponse: `${geminiResolved.cleanText} (Czas: ${geminiTime}ms)`,
