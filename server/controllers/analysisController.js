@@ -2,9 +2,7 @@ const { prisma } = require("../config/prisma");
 const { analyzeSchema } = require("../validators/analysisValidators");
 const { getLiveWeather } = require("../services/weatherService");
 const { askGemini, askGroqCloud } = require("../services/aiService");
-const {
-  askFitteEngine,
-} = require("../services/recommendationService");
+const { askFitteEngine } = require("../services/recommendationService");
 const {
   generateContextString,
   resolveMatchedItems,
@@ -23,32 +21,27 @@ const analyze = async (req, res, next) => {
     const weatherType = await getLiveWeather(latitude, longitude);
     const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
     const selectedOccasion = occasionMatch?.[1]?.trim() || "Casual";
-    const [user, allClothes, events] = await Promise.all([
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setUTCDate(startOfTomorrow.getUTCDate() + 1);
+    const [user, allClothes, currentEvent] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.cloth.findMany({ where: { userId } }),
-      prisma.event.findMany({
-        where: { userId },
+      prisma.event.findFirst({
+        where: {
+          userId,
+          occasion: selectedOccasion,
+          date: {
+            gte: startOfToday,
+            lt: startOfTomorrow,
+          },
+        },
         orderBy: { date: "asc" },
-        take: 3,
       }),
     ]);
     const clothes = allClothes.filter((cloth) => !isNonOutfitItem(cloth));
-    const changedTopic = [
-      "spacer",
-      "kino",
-      "impreza",
-      "sport",
-      "zajęć",
-      "uczeln",
-    ].some((phrase) => query.toLowerCase().includes(phrase));
-    const today = new Date().toISOString().split("T")[0];
-    let currentEvent =
-      events.find(
-        (event) => new Date(event.date).toISOString().split("T")[0] === today,
-      ) ||
-      events[0] ||
-      null;
-    if (changedTopic) currentEvent = null;
 
     let context = generateContextString(clothes, user);
     if (currentEvent) {
@@ -85,7 +78,7 @@ const analyze = async (req, res, next) => {
         userId,
       },
     });
-    
+
     if (fitteResult.recommendationId) {
       const linkResult = await prisma.outfitRecommendation.updateMany({
         where: {
