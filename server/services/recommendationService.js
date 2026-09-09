@@ -3,6 +3,11 @@ const { groq, GROQ_MODEL } = require("../config/aiClients");
 const { generateBestOutfits } = require("../outfitEngine");
 const { writeLog } = require("./logger");
 const { resilientOperation } = require("./resilienceService");
+const {
+  FITTE_ALGORITHM_VERSION,
+  FITTE_EXPLANATION_PROMPT_VERSION,
+  FITTE_EXPLANATION_CONFIG,
+} = require("../config/algorithm");
 
 async function askFitteEngine(
   query,
@@ -27,6 +32,7 @@ async function askFitteEngine(
           "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
         recommendationId: null,
         fitteItems: [],
+        algorithmVersion: FITTE_ALGORITHM_VERSION,
       };
     }
 
@@ -50,6 +56,8 @@ async function askFitteEngine(
 
     let explanation =
       "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
+    let explanationModel = null;
+
     try {
       const chatCompletion = await resilientOperation(
         "groq",
@@ -57,15 +65,20 @@ async function askFitteEngine(
           groq.chat.completions.create({
             model: GROQ_MODEL,
             messages: [{ role: "user", content: explanationPrompt }],
-            temperature: 0.2,
-            reasoning_effort: "low",
-            max_completion_tokens: 256,
+            temperature: FITTE_EXPLANATION_CONFIG.temperature,
+            reasoning_effort: FITTE_EXPLANATION_CONFIG.reasoningEffort,
+            max_completion_tokens: FITTE_EXPLANATION_CONFIG.maxCompletionTokens,
           }),
         {
           retries: 0,
         },
       );
-      explanation = chatCompletion.choices[0]?.message?.content || explanation;
+      const generatedExplanation = chatCompletion.choices[0]?.message?.content;
+
+      if (generatedExplanation) {
+        explanation = generatedExplanation;
+        explanationModel = GROQ_MODEL;
+      }
     } catch (explanationError) {
       writeLog("warn", "groq_explanation_fallback", {
         provider: "groq",
@@ -80,6 +93,30 @@ async function askFitteEngine(
         score: bestSet.totalScore,
         scoreDetails: bestSet.details,
         explanation,
+
+        algorithmVersion: FITTE_ALGORITHM_VERSION,
+        explanationModel,
+        promptVersion: FITTE_EXPLANATION_PROMPT_VERSION,
+        selectionSeed: null,
+
+        contextSnapshot: {
+          selectedOccasion,
+          appliedOccasion: bestSet.details.appliedOccasion || null,
+          weatherType,
+          event: currentEvent
+            ? {
+                id: currentEvent.id,
+                title: currentEvent.title,
+                occasion: currentEvent.occasion,
+                formality: currentEvent.formality,
+                date: currentEvent.date
+                  ? new Date(currentEvent.date).toISOString()
+                  : null,
+              }
+            : null,
+        },
+
+        generationConfig: FITTE_EXPLANATION_CONFIG,
       },
     });
 
@@ -87,6 +124,7 @@ async function askFitteEngine(
       explanation,
       recommendationId: newRec.id,
       fitteItems: bestSet.outfit,
+      algorithmVersion: FITTE_ALGORITHM_VERSION,
     };
   } catch (error) {
     writeLog("warn", "fitte_engine_fallback", {
@@ -98,6 +136,7 @@ async function askFitteEngine(
       explanation: "Nie udało się przygotować rekomendacji Fitte.",
       recommendationId: null,
       fitteItems: [],
+      algorithmVersion: FITTE_ALGORITHM_VERSION,
     };
   }
 }

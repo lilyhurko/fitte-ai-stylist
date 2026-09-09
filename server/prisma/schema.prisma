@@ -82,10 +82,16 @@ model OutfitRecommendation {
   analysisId String?   @db.ObjectId
   analysis   Analysis? @relation(fields: [analysisId], references: [id])
 
-  clothIds     String[] @db.ObjectId
-  score        Float
-  scoreDetails Json
-  explanation  String
-  status       String   @default("PENDING")
-  createdAt    DateTime @default(now())
+  clothIds         String[] @db.ObjectId
+  score            Float
+  scoreDetails     Json
+  explanation      String
+  algorithmVersion String?
+  explanationModel String?
+  promptVersion    String?
+  selectionSeed    String?
+  contextSnapshot  Json?
+  generationConfig Json?
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
 }
