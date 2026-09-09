@@ -230,3 +230,40 @@ test("identyczne dane wejściowe dają identyczny ranking baseline", () => {
 
   assert.deepEqual(secondRun, firstRun);
 });
+
+test("ciemne ubranie otrzymuje twarde weto podczas upału", () => {
+  const darkItem = createItem({
+    name: "Czarny casualowy t-shirt",
+    style: "Casual",
+    color: "czarny",
+  });
+
+  const result = calculateOutfitScore(
+    [darkItem],
+    {},
+    null,
+    "Casual",
+    "Hot",
+  );
+
+  assert.equal(result.totalScore, -999);
+});
+
+test("letnia sukienka otrzymuje twarde weto podczas zimna", () => {
+  const summerDress = createItem({
+    name: "Lekka letnia sukienka",
+    category: "Sukienki",
+    style: "Romantic",
+    color: "pastelowy róż",
+  });
+
+  const result = calculateOutfitScore(
+    [summerDress],
+    {},
+    null,
+    "Randka",
+    "Cold",
+  );
+
+  assert.equal(result.totalScore, -999);
+});
