@@ -267,3 +267,97 @@ test("letnia sukienka otrzymuje twarde weto podczas zimna", () => {
 
   assert.equal(result.totalScore, -999);
 });
+
+test("wynik końcowy jest sumą jawnych składników punktacji", () => {
+  const outfit = [
+    createItem({
+      id: "shirt",
+      name: "Klasyczna koszula",
+      category: "Góra",
+      style: "Classic",
+      color: "biały",
+    }),
+    createItem({
+      id: "trousers",
+      name: "Klasyczne spodnie",
+      category: "Dół",
+      style: "Classic",
+      color: "granatowy",
+    }),
+    createItem({
+      id: "shoes",
+      name: "Klasyczne półbuty",
+      category: "Obuwie",
+      style: "Classic",
+      color: "biały",
+    }),
+  ];
+
+  const result = calculateOutfitScore(
+    outfit,
+    {
+      styleWeights: { Classic: 1 },
+      colorWeights: { biały: 1 },
+    },
+    {
+      occasion: "Praca",
+      formality: "Formal",
+    },
+    "Praca",
+    "Clear",
+  );
+
+  const {
+    baseScore,
+    weatherScore,
+    occasionScore,
+    colorScore,
+    preferenceScore,
+    formalityScore,
+    repetitionPenalty,
+  } = result.details;
+
+  const calculatedTotal =
+    baseScore +
+    weatherScore +
+    occasionScore +
+    colorScore +
+    preferenceScore +
+    formalityScore +
+    repetitionPenalty;
+
+  assert.equal(result.totalScore, calculatedTotal);
+  assert.equal(result.details.totalScore, calculatedTotal);
+
+  assert.equal(baseScore, 100);
+  assert.equal(weatherScore, 0);
+  assert.equal(occasionScore, 150);
+  assert.equal(colorScore, 40);
+  assert.equal(preferenceScore, 52);
+  assert.equal(formalityScore, 60);
+  assert.equal(repetitionPenalty, 0);
+  assert.equal(result.totalScore, 402);
+});
+
+test("kara za styl niedopasowany do pogody jest osobnym składnikiem", () => {
+  const item = createItem({
+    name: "Lekka biała bluzka",
+    category: "Góra",
+    style: "Classic",
+    color: "biały",
+  });
+
+  const result = calculateOutfitScore(
+    [item],
+    {},
+    null,
+    null,
+    "Hot",
+  );
+
+  assert.equal(result.details.baseScore, 100);
+  assert.equal(result.details.weatherScore, -45);
+  assert.equal(result.details.occasionScore, 0);
+  assert.equal(result.details.colorScore, 0);
+  assert.equal(result.totalScore, 55);
+});

@@ -45,8 +45,6 @@ const COLOR_HARMONIES = {
   "ciemnobrązowy": ["kremowy", "beżowy", "pastelowy róż", "ecru"]
 };
 
-// Ubranie może mieć teraz kilka stylów naraz, zapisanych jako "Classic, Romantic" — ta funkcja
-// zamienia to na tablicę do porównań, zamiast traktować cały string jako jedną wartość.
 function parseStyles(item) {
   if (!item || !item.style) return [];
   return String(item.style)
@@ -55,10 +53,6 @@ function parseStyles(item) {
     .filter(Boolean);
 }
 
-// "Bawełniana" (cotton) zawiera literalnie podciąg "wełna" (wool) — bez tego zabezpieczenia proste
-// name.includes("wełn") fałszywie wykluczałoby bawełniane ubrania (idealne na upał) jako rzekomo wełniane
-// (złe na upał). Jedyny znany taki przypadek w naszym słowniku słów kluczowych, więc obsługujemy go punktowo
-// zamiast komplikować cały mechanizm dopasowania.
 function nameMatchesForbiddenKeyword(name, keyword) {
   if (keyword === "wełn") {
     return /(?<!ba)wełn/i.test(name);
@@ -66,141 +60,240 @@ function nameMatchesForbiddenKeyword(name, keyword) {
   return name.includes(keyword);
 }
 
-function calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
-  let score = 100;
-
+function calculateOutfitScore(
+  outfit,
+  userProfile,
+  eventContext,
+  selectedOccasion,
+  weatherType = "Clear",
+) {
   const userStyleWeights = userProfile?.styleWeights
-    ? (typeof userProfile.styleWeights === "string" ? JSON.parse(userProfile.styleWeights) : userProfile.styleWeights)
+    ? typeof userProfile.styleWeights === "string"
+      ? JSON.parse(userProfile.styleWeights)
+      : userProfile.styleWeights
     : {};
+
   const userColorWeights = userProfile?.colorWeights
-    ? (typeof userProfile.colorWeights === "string" ? JSON.parse(userProfile.colorWeights) : userProfile.colorWeights)
+    ? typeof userProfile.colorWeights === "string"
+      ? JSON.parse(userProfile.colorWeights)
+      : userProfile.colorWeights
     : {};
+
   const activeOccasion = eventContext?.occasion || selectedOccasion;
+
+  const details = {
+    baseScore: 100,
+    weatherScore: 0,
+    occasionScore: 0,
+    colorScore: 0,
+    preferenceScore: 0,
+    formalityScore: 0,
+    repetitionPenalty: 0,
+    totalScore: 100,
+    appliedOccasion: activeOccasion,
+    appliedWeather: weatherType,
+    hardVeto: false,
+    vetoReasons: [],
+    styleWeights: userStyleWeights,
+    colorWeights: userColorWeights,
+  };
 
   if (weatherType && WEATHER_BLACKLIST[weatherType]) {
     const blacklist = WEATHER_BLACKLIST[weatherType];
-    let hardVeto = false;
     let weatherStylePenalty = 0;
 
-    outfit.forEach(item => {
-      const cat = item.category;
+    outfit.forEach((item) => {
+      const category = item.category;
       const itemStyles = parseStyles(item);
-      const col = item.color ? item.color.toLowerCase() : "";
-      const name = item.name ? item.name.toLowerCase() : "";
+      const color = item.color?.toLowerCase() || "";
+      const name = item.name?.toLowerCase() || "";
 
-      // Kategoria, kolor i słowa kluczowe to obiektywnie złe dopasowanie do pogody (np. sandały w deszczu) — twarde weto.
-      if (blacklist.categories && blacklist.categories.includes(cat)) {
-        hardVeto = true;
+      if (
+        blacklist.categories &&
+        blacklist.categories.includes(category)
+      ) {
+        details.hardVeto = true;
+        details.vetoReasons.push(`category:${category}`);
       }
-      if (blacklist.colors && blacklist.colors.includes(col)) {
-        hardVeto = true;
+
+      if (
+        blacklist.colors &&
+        blacklist.colors.includes(color)
+      ) {
+        details.hardVeto = true;
+        details.vetoReasons.push(`color:${color}`);
       }
+
       if (blacklist.forbiddenKeywords) {
-        blacklist.forbiddenKeywords.forEach(keyword => {
-          if (nameMatchesForbiddenKeyword(name, keyword)) hardVeto = true;
+        blacklist.forbiddenKeywords.forEach((keyword) => {
+          if (nameMatchesForbiddenKeyword(name, keyword)) {
+            details.hardVeto = true;
+            details.vetoReasons.push(`keyword:${keyword}`);
+          }
         });
       }
 
-      // Styl to za mało precyzyjny sygnał, żeby całkowicie eliminować zestaw (np. "Classic" bywa też lekkie ubrania
-      // biurowe) — więc to tylko kara punktowa, nie automatyczna dyskwalifikacja. Wystarczy, że JEDEN z kilku
-      // przypisanych stylów trafi na czarną listę.
-      if (blacklist.styles && itemStyles.some(st => blacklist.styles.includes(st))) {
+      if (
+        blacklist.styles &&
+        itemStyles.some((style) =>
+          blacklist.styles.includes(style),
+        )
+      ) {
         weatherStylePenalty += 45;
       }
     });
 
-    if (hardVeto) {
+    if (details.hardVeto) {
+      details.vetoReasons = [...new Set(details.vetoReasons)];
+
+      // 100 punktów bazowych + (-1099) = końcowy wynik -999.
+      details.weatherScore = -1099;
+      details.totalScore = -999;
+
       return {
         totalScore: -999,
-        details: { message: `Zestaw niedostosowany do warunków atmosferycznych (${weatherType})` }
+        details: {
+          ...details,
+          message:
+            `Zestaw niedostosowany do warunków ` +
+            `atmosferycznych (${weatherType})`,
+        },
       };
     }
 
-    score -= weatherStylePenalty;
+    details.weatherScore -= weatherStylePenalty;
   }
 
   let matchingStylesCount = 0;
-  if (activeOccasion && OCCASION_STYLE_MATCH[activeOccasion]) {
-    const allowedStyles = OCCASION_STYLE_MATCH[activeOccasion];
-    const occasionKeywords = OCCASION_KEYWORDS[activeOccasion] || [];
 
-    outfit.forEach(item => {
-      const nameLower = item.name ? item.name.toLowerCase() : "";
+  if (
+    activeOccasion &&
+    OCCASION_STYLE_MATCH[activeOccasion]
+  ) {
+    const allowedStyles =
+      OCCASION_STYLE_MATCH[activeOccasion];
+
+    const occasionKeywords =
+      OCCASION_KEYWORDS[activeOccasion] || [];
+
+    outfit.forEach((item) => {
+      const name = item.name?.toLowerCase() || "";
       const itemStyles = parseStyles(item);
-      const styleMatches = itemStyles.some(st => allowedStyles.includes(st));
+
+      const styleMatches = itemStyles.some((style) =>
+        allowedStyles.includes(style),
+      );
 
       if (styleMatches) {
-        score += 40;
-        matchingStylesCount++;
+        details.occasionScore += 40;
+        matchingStylesCount += 1;
       } else {
-        score -= 25;
+        details.occasionScore -= 25;
       }
 
-      if (occasionKeywords.some(keyword => nameLower.includes(keyword))) {
-        score += 10;
+      if (
+        occasionKeywords.some((keyword) =>
+          name.includes(keyword),
+        )
+      ) {
+        details.occasionScore += 10;
       }
     });
 
     if (matchingStylesCount === 0) {
-      score -= 70;
+      details.occasionScore -= 70;
     }
   }
 
   if (outfit.length > 1) {
-    const color1 = outfit[0].color ? outfit[0].color.toLowerCase() : "";
-    const color2 = outfit[1].color ? outfit[1].color.toLowerCase() : "";
+    const firstColor =
+      outfit[0].color?.toLowerCase() || "";
 
-    if (color1 && color2) {
-      const harmonia1 = COLOR_HARMONIES[color1] && COLOR_HARMONIES[color1].includes(color2);
-      const harmonia2 = COLOR_HARMONIES[color2] && COLOR_HARMONIES[color2].includes(color1);
-      if (harmonia1 || harmonia2 || color1 === color2) {
-        score += 25;
+    const secondColor =
+      outfit[1].color?.toLowerCase() || "";
+
+    if (firstColor && secondColor) {
+      const firstHarmony =
+        COLOR_HARMONIES[firstColor]?.includes(secondColor);
+
+      const secondHarmony =
+        COLOR_HARMONIES[secondColor]?.includes(firstColor);
+
+      if (
+        firstHarmony ||
+        secondHarmony ||
+        firstColor === secondColor
+      ) {
+        details.colorScore += 25;
       }
     }
 
     if (outfit.length === 3) {
-      const colorShoes = outfit[2].color ? outfit[2].color.toLowerCase() : "";
-      if (colorShoes === color1 || colorShoes === color2) {
-        score += 15;
+      const shoesColor =
+        outfit[2].color?.toLowerCase() || "";
+
+      if (
+        shoesColor === firstColor ||
+        shoesColor === secondColor
+      ) {
+        details.colorScore += 15;
       }
     }
   }
 
-  let preferenceScore = 0;
-  outfit.forEach(item => {
-    parseStyles(item).forEach(st => {
-      if (userStyleWeights[st]) {
-        preferenceScore += userStyleWeights[st] * 12;
+  outfit.forEach((item) => {
+    parseStyles(item).forEach((style) => {
+      if (userStyleWeights[style]) {
+        details.preferenceScore +=
+          userStyleWeights[style] * 12;
       }
     });
+
     if (item.color && userColorWeights[item.color]) {
-      preferenceScore += userColorWeights[item.color] * 8;
+      details.preferenceScore +=
+        userColorWeights[item.color] * 8;
     }
   });
-  score += preferenceScore;
 
   if (eventContext) {
     const formalityTarget = eventContext.formality;
-    outfit.forEach(item => {
+
+    outfit.forEach((item) => {
       const itemStyles = parseStyles(item);
-      if (itemStyles.includes("Minimalizm") || itemStyles.includes("Classic")) {
-        if (formalityTarget === "Formal") score += 20;
+
+      if (
+        formalityTarget === "Formal" &&
+        (
+          itemStyles.includes("Minimalizm") ||
+          itemStyles.includes("Classic")
+        )
+      ) {
+        details.formalityScore += 20;
       }
-      if (itemStyles.includes("Streetwear") && formalityTarget === "Formal") {
-        score -= 40;
+
+      if (
+        formalityTarget === "Formal" &&
+        itemStyles.includes("Streetwear")
+      ) {
+        details.formalityScore -= 40;
       }
     });
   }
 
+  const totalScore =
+    details.baseScore +
+    details.weatherScore +
+    details.occasionScore +
+    details.colorScore +
+    details.preferenceScore +
+    details.formalityScore +
+    details.repetitionPenalty;
+
+  details.totalScore = totalScore;
+
   return {
-    totalScore: score,
-    details: {
-      styleWeights: userStyleWeights,
-      colorWeights: userColorWeights,
-      appliedOccasion: activeOccasion,
-      appliedWeather: weatherType,
-      colorScore: score >= 120 ? "Zbalansowany kolorystycznie" : "Standardowy"
-    }
+    totalScore,
+    details,
   };
 }
 
