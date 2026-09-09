@@ -8,6 +8,7 @@ const {
   parseStyles,
   calculateRepetitionPenalty,
   createOutfitKey,
+  roundScore
 } = require("../outfitEngine");
 
 const createItem = (overrides = {}) => ({
@@ -440,4 +441,9 @@ test("historia obniża ranking niedawno pokazanego zestawu", () => {
     withHistory[0].details.repetitionPenalty,
     -24,
   );
+});
+
+test("punktacja nie zapisuje artefaktów zmiennoprzecinkowych", () => {
+  assert.equal(roundScore(7.400000000000002), 7.4);
+  assert.equal(roundScore(41.800000000000004), 41.8);
 });
