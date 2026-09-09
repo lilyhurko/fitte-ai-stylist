@@ -1,0 +1,524 @@
+{
+  "baseline": "baseline-v1",
+  "commit": "2f0bc5a6b05ff55d3755bf5439d2adcc820a0f5d",
+  "generatedAt": "2026-09-09T09:32:26.842Z",
+  "algorithm": "Fitte Engine v1",
+  "scenarioCount": 5,
+  "results": [
+    {
+      "scenario": "work-clear",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": "Clear",
+        "formality": "Formal"
+      },
+      "repeatedRuns": 5,
+      "uniqueResults": 1,
+      "deterministic": true,
+      "recommendations": [
+        {
+          "position": 1,
+          "totalScore": 453,
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Klasyczne spodnie biznesowe",
+            "Ciepłe beżowe botki"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 2,
+          "totalScore": 445,
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Klasyczne spodnie biznesowe",
+            "Czarne eleganckie obcasy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 3,
+          "totalScore": 427,
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "itemNames": [
+            "Ciepły wełniany sweter",
+            "Klasyczne spodnie biznesowe",
+            "Ciepłe beżowe botki"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "date-clear",
+      "inputs": {
+        "occasion": "Randka",
+        "weather": "Clear",
+        "formality": "Semi-formal"
+      },
+      "repeatedRuns": 5,
+      "uniqueResults": 1,
+      "deterministic": true,
+      "recommendations": [
+        {
+          "position": 1,
+          "totalScore": 306,
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "itemNames": [
+            "Satynowa romantyczna bluzka",
+            "Elegancka spódnica",
+            "Czarne eleganckie obcasy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Randka",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 2,
+          "totalScore": 296,
+          "itemIds": [
+            "white-shirt",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Elegancka spódnica",
+            "Czarne eleganckie obcasy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Randka",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 3,
+          "totalScore": 280,
+          "itemIds": [
+            "wool-sweater",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "itemNames": [
+            "Ciepły wełniany sweter",
+            "Elegancka spódnica",
+            "Czarne eleganckie obcasy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Randka",
+            "appliedWeather": "Clear",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "casual-hot",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": "Hot",
+        "formality": null
+      },
+      "repeatedRuns": 5,
+      "uniqueResults": 1,
+      "deterministic": true,
+      "recommendations": [
+        {
+          "position": 1,
+          "totalScore": 291,
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "itemNames": [
+            "Bawełniany casualowy t-shirt",
+            "Elegancka spódnica",
+            "Białe wygodne sneakersy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Hot",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 2,
+          "totalScore": 273,
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "summer-sandals"
+          ],
+          "itemNames": [
+            "Bawełniany casualowy t-shirt",
+            "Elegancka spódnica",
+            "Lekkie letnie sandały"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Hot",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 3,
+          "totalScore": 195,
+          "itemIds": [
+            "white-shirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Elegancka spódnica",
+            "Białe wygodne sneakersy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Hot",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "casual-rain",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": "Rain",
+        "formality": null
+      },
+      "repeatedRuns": 5,
+      "uniqueResults": 1,
+      "deterministic": true,
+      "recommendations": [
+        {
+          "position": 1,
+          "totalScore": 366,
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "itemNames": [
+            "Bawełniany casualowy t-shirt",
+            "Codzienne jeansy",
+            "Białe wygodne sneakersy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Rain",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 2,
+          "totalScore": 349,
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "itemNames": [
+            "Ciepły wełniany sweter",
+            "Codzienne jeansy",
+            "Białe wygodne sneakersy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Rain",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 3,
+          "totalScore": 315,
+          "itemIds": [
+            "white-shirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Codzienne jeansy",
+            "Białe wygodne sneakersy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Casual",
+            "appliedWeather": "Rain",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "work-cold",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": "Cold",
+        "formality": "Formal"
+      },
+      "repeatedRuns": 5,
+      "uniqueResults": 1,
+      "deterministic": true,
+      "recommendations": [
+        {
+          "position": 1,
+          "totalScore": 453,
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Klasyczne spodnie biznesowe",
+            "Ciepłe beżowe botki"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Cold",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 2,
+          "totalScore": 445,
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "itemNames": [
+            "Biała klasyczna koszula",
+            "Klasyczne spodnie biznesowe",
+            "Czarne eleganckie obcasy"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Cold",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        },
+        {
+          "position": 3,
+          "totalScore": 427,
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "itemNames": [
+            "Ciepły wełniany sweter",
+            "Klasyczne spodnie biznesowe",
+            "Ciepłe beżowe botki"
+          ],
+          "details": {
+            "styleWeights": {
+              "Classic": 2,
+              "Minimalizm": 1,
+              "Casual": 1,
+              "Romantic": 1
+            },
+            "colorWeights": {
+              "biały": 2,
+              "granatowy": 1,
+              "beżowy": 1
+            },
+            "appliedOccasion": "Praca",
+            "appliedWeather": "Cold",
+            "colorScore": "Zbalansowany kolorystycznie"
+          }
+        }
+      ]
+    }
+  ]
+}
