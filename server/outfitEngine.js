@@ -1,48 +1,70 @@
+const {
+  RECENT_RECOMMENDATION_LIMIT,
+  REPETITION_PENALTIES,
+} = require("./config/algorithm");
+
 const OCCASION_STYLE_MATCH = {
-  "Randka": ["Chic", "Romantic"],
-  "Praca": ["Classic", "Minimalizm"],
-  "Casual": ["Casual", "Streetwear", "Boho"],
-  "Impreza": ["Modern", "Streetwear", "Chic"],
-  "Sport": ["Sport", "Streetwear"],
-  "Podróż": ["Casual", "Streetwear"]
+  Randka: ["Chic", "Romantic"],
+  Praca: ["Classic", "Minimalizm"],
+  Casual: ["Casual", "Streetwear", "Boho"],
+  Impreza: ["Modern", "Streetwear", "Chic"],
+  Sport: ["Sport", "Streetwear"],
+  Podróż: ["Casual", "Streetwear"],
 };
 
 const OCCASION_KEYWORDS = {
-  "Randka": ["sukien", "elegan", "satyn", "koronk", "obcas"],
-  "Praca": ["marynark", "koszul", "garnitur", "biznes", "klasyczn"],
-  "Casual": ["jeans", "t-shirt", "sneakers", "bluz", "codzien"],
-  "Impreza": ["cekin", "błyszcz", "satyn", "wieczorow", "glamour"],
-  "Sport": ["sportow", "dresow", "legginsy", "termoaktyw", "sneakers"],
-  "Podróż": ["wygodn", "sportow", "praktyczn", "casual"]
+  Randka: ["sukien", "elegan", "satyn", "koronk", "obcas"],
+  Praca: ["marynark", "koszul", "garnitur", "biznes", "klasyczn"],
+  Casual: ["jeans", "t-shirt", "sneakers", "bluz", "codzien"],
+  Impreza: ["cekin", "błyszcz", "satyn", "wieczorow", "glamour"],
+  Sport: ["sportow", "dresow", "legginsy", "termoaktyw", "sneakers"],
+  Podróż: ["wygodn", "sportow", "praktyczn", "casual"],
 };
 
 const WEATHER_BLACKLIST = {
-  "Rain": {
+  Rain: {
     categories: ["Sukienki", "Sandały"],
     colors: [],
-    forbiddenKeywords: ["sandał", "klapk", "siatkow"]
+    forbiddenKeywords: ["sandał", "klapk", "siatkow"],
   },
-  "Hot": {
+  Hot: {
     categories: [],
     styles: ["Classic"],
     colors: ["czarny", "ciemnobrązowy", "granatowy"],
-    forbiddenKeywords: ["bufiast", "grub", "wełn", "skórz", "kozak", "śniegowc", "marynark", "żakiet", "garnitur"]
+    forbiddenKeywords: [
+      "bufiast",
+      "grub",
+      "wełn",
+      "skórz",
+      "kozak",
+      "śniegowc",
+      "marynark",
+      "żakiet",
+      "garnitur",
+    ],
   },
-  "Cold": {
+  Cold: {
     categories: ["Sukienki", "Sandały"],
     styles: ["Boho"],
     colors: [],
-    forbiddenKeywords: ["cienki", "krótki", "jedwab", "sandał", "klapk", "letni"]
-  }
+    forbiddenKeywords: [
+      "cienki",
+      "krótki",
+      "jedwab",
+      "sandał",
+      "klapk",
+      "letni",
+    ],
+  },
 };
 
 const COLOR_HARMONIES = {
-  "czarny": ["biały", "kremowy", "beżowy", "szary", "pastelowy róż"],
-  "granatowy": ["biały", "beżowy", "kremowy", "ecru", "czerwony"],
-  "biały": ["czarny", "granatowy", "ciemnobrązowy", "beżowy", "zielono-biały"],
-  "kremowy": ["ciemnobrązowy", "czarny", "granatowy", "beżowy", "ecru"],
-  "beżowy": ["ciemnobrązowy", "biały", "kremowy", "ecru"],
-  "ciemnobrązowy": ["kremowy", "beżowy", "pastelowy róż", "ecru"]
+  czarny: ["biały", "kremowy", "beżowy", "szary", "pastelowy róż"],
+  granatowy: ["biały", "beżowy", "kremowy", "ecru", "czerwony"],
+  biały: ["czarny", "granatowy", "ciemnobrązowy", "beżowy", "zielono-biały"],
+  kremowy: ["ciemnobrązowy", "czarny", "granatowy", "beżowy", "ecru"],
+  beżowy: ["ciemnobrązowy", "biały", "kremowy", "ecru"],
+  ciemnobrązowy: ["kremowy", "beżowy", "pastelowy róż", "ecru"],
 };
 
 function parseStyles(item) {
@@ -60,12 +82,57 @@ function nameMatchesForbiddenKeyword(name, keyword) {
   return name.includes(keyword);
 }
 
+function createOutfitKey(ids) {
+  return ids.filter(Boolean).map(String).sort().join(":");
+}
+
+function calculateRepetitionPenalty(outfit, recommendationHistory = []) {
+  const currentIds = outfit
+    .map((item) => item.id)
+    .filter(Boolean)
+    .map(String);
+
+  if (currentIds.length === 0 || !Array.isArray(recommendationHistory)) {
+    return 0;
+  }
+
+  const currentKey = createOutfitKey(currentIds);
+  let penalty = 0;
+
+  recommendationHistory
+    .slice(0, RECENT_RECOMMENDATION_LIMIT)
+    .forEach((recommendation, index) => {
+      const previousIds = Array.isArray(recommendation.clothIds)
+        ? recommendation.clothIds.map(String)
+        : [];
+
+      const previousIdsSet = new Set(previousIds);
+
+      const reusedItemsCount = currentIds.filter((id) =>
+        previousIdsSet.has(id),
+      ).length;
+
+      const itemPenalty = REPETITION_PENALTIES.reusedItemByRecency[index] || 0;
+
+      penalty -= reusedItemsCount * itemPenalty;
+
+      const previousKey = createOutfitKey(previousIds);
+
+      if (previousKey && previousKey === currentKey) {
+        penalty -= REPETITION_PENALTIES.identicalOutfit;
+      }
+    });
+
+  return penalty;
+}
+
 function calculateOutfitScore(
   outfit,
   userProfile,
   eventContext,
   selectedOccasion,
   weatherType = "Clear",
+  recommendationHistory = [],
 ) {
   const userStyleWeights = userProfile?.styleWeights
     ? typeof userProfile.styleWeights === "string"
@@ -108,18 +175,12 @@ function calculateOutfitScore(
       const color = item.color?.toLowerCase() || "";
       const name = item.name?.toLowerCase() || "";
 
-      if (
-        blacklist.categories &&
-        blacklist.categories.includes(category)
-      ) {
+      if (blacklist.categories && blacklist.categories.includes(category)) {
         details.hardVeto = true;
         details.vetoReasons.push(`category:${category}`);
       }
 
-      if (
-        blacklist.colors &&
-        blacklist.colors.includes(color)
-      ) {
+      if (blacklist.colors && blacklist.colors.includes(color)) {
         details.hardVeto = true;
         details.vetoReasons.push(`color:${color}`);
       }
@@ -135,9 +196,7 @@ function calculateOutfitScore(
 
       if (
         blacklist.styles &&
-        itemStyles.some((style) =>
-          blacklist.styles.includes(style),
-        )
+        itemStyles.some((style) => blacklist.styles.includes(style))
       ) {
         weatherStylePenalty += 45;
       }
@@ -146,7 +205,6 @@ function calculateOutfitScore(
     if (details.hardVeto) {
       details.vetoReasons = [...new Set(details.vetoReasons)];
 
-      // 100 punktów bazowych + (-1099) = końcowy wynik -999.
       details.weatherScore = -1099;
       details.totalScore = -999;
 
@@ -166,15 +224,10 @@ function calculateOutfitScore(
 
   let matchingStylesCount = 0;
 
-  if (
-    activeOccasion &&
-    OCCASION_STYLE_MATCH[activeOccasion]
-  ) {
-    const allowedStyles =
-      OCCASION_STYLE_MATCH[activeOccasion];
+  if (activeOccasion && OCCASION_STYLE_MATCH[activeOccasion]) {
+    const allowedStyles = OCCASION_STYLE_MATCH[activeOccasion];
 
-    const occasionKeywords =
-      OCCASION_KEYWORDS[activeOccasion] || [];
+    const occasionKeywords = OCCASION_KEYWORDS[activeOccasion] || [];
 
     outfit.forEach((item) => {
       const name = item.name?.toLowerCase() || "";
@@ -191,11 +244,7 @@ function calculateOutfitScore(
         details.occasionScore -= 25;
       }
 
-      if (
-        occasionKeywords.some((keyword) =>
-          name.includes(keyword),
-        )
-      ) {
+      if (occasionKeywords.some((keyword) => name.includes(keyword))) {
         details.occasionScore += 10;
       }
     });
@@ -206,36 +255,24 @@ function calculateOutfitScore(
   }
 
   if (outfit.length > 1) {
-    const firstColor =
-      outfit[0].color?.toLowerCase() || "";
+    const firstColor = outfit[0].color?.toLowerCase() || "";
 
-    const secondColor =
-      outfit[1].color?.toLowerCase() || "";
+    const secondColor = outfit[1].color?.toLowerCase() || "";
 
     if (firstColor && secondColor) {
-      const firstHarmony =
-        COLOR_HARMONIES[firstColor]?.includes(secondColor);
+      const firstHarmony = COLOR_HARMONIES[firstColor]?.includes(secondColor);
 
-      const secondHarmony =
-        COLOR_HARMONIES[secondColor]?.includes(firstColor);
+      const secondHarmony = COLOR_HARMONIES[secondColor]?.includes(firstColor);
 
-      if (
-        firstHarmony ||
-        secondHarmony ||
-        firstColor === secondColor
-      ) {
+      if (firstHarmony || secondHarmony || firstColor === secondColor) {
         details.colorScore += 25;
       }
     }
 
     if (outfit.length === 3) {
-      const shoesColor =
-        outfit[2].color?.toLowerCase() || "";
+      const shoesColor = outfit[2].color?.toLowerCase() || "";
 
-      if (
-        shoesColor === firstColor ||
-        shoesColor === secondColor
-      ) {
+      if (shoesColor === firstColor || shoesColor === secondColor) {
         details.colorScore += 15;
       }
     }
@@ -244,14 +281,12 @@ function calculateOutfitScore(
   outfit.forEach((item) => {
     parseStyles(item).forEach((style) => {
       if (userStyleWeights[style]) {
-        details.preferenceScore +=
-          userStyleWeights[style] * 12;
+        details.preferenceScore += userStyleWeights[style] * 12;
       }
     });
 
     if (item.color && userColorWeights[item.color]) {
-      details.preferenceScore +=
-        userColorWeights[item.color] * 8;
+      details.preferenceScore += userColorWeights[item.color] * 8;
     }
   });
 
@@ -263,23 +298,20 @@ function calculateOutfitScore(
 
       if (
         formalityTarget === "Formal" &&
-        (
-          itemStyles.includes("Minimalizm") ||
-          itemStyles.includes("Classic")
-        )
+        (itemStyles.includes("Minimalizm") || itemStyles.includes("Classic"))
       ) {
         details.formalityScore += 20;
       }
 
-      if (
-        formalityTarget === "Formal" &&
-        itemStyles.includes("Streetwear")
-      ) {
+      if (formalityTarget === "Formal" && itemStyles.includes("Streetwear")) {
         details.formalityScore -= 40;
       }
     });
   }
-
+  details.repetitionPenalty = calculateRepetitionPenalty(
+    outfit,
+    recommendationHistory,
+  );
   const totalScore =
     details.baseScore +
     details.weatherScore +
@@ -297,12 +329,23 @@ function calculateOutfitScore(
   };
 }
 
-
 const NON_OUTFIT_KEYWORDS = [
-  "strój kąpielowy", "stroj kapielowy", "kostium kąpielowy", "kostium kapielowy",
-  "kąpielówki", "kapielowki", "bikini",
-  "biustonosz", "stanik", "majtki", "figi", "bielizna",
-  "piżama", "pizama", "szlafrok", "bokserki"
+  "strój kąpielowy",
+  "stroj kapielowy",
+  "kostium kąpielowy",
+  "kostium kapielowy",
+  "kąpielówki",
+  "kapielowki",
+  "bikini",
+  "biustonosz",
+  "stanik",
+  "majtki",
+  "figi",
+  "bielizna",
+  "piżama",
+  "pizama",
+  "szlafrok",
+  "bokserki",
 ];
 
 function isNonOutfitItem(item) {
@@ -315,45 +358,82 @@ function isNonOutfitItem(item) {
   return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
 }
 
-function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasion, weatherType = "Clear") {
+function generateBestOutfits(
+  clothes,
+  userProfile,
+  eventContext,
+  selectedOccasion,
+  weatherType = "Clear",
+  recommendationHistory = [],
+) {
   const wearableClothes = (clothes || []).filter((c) => !isNonOutfitItem(c));
 
-  const goras = wearableClothes.filter(c => c.category === "Góra");
-  const dols = wearableClothes.filter(c => c.category === "Dół");
-  const sukienki = wearableClothes.filter(c => c.category === "Sukienki");
-  const buty = wearableClothes.filter(c => c.category === "Buty" || c.category === "Obuwie");
+  const goras = wearableClothes.filter((c) => c.category === "Góra");
+  const dols = wearableClothes.filter((c) => c.category === "Dół");
+  const sukienki = wearableClothes.filter((c) => c.category === "Sukienki");
+  const buty = wearableClothes.filter(
+    (c) => c.category === "Buty" || c.category === "Obuwie",
+  );
 
   let combinations = [];
 
   if (buty.length === 0) {
-    goras.forEach(g => {
-      dols.forEach(d => {
+    goras.forEach((g) => {
+      dols.forEach((d) => {
         const outfit = [g, d];
-        const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
+        const scoring = calculateOutfitScore(
+          outfit,
+          userProfile,
+          eventContext,
+          selectedOccasion,
+          weatherType,
+          recommendationHistory,
+        );
         combinations.push({ outfit, ...scoring });
       });
     });
 
-    sukienki.forEach(s => {
+    sukienki.forEach((s) => {
       const outfit = [s];
-      const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
+      const scoring = calculateOutfitScore(
+        outfit,
+        userProfile,
+        eventContext,
+        selectedOccasion,
+        weatherType,
+        recommendationHistory,
+      );
       combinations.push({ outfit, ...scoring });
     });
   } else {
-    goras.forEach(g => {
-      dols.forEach(d => {
-        buty.forEach(b => {
+    goras.forEach((g) => {
+      dols.forEach((d) => {
+        buty.forEach((b) => {
           const outfit = [g, d, b];
-          const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
+          const scoring = calculateOutfitScore(
+            outfit,
+            userProfile,
+            eventContext,
+            selectedOccasion,
+            weatherType,
+            recommendationHistory,
+          );
           combinations.push({ outfit, ...scoring });
         });
       });
     });
 
-    sukienki.forEach(s => {
-      buty.forEach(b => {
+    sukienki.forEach((s) => {
+      buty.forEach((b) => {
         const outfit = [s, b];
-        const scoring = calculateOutfitScore(outfit, userProfile, eventContext, selectedOccasion, weatherType);
+        const scoring = calculateOutfitScore(
+          outfit,
+          userProfile,
+          eventContext,
+          selectedOccasion,
+          weatherType,
+          recommendationHistory,
+        );
         combinations.push({ outfit, ...scoring });
       });
     });
@@ -363,19 +443,37 @@ function generateBestOutfits(clothes, userProfile, eventContext, selectedOccasio
   return combinations.slice(0, 3);
 }
 
-
 const WEATHER_FRIENDLY_KEYWORDS = {
-  "Hot": ["lnian", "bawełnian", "przewiewn", "letni", "krótk", "sandał", "bez rękaw", "koszulk"],
-  "Cold": ["wełn", "ciepł", "grub", "dzianin", "swetr", "kurtk", "płaszcz", "polar", "kożuch"],
-  "Rain": ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
-  "Clear": []
+  Hot: [
+    "lnian",
+    "bawełnian",
+    "przewiewn",
+    "letni",
+    "krótk",
+    "sandał",
+    "bez rękaw",
+    "koszulk",
+  ],
+  Cold: [
+    "wełn",
+    "ciepł",
+    "grub",
+    "dzianin",
+    "swetr",
+    "kurtk",
+    "płaszcz",
+    "polar",
+    "kożuch",
+  ],
+  Rain: ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
+  Clear: [],
 };
 
 const WEATHER_COLOR_BONUS = {
-  "Hot": ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
-  "Cold": ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
-  "Rain": [],
-  "Clear": []
+  Hot: ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
+  Cold: ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
+  Rain: [],
+  Clear: [],
 };
 
 function scoreWeatherFit(item, weatherTypes) {
@@ -407,5 +505,7 @@ module.exports = {
   OCCASION_STYLE_MATCH,
   OCCASION_KEYWORDS,
   WEATHER_BLACKLIST,
-  COLOR_HARMONIES
+  COLOR_HARMONIES,
+  createOutfitKey,
+  calculateRepetitionPenalty,
 };

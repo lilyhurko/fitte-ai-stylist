@@ -7,6 +7,8 @@ const {
   FITTE_ALGORITHM_VERSION,
   FITTE_EXPLANATION_PROMPT_VERSION,
   FITTE_EXPLANATION_CONFIG,
+  RECENT_RECOMMENDATION_LIMIT,
+  REPETITION_PENALTIES,
 } = require("../config/algorithm");
 
 async function askFitteEngine(
@@ -18,12 +20,27 @@ async function askFitteEngine(
   weatherType,
 ) {
   try {
+    const recommendationHistory = await prisma.outfitRecommendation.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: RECENT_RECOMMENDATION_LIMIT,
+      select: {
+        id: true,
+        clothIds: true,
+        createdAt: true,
+      },
+    });
     const topRecommendations = generateBestOutfits(
       clothes,
       user,
       currentEvent,
       selectedOccasion,
       weatherType,
+      recommendationHistory,
     );
 
     if (!topRecommendations || topRecommendations.length === 0) {
@@ -100,6 +117,13 @@ async function askFitteEngine(
         selectionSeed: null,
 
         contextSnapshot: {
+          recentRecommendations: recommendationHistory.map(
+            (recommendation) => ({
+              id: recommendation.id,
+              clothIds: recommendation.clothIds,
+              createdAt: recommendation.createdAt.toISOString(),
+            }),
+          ),
           selectedOccasion,
           appliedOccasion: bestSet.details.appliedOccasion || null,
           weatherType,
@@ -116,7 +140,13 @@ async function askFitteEngine(
             : null,
         },
 
-        generationConfig: FITTE_EXPLANATION_CONFIG,
+        generationConfig: {
+          explanation: FITTE_EXPLANATION_CONFIG,
+          recommendation: {
+            recentRecommendationLimit: RECENT_RECOMMENDATION_LIMIT,
+            repetitionPenalties: REPETITION_PENALTIES,
+          },
+        },
       },
     });
 

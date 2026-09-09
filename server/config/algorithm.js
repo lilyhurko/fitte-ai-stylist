@@ -1,4 +1,4 @@
-const FITTE_ALGORITHM_VERSION = "fitte-v1.1-explainable";
+const FITTE_ALGORITHM_VERSION = "fitte-v2.0-repetition-aware";
 const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
 
 const FITTE_EXPLANATION_CONFIG = Object.freeze({
@@ -7,8 +7,17 @@ const FITTE_EXPLANATION_CONFIG = Object.freeze({
   maxCompletionTokens: 256,
 });
 
+const RECENT_RECOMMENDATION_LIMIT = 3;
+
+const REPETITION_PENALTIES = Object.freeze({
+  identicalOutfit: 40,
+  reusedItemByRecency: Object.freeze([12, 8, 4]),
+});
+
 module.exports = {
   FITTE_ALGORITHM_VERSION,
   FITTE_EXPLANATION_PROMPT_VERSION,
   FITTE_EXPLANATION_CONFIG,
+  RECENT_RECOMMENDATION_LIMIT,
+  REPETITION_PENALTIES,
 };

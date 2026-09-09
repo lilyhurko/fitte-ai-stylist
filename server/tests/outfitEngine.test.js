@@ -6,6 +6,8 @@ const {
   generateBestOutfits,
   isNonOutfitItem,
   parseStyles,
+  calculateRepetitionPenalty,
+  createOutfitKey,
 } = require("../outfitEngine");
 
 const createItem = (overrides = {}) => ({
@@ -22,11 +24,7 @@ test("parseStyles rozdziela wiele stylów ubrania", () => {
     style: "Classic, Minimalizm, Romantic",
   });
 
-  assert.deepEqual(parseStyles(item), [
-    "Classic",
-    "Minimalizm",
-    "Romantic",
-  ]);
+  assert.deepEqual(parseStyles(item), ["Classic", "Minimalizm", "Romantic"]);
 });
 
 test("isNonOutfitItem odrzuca bieliznę i ubrania domowe", () => {
@@ -112,13 +110,7 @@ test("twarde niedopasowanie pogodowe daje wynik -999", () => {
     color: "beżowy",
   });
 
-  const result = calculateOutfitScore(
-    [sandals],
-    {},
-    null,
-    "Casual",
-    "Rain",
-  );
+  const result = calculateOutfitScore([sandals], {}, null, "Casual", "Rain");
 
   assert.equal(result.totalScore, -999);
   assert.match(result.details.message, /Rain/);
@@ -170,13 +162,7 @@ test("generateBestOutfits zwraca maksymalnie trzy posortowane zestawy", () => {
     }),
   ];
 
-  const results = generateBestOutfits(
-    clothes,
-    {},
-    null,
-    "Praca",
-    "Clear",
-  );
+  const results = generateBestOutfits(clothes, {}, null, "Praca", "Clear");
 
   assert.equal(results.length, 3);
 
@@ -212,21 +198,9 @@ test("identyczne dane wejściowe dają identyczny ranking baseline", () => {
     }),
   ];
 
-  const firstRun = generateBestOutfits(
-    clothes,
-    {},
-    null,
-    "Casual",
-    "Clear",
-  );
+  const firstRun = generateBestOutfits(clothes, {}, null, "Casual", "Clear");
 
-  const secondRun = generateBestOutfits(
-    clothes,
-    {},
-    null,
-    "Casual",
-    "Clear",
-  );
+  const secondRun = generateBestOutfits(clothes, {}, null, "Casual", "Clear");
 
   assert.deepEqual(secondRun, firstRun);
 });
@@ -238,13 +212,7 @@ test("ciemne ubranie otrzymuje twarde weto podczas upału", () => {
     color: "czarny",
   });
 
-  const result = calculateOutfitScore(
-    [darkItem],
-    {},
-    null,
-    "Casual",
-    "Hot",
-  );
+  const result = calculateOutfitScore([darkItem], {}, null, "Casual", "Hot");
 
   assert.equal(result.totalScore, -999);
 });
@@ -347,17 +315,129 @@ test("kara za styl niedopasowany do pogody jest osobnym składnikiem", () => {
     color: "biały",
   });
 
-  const result = calculateOutfitScore(
-    [item],
-    {},
-    null,
-    null,
-    "Hot",
-  );
+  const result = calculateOutfitScore([item], {}, null, null, "Hot");
 
   assert.equal(result.details.baseScore, 100);
   assert.equal(result.details.weatherScore, -45);
   assert.equal(result.details.occasionScore, 0);
   assert.equal(result.details.colorScore, 0);
   assert.equal(result.totalScore, 55);
+});
+
+test("klucz zestawu nie zależy od kolejności elementów", () => {
+  assert.equal(
+    createOutfitKey(["shoe", "top", "bottom"]),
+    createOutfitKey(["bottom", "shoe", "top"]),
+  );
+});
+
+test("brak historii nie nakłada kary za powtórzenie", () => {
+  const outfit = [
+    createItem({ id: "top" }),
+    createItem({ id: "bottom", category: "Dół" }),
+  ];
+
+  assert.equal(
+    calculateRepetitionPenalty(outfit, []),
+    0,
+  );
+});
+
+test("niedawno użyte elementy otrzymują karę", () => {
+  const outfit = [
+    createItem({ id: "top" }),
+    createItem({ id: "bottom", category: "Dół" }),
+    createItem({ id: "shoes", category: "Obuwie" }),
+  ];
+
+  const history = [
+    {
+      clothIds: ["top", "different-bottom", "shoes"],
+    },
+  ];
+
+  assert.equal(
+    calculateRepetitionPenalty(outfit, history),
+    -24,
+  );
+});
+
+test("identyczny ostatni zestaw otrzymuje dodatkową karę", () => {
+  const outfit = [
+    createItem({ id: "top" }),
+    createItem({ id: "bottom", category: "Dół" }),
+    createItem({ id: "shoes", category: "Obuwie" }),
+  ];
+
+  const history = [
+    {
+      clothIds: ["shoes", "top", "bottom"],
+    },
+  ];
+
+  assert.equal(
+    calculateRepetitionPenalty(outfit, history),
+    -76,
+  );
+});
+
+test("historia obniża ranking niedawno pokazanego zestawu", () => {
+  const clothes = [
+    createItem({
+      id: "top-a",
+      category: "Góra",
+      style: "Casual",
+    }),
+    createItem({
+      id: "top-b",
+      category: "Góra",
+      style: "Casual",
+    }),
+    createItem({
+      id: "bottom",
+      category: "Dół",
+      style: "Casual",
+    }),
+    createItem({
+      id: "shoes",
+      category: "Obuwie",
+      style: "Casual",
+    }),
+  ];
+
+  const withoutHistory = generateBestOutfits(
+    clothes,
+    {},
+    null,
+    "Casual",
+    "Clear",
+  );
+
+  const withHistory = generateBestOutfits(
+    clothes,
+    {},
+    null,
+    "Casual",
+    "Clear",
+    [
+      {
+        clothIds: ["top-a", "bottom", "shoes"],
+      },
+    ],
+  );
+
+  assert.equal(
+    withoutHistory[0].outfit[0].id,
+    "top-a",
+  );
+
+  assert.equal(
+    withHistory[0].outfit[0].id,
+    "top-b",
+  );
+
+  assert.equal(
+    withHistory[0].details.repetitionPenalty,
+    -24,
+  );
 });
