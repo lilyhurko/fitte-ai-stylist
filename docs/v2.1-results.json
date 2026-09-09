@@ -1,0 +1,528 @@
+{
+  "experiment": "fitte-v2.1-evaluation",
+  "algorithmVersion": "fitte-v2.1-quality-pool-seeded",
+  "generatedAt": "2026-09-09T21:35:48.681Z",
+  "configuration": {
+    "runsPerScenario": 5,
+    "recentRecommendationLimit": 3,
+    "qualityPoolMaxScoreGap": 20,
+    "seedStrategy": "fixed-scenario-run-seed"
+  },
+  "scenarioCount": 5,
+  "results": [
+    {
+      "scenario": "work-clear",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": "Clear",
+        "formality": "Formal"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 3,
+      "repetitionRate": 0.4,
+      "consecutiveRepeatRate": 0,
+      "averageScore": 406.2,
+      "averageQualityLoss": 5.2,
+      "maximumQualityLoss": 14,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "work-clear-run-1",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 445,
+          "bestAvailableScore": 453,
+          "qualityLoss": 8,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "work-clear-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 429,
+          "bestAvailableScore": 429,
+          "qualityLoss": 0,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "work-clear-run-3",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 391,
+          "bestAvailableScore": 395,
+          "qualityLoss": 4,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "work-clear-run-4",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 369,
+          "bestAvailableScore": 383,
+          "qualityLoss": 14,
+          "repetitionPenalty": -84,
+          "repeated": true
+        },
+        {
+          "run": 5,
+          "selectionSeed": "work-clear-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 397,
+          "bestAvailableScore": 397,
+          "qualityLoss": 0,
+          "repetitionPenalty": -48,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "date-clear",
+      "inputs": {
+        "occasion": "Randka",
+        "weather": "Clear",
+        "formality": "Semi-formal"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "repetitionRate": 0.2,
+      "consecutiveRepeatRate": 0,
+      "averageScore": 264.2,
+      "averageQualityLoss": 1.6,
+      "maximumQualityLoss": 8,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "date-clear-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-skirt+black-heels+pink-blouse",
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 306,
+          "bestAvailableScore": 306,
+          "qualityLoss": 0,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "date-clear-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-skirt+black-heels+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 272,
+          "bestAvailableScore": 272,
+          "qualityLoss": 0,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "date-clear-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 3,
+          "signature": "black-heels+pink-dress",
+          "itemIds": [
+            "pink-dress",
+            "black-heels"
+          ],
+          "score": 241,
+          "bestAvailableScore": 241,
+          "qualityLoss": 0,
+          "repetitionPenalty": -20,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "date-clear-run-4",
+          "selectedCandidateIndex": 2,
+          "qualityPoolSize": 3,
+          "signature": "beige-skirt+black-heels+casual-tshirt",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 236,
+          "bestAvailableScore": 244,
+          "qualityLoss": 8,
+          "repetitionPenalty": -36,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "date-clear-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+black-heels+pink-blouse",
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 266,
+          "bestAvailableScore": 266,
+          "qualityLoss": 0,
+          "repetitionPenalty": -40,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-hot",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": "Hot",
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 2,
+      "repetitionRate": 0.6,
+      "consecutiveRepeatRate": 0,
+      "averageScore": 223,
+      "averageQualityLoss": 0,
+      "maximumQualityLoss": 0,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-hot-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-skirt+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "score": 291,
+          "bestAvailableScore": 291,
+          "qualityLoss": 0,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-hot-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+casual-tshirt+summer-sandals",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "summer-sandals"
+          ],
+          "score": 249,
+          "bestAvailableScore": 249,
+          "qualityLoss": 0,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-hot-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "score": 203,
+          "bestAvailableScore": 203,
+          "qualityLoss": 0,
+          "repetitionPenalty": -88,
+          "repeated": true
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-hot-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+casual-tshirt+summer-sandals",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "summer-sandals"
+          ],
+          "score": 177,
+          "bestAvailableScore": 177,
+          "qualityLoss": 0,
+          "repetitionPenalty": -96,
+          "repeated": true
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-hot-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "score": 195,
+          "bestAvailableScore": 195,
+          "qualityLoss": 0,
+          "repetitionPenalty": -96,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-rain",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": "Rain",
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "repetitionRate": 0.2,
+      "consecutiveRepeatRate": 0,
+      "averageScore": 302,
+      "averageQualityLoss": 6.8,
+      "maximumQualityLoss": 13,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-rain-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 366,
+          "bestAvailableScore": 366,
+          "qualityLoss": 0,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-rain-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 325,
+          "bestAvailableScore": 325,
+          "qualityLoss": 0,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-rain-run-3",
+          "selectedCandidateIndex": 2,
+          "qualityPoolSize": 3,
+          "signature": "blue-jeans+white-shirt+white-sneakers",
+          "itemIds": [
+            "white-shirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 275,
+          "bestAvailableScore": 287,
+          "qualityLoss": 12,
+          "repetitionPenalty": -40,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-rain-run-4",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 274,
+          "bestAvailableScore": 287,
+          "qualityLoss": 13,
+          "repetitionPenalty": -92,
+          "repeated": true
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-rain-run-5",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 3,
+          "signature": "navy-trousers+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "white-sneakers"
+          ],
+          "score": 270,
+          "bestAvailableScore": 279,
+          "qualityLoss": 9,
+          "repetitionPenalty": -28,
+          "repeated": false
+        }
+      ]
+    },
+    {
+      "scenario": "work-cold",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": "Cold",
+        "formality": "Formal"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "repetitionRate": 0.2,
+      "consecutiveRepeatRate": 0,
+      "averageScore": 411.4,
+      "averageQualityLoss": 2.4,
+      "maximumQualityLoss": 8,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "work-cold-run-1",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 445,
+          "bestAvailableScore": 453,
+          "qualityLoss": 8,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "work-cold-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 429,
+          "bestAvailableScore": 429,
+          "qualityLoss": 0,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "work-cold-run-3",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 391,
+          "bestAvailableScore": 395,
+          "qualityLoss": 4,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "work-cold-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 383,
+          "bestAvailableScore": 383,
+          "qualityLoss": 0,
+          "repetitionPenalty": -44,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "work-cold-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "black-heels+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 409,
+          "bestAvailableScore": 409,
+          "qualityLoss": 0,
+          "repetitionPenalty": -36,
+          "repeated": true
+        }
+      ]
+    }
+  ]
+}
