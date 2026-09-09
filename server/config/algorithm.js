@@ -1,4 +1,4 @@
-const FITTE_ALGORITHM_VERSION = "fitte-v2.0-repetition-aware";
+const FITTE_ALGORITHM_VERSION = "fitte-v2.1-quality-pool-seeded";
 const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
 
 const FITTE_EXPLANATION_CONFIG = Object.freeze({

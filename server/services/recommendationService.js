@@ -9,7 +9,12 @@ const {
   FITTE_EXPLANATION_CONFIG,
   RECENT_RECOMMENDATION_LIMIT,
   REPETITION_PENALTIES,
+  QUALITY_POOL_MAX_SCORE_GAP,
 } = require("../config/algorithm");
+const {
+  createSelectionSeed,
+  selectCandidateFromPool,
+} = require("./recommendationSelectionService");
 
 async function askFitteEngine(
   query,
@@ -53,7 +58,12 @@ async function askFitteEngine(
       };
     }
 
-    const bestSet = topRecommendations[0];
+    const selectionSeed = createSelectionSeed();
+
+    const { candidate: bestSet, selectionIndex } = selectCandidateFromPool(
+      topRecommendations,
+      selectionSeed,
+    );
     const itemsDescription = bestSet.outfit
       .map((i) => `${i.name} (Styl: ${i.style}, Kolor: ${i.color})`)
       .join(" oraz ");
@@ -114,9 +124,15 @@ async function askFitteEngine(
         algorithmVersion: FITTE_ALGORITHM_VERSION,
         explanationModel,
         promptVersion: FITTE_EXPLANATION_PROMPT_VERSION,
-        selectionSeed: null,
+        selectionSeed,
 
         contextSnapshot: {
+          selectedCandidateIndex: selectionIndex,
+          qualityPool: topRecommendations.map((candidate, index) => ({
+            index,
+            clothIds: candidate.outfit.map((item) => item.id),
+            totalScore: candidate.totalScore,
+          })),
           recentRecommendations: recommendationHistory.map(
             (recommendation) => ({
               id: recommendation.id,
@@ -145,6 +161,9 @@ async function askFitteEngine(
           recommendation: {
             recentRecommendationLimit: RECENT_RECOMMENDATION_LIMIT,
             repetitionPenalties: REPETITION_PENALTIES,
+            qualityPoolMaxScoreGap: QUALITY_POOL_MAX_SCORE_GAP,
+            qualityPoolSize: topRecommendations.length,
+            selectionStrategy: "sha256-seeded-index",
           },
         },
       },
