@@ -1,6 +1,7 @@
 const {
   RECENT_RECOMMENDATION_LIMIT,
   REPETITION_PENALTIES,
+  QUALITY_POOL_MAX_SCORE_GAP,
 } = require("./config/algorithm");
 
 const OCCASION_STYLE_MATCH = {
@@ -341,71 +342,75 @@ function calculateOutfitScore(
 }
 
 const NON_OUTFIT_KEYWORDS = [
-    "strój kąpielowy",
-    "stroj kapielowy",
-    "kostium kąpielowy",
-    "kostium kapielowy",
-    "kąpielówki",
-    "kapielowki",
-    "bikini",
-    "biustonosz",
-    "stanik",
-    "majtki",
-    "figi",
-    "bielizna",
-    "piżama",
-    "pizama",
-    "szlafrok",
-    "bokserki",
-  ];
+  "strój kąpielowy",
+  "stroj kapielowy",
+  "kostium kąpielowy",
+  "kostium kapielowy",
+  "kąpielówki",
+  "kapielowki",
+  "bikini",
+  "biustonosz",
+  "stanik",
+  "majtki",
+  "figi",
+  "bielizna",
+  "piżama",
+  "pizama",
+  "szlafrok",
+  "bokserki",
+];
 
 function isNonOutfitItem(item) {
-    if (!item) return false;
-    const category = (item.category || "").toLowerCase();
-    const name = (item.name || "").toLowerCase();
+  if (!item) return false;
+  const category = (item.category || "").toLowerCase();
+  const name = (item.name || "").toLowerCase();
 
-    if (category === "bielizna") return true;
+  if (category === "bielizna") return true;
 
-    return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
+  return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
+}
+function createQualityPool(
+  combinations,
+  maxScoreGap = QUALITY_POOL_MAX_SCORE_GAP,
+) {
+  if (!Array.isArray(combinations) || combinations.length === 0) {
+    return [];
   }
 
+  const sortedCombinations = [...combinations].sort(
+    (a, b) => b.totalScore - a.totalScore,
+  );
+
+  const bestScore = sortedCombinations[0].totalScore;
+
+  return sortedCombinations.filter(
+    (candidate) => candidate.totalScore >= bestScore - maxScoreGap,
+  );
+}
+
 function generateBestOutfits(
-    clothes,
-    userProfile,
-    eventContext,
-    selectedOccasion,
-    weatherType = "Clear",
-    recommendationHistory = [],
-  ) {
-    const wearableClothes = (clothes || []).filter((c) => !isNonOutfitItem(c));
+  clothes,
+  userProfile,
+  eventContext,
+  selectedOccasion,
+  weatherType = "Clear",
+  recommendationHistory = [],
+) {
+  const wearableClothes = (clothes || []).filter((c) => !isNonOutfitItem(c));
 
-    const goras = wearableClothes.filter((c) => c.category === "Góra");
-    const dols = wearableClothes.filter((c) => c.category === "Dół");
-    const sukienki = wearableClothes.filter((c) => c.category === "Sukienki");
-    const buty = wearableClothes.filter(
-      (c) => c.category === "Buty" || c.category === "Obuwie",
-    );
+  const goras = wearableClothes.filter((c) => c.category === "Góra");
+  const dols = wearableClothes.filter((c) => c.category === "Dół");
+  const sukienki = wearableClothes.filter((c) => c.category === "Sukienki");
+  const buty = wearableClothes.filter(
+    (c) => c.category === "Buty" || c.category === "Obuwie",
+  );
 
-    let combinations = [];
+  let combinations = [];
 
-    if (buty.length === 0) {
-      goras.forEach((g) => {
-        dols.forEach((d) => {
-          const outfit = [g, d];
-          const scoring = calculateOutfitScore(
-            outfit,
-            userProfile,
-            eventContext,
-            selectedOccasion,
-            weatherType,
-            recommendationHistory,
-          );
-          combinations.push({ outfit, ...scoring });
-        });
-      });
-
-      sukienki.forEach((s) => {
-        const outfit = [s];
+  if (buty.length === 0) {
+    goras.forEach((g) => {
+      dols.forEach((d) => {
+        const outfit = [g, d];
         const scoring = calculateOutfitScore(
           outfit,
           userProfile,
@@ -416,27 +421,25 @@ function generateBestOutfits(
         );
         combinations.push({ outfit, ...scoring });
       });
-    } else {
-      goras.forEach((g) => {
-        dols.forEach((d) => {
-          buty.forEach((b) => {
-            const outfit = [g, d, b];
-            const scoring = calculateOutfitScore(
-              outfit,
-              userProfile,
-              eventContext,
-              selectedOccasion,
-              weatherType,
-              recommendationHistory,
-            );
-            combinations.push({ outfit, ...scoring });
-          });
-        });
-      });
+    });
 
-      sukienki.forEach((s) => {
+    sukienki.forEach((s) => {
+      const outfit = [s];
+      const scoring = calculateOutfitScore(
+        outfit,
+        userProfile,
+        eventContext,
+        selectedOccasion,
+        weatherType,
+        recommendationHistory,
+      );
+      combinations.push({ outfit, ...scoring });
+    });
+  } else {
+    goras.forEach((g) => {
+      dols.forEach((d) => {
         buty.forEach((b) => {
-          const outfit = [s, b];
+          const outfit = [g, d, b];
           const scoring = calculateOutfitScore(
             outfit,
             userProfile,
@@ -448,61 +451,78 @@ function generateBestOutfits(
           combinations.push({ outfit, ...scoring });
         });
       });
-    }
-
-    combinations.sort((a, b) => b.totalScore - a.totalScore);
-    return combinations.slice(0, 3);
-  }
-
-const WEATHER_FRIENDLY_KEYWORDS = {
-    Hot: [
-      "lnian",
-      "bawełnian",
-      "przewiewn",
-      "letni",
-      "krótk",
-      "sandał",
-      "bez rękaw",
-      "koszulk",
-    ],
-    Cold: [
-      "wełn",
-      "ciepł",
-      "grub",
-      "dzianin",
-      "swetr",
-      "kurtk",
-      "płaszcz",
-      "polar",
-      "kożuch",
-    ],
-    Rain: ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
-    Clear: [],
-  };
-
-const WEATHER_COLOR_BONUS = {
-    Hot: ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
-    Cold: ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
-    Rain: [],
-    Clear: [],
-  };
-
-function scoreWeatherFit(item, weatherTypes) {
-    if (!weatherTypes || weatherTypes.length === 0) return 0;
-
-    const name = item.name ? item.name.toLowerCase() : "";
-    const color = item.color ? item.color.toLowerCase() : "";
-    let score = 0;
-
-    weatherTypes.forEach((wt) => {
-      const keywords = WEATHER_FRIENDLY_KEYWORDS[wt] || [];
-      if (keywords.some((k) => name.includes(k))) score += 15;
-
-      const bonusColors = WEATHER_COLOR_BONUS[wt] || [];
-      if (bonusColors.includes(color)) score += 8;
     });
 
-    return score / weatherTypes.length;
+    sukienki.forEach((s) => {
+      buty.forEach((b) => {
+        const outfit = [s, b];
+        const scoring = calculateOutfitScore(
+          outfit,
+          userProfile,
+          eventContext,
+          selectedOccasion,
+          weatherType,
+          recommendationHistory,
+        );
+        combinations.push({ outfit, ...scoring });
+      });
+    });
+  }
+
+ const qualityPool = createQualityPool(combinations);
+
+return qualityPool.slice(0, 3);
+}
+
+const WEATHER_FRIENDLY_KEYWORDS = {
+  Hot: [
+    "lnian",
+    "bawełnian",
+    "przewiewn",
+    "letni",
+    "krótk",
+    "sandał",
+    "bez rękaw",
+    "koszulk",
+  ],
+  Cold: [
+    "wełn",
+    "ciepł",
+    "grub",
+    "dzianin",
+    "swetr",
+    "kurtk",
+    "płaszcz",
+    "polar",
+    "kożuch",
+  ],
+  Rain: ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
+  Clear: [],
+};
+
+const WEATHER_COLOR_BONUS = {
+  Hot: ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
+  Cold: ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
+  Rain: [],
+  Clear: [],
+};
+
+function scoreWeatherFit(item, weatherTypes) {
+  if (!weatherTypes || weatherTypes.length === 0) return 0;
+
+  const name = item.name ? item.name.toLowerCase() : "";
+  const color = item.color ? item.color.toLowerCase() : "";
+  let score = 0;
+
+  weatherTypes.forEach((wt) => {
+    const keywords = WEATHER_FRIENDLY_KEYWORDS[wt] || [];
+    if (keywords.some((k) => name.includes(k))) score += 15;
+
+    const bonusColors = WEATHER_COLOR_BONUS[wt] || [];
+    if (bonusColors.includes(color)) score += 8;
+  });
+
+  return score / weatherTypes.length;
 }
 
 module.exports = {
@@ -520,4 +540,5 @@ module.exports = {
   createOutfitKey,
   calculateRepetitionPenalty,
   roundScore,
+  createQualityPool,
 };

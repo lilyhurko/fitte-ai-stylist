@@ -8,7 +8,8 @@ const {
   parseStyles,
   calculateRepetitionPenalty,
   createOutfitKey,
-  roundScore
+  createQualityPool,
+  roundScore,
 } = require("../outfitEngine");
 
 const createItem = (overrides = {}) => ({
@@ -165,10 +166,12 @@ test("generateBestOutfits zwraca maksymalnie trzy posortowane zestawy", () => {
 
   const results = generateBestOutfits(clothes, {}, null, "Praca", "Clear");
 
-  assert.equal(results.length, 3);
+  assert.ok(results.length >= 1);
+  assert.ok(results.length <= 3);
 
-  assert.ok(results[0].totalScore >= results[1].totalScore);
-  assert.ok(results[1].totalScore >= results[2].totalScore);
+  for (let index = 1; index < results.length; index += 1) {
+    assert.ok(results[index - 1].totalScore >= results[index].totalScore);
+  }
 
   results.forEach((result) => {
     assert.equal(result.outfit.length, 3);
@@ -338,10 +341,7 @@ test("brak historii nie nakłada kary za powtórzenie", () => {
     createItem({ id: "bottom", category: "Dół" }),
   ];
 
-  assert.equal(
-    calculateRepetitionPenalty(outfit, []),
-    0,
-  );
+  assert.equal(calculateRepetitionPenalty(outfit, []), 0);
 });
 
 test("niedawno użyte elementy otrzymują karę", () => {
@@ -357,10 +357,7 @@ test("niedawno użyte elementy otrzymują karę", () => {
     },
   ];
 
-  assert.equal(
-    calculateRepetitionPenalty(outfit, history),
-    -24,
-  );
+  assert.equal(calculateRepetitionPenalty(outfit, history), -24);
 });
 
 test("identyczny ostatni zestaw otrzymuje dodatkową karę", () => {
@@ -376,10 +373,7 @@ test("identyczny ostatni zestaw otrzymuje dodatkową karę", () => {
     },
   ];
 
-  assert.equal(
-    calculateRepetitionPenalty(outfit, history),
-    -76,
-  );
+  assert.equal(calculateRepetitionPenalty(outfit, history), -76);
 });
 
 test("historia obniża ranking niedawno pokazanego zestawu", () => {
@@ -427,23 +421,30 @@ test("historia obniża ranking niedawno pokazanego zestawu", () => {
     ],
   );
 
-  assert.equal(
-    withoutHistory[0].outfit[0].id,
-    "top-a",
-  );
+  assert.equal(withoutHistory[0].outfit[0].id, "top-a");
 
-  assert.equal(
-    withHistory[0].outfit[0].id,
-    "top-b",
-  );
+  assert.equal(withHistory[0].outfit[0].id, "top-b");
 
-  assert.equal(
-    withHistory[0].details.repetitionPenalty,
-    -24,
-  );
+  assert.equal(withHistory[0].details.repetitionPenalty, -24);
 });
 
 test("punktacja nie zapisuje artefaktów zmiennoprzecinkowych", () => {
   assert.equal(roundScore(7.400000000000002), 7.4);
   assert.equal(roundScore(41.800000000000004), 41.8);
+});
+
+test("pula jakości odrzuca zestawy słabsze od ustalonego progu", () => {
+  const combinations = [
+    { id: "weak", totalScore: 79.99 },
+    { id: "best", totalScore: 100 },
+    { id: "boundary", totalScore: 80 },
+    { id: "close", totalScore: 92 },
+  ];
+
+  const qualityPool = createQualityPool(combinations, 20);
+
+  assert.deepEqual(
+    qualityPool.map((candidate) => candidate.id),
+    ["best", "close", "boundary"],
+  );
 });
