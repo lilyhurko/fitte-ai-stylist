@@ -15,7 +15,9 @@ const {
   createSelectionSeed,
   selectCandidateFromPool,
 } = require("./recommendationSelectionService");
-
+const {
+  getRecommendationAvailability,
+} = require("./recommendationAvailabilityService");
 async function askFitteEngine(
   query,
   clothes,
@@ -47,14 +49,17 @@ async function askFitteEngine(
       weatherType,
       recommendationHistory,
     );
+    const recommendationAvailability = getRecommendationAvailability(
+      topRecommendations.length,
+    );
 
-    if (!topRecommendations || topRecommendations.length === 0) {
+    if (topRecommendations.length === 0) {
       return {
-        explanation:
-          "System Fitte: Brak wystarczającej liczby ubrań do stworzenia rekomendacji.",
+        explanation: recommendationAvailability.message,
         recommendationId: null,
         fitteItems: [],
         algorithmVersion: FITTE_ALGORITHM_VERSION,
+        recommendationAvailability,
       };
     }
 
@@ -132,6 +137,7 @@ async function askFitteEngine(
             index,
             clothIds: candidate.outfit.map((item) => item.id),
             totalScore: candidate.totalScore,
+            
           })),
           recentRecommendations: recommendationHistory.map(
             (recommendation) => ({
