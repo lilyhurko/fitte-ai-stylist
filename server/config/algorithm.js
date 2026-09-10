@@ -1,4 +1,4 @@
-const FITTE_ALGORITHM_VERSION = "fitte-v2.2-quality-aware-recent-exclusion";
+const FITTE_ALGORITHM_VERSION = "fitte-v2.3-normalized-preferences";
 const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
 
 const FITTE_EXPLANATION_CONFIG = Object.freeze({
