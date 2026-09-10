@@ -10,6 +10,7 @@ const {
   createOutfitKey,
   createQualityPool,
   roundScore,
+  excludeRecentOutfitsWhenAlternativeExists,
 } = require("../outfitEngine");
 
 const createItem = (overrides = {}) => ({
@@ -447,4 +448,68 @@ test("pula jakości odrzuca zestawy słabsze od ustalonego progu", () => {
     qualityPool.map((candidate) => candidate.id),
     ["best", "close", "boundary"],
   );
+});
+
+
+test("ostatni zestaw jest wykluczany, gdy istnieje świeża alternatywa", () => {
+  const recentCandidate = {
+    outfit: [
+      { id: "top-a" },
+      { id: "bottom" },
+      { id: "shoes" },
+    ],
+    totalScore: 100,
+  };
+
+  const freshCandidate = {
+    outfit: [
+      { id: "top-b" },
+      { id: "bottom" },
+      { id: "shoes" },
+    ],
+    totalScore: 95,
+  };
+
+  const result = excludeRecentOutfitsWhenAlternativeExists(
+    [recentCandidate, freshCandidate],
+    [
+      {
+        clothIds: ["shoes", "bottom", "top-a"],
+      },
+    ],
+  );
+
+  assert.deepEqual(result, [freshCandidate]);
+});
+
+test("ostatnie zestawy pozostają dostępne, gdy nie ma świeżej alternatywy", () => {
+  const firstCandidate = {
+    outfit: [
+      { id: "top-a" },
+      { id: "bottom" },
+      { id: "shoes" },
+    ],
+    totalScore: 100,
+  };
+
+  const secondCandidate = {
+    outfit: [
+      { id: "top-b" },
+      { id: "bottom" },
+      { id: "shoes" },
+    ],
+    totalScore: 95,
+  };
+
+  const qualityPool = [firstCandidate, secondCandidate];
+
+  const result = excludeRecentOutfitsWhenAlternativeExists(
+    qualityPool,
+    [
+      { clothIds: ["top-a", "bottom", "shoes"] },
+      { clothIds: ["top-b", "bottom", "shoes"] },
+    ],
+  );
+
+  assert.deepEqual(result, qualityPool);
 });

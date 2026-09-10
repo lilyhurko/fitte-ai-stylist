@@ -387,7 +387,39 @@ function createQualityPool(
     (candidate) => candidate.totalScore >= bestScore - maxScoreGap,
   );
 }
+function excludeRecentOutfitsWhenAlternativeExists(
+  qualityPool,
+  recommendationHistory = [],
+) {
+  if (!Array.isArray(qualityPool) || qualityPool.length <= 1) {
+    return qualityPool;
+  }
 
+  const recentOutfitKeys = new Set(
+    recommendationHistory
+      .slice(0, RECENT_RECOMMENDATION_LIMIT)
+      .map((recommendation) =>
+        createOutfitKey(recommendation.clothIds || []),
+      )
+      .filter(Boolean),
+  );
+
+  if (recentOutfitKeys.size === 0) {
+    return qualityPool;
+  }
+
+  const freshAlternatives = qualityPool.filter((candidate) => {
+    const candidateKey = createOutfitKey(
+      candidate.outfit.map((item) => item.id),
+    );
+
+    return !recentOutfitKeys.has(candidateKey);
+  });
+
+  return freshAlternatives.length > 0
+    ? freshAlternatives
+    : qualityPool;
+}
 function generateBestOutfits(
   clothes,
   userProfile,
@@ -469,9 +501,14 @@ function generateBestOutfits(
     });
   }
 
- const qualityPool = createQualityPool(combinations);
+const qualityPool = createQualityPool(combinations);
 
-return qualityPool.slice(0, 3);
+const selectablePool = excludeRecentOutfitsWhenAlternativeExists(
+  qualityPool,
+  recommendationHistory,
+);
+
+return selectablePool.slice(0, 3);
 }
 
 const WEATHER_FRIENDLY_KEYWORDS = {
@@ -541,4 +578,5 @@ module.exports = {
   calculateRepetitionPenalty,
   roundScore,
   createQualityPool,
+  excludeRecentOutfitsWhenAlternativeExists,
 };
