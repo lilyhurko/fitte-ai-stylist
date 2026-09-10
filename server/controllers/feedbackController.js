@@ -4,7 +4,9 @@ const {
   analysisFeedbackSchema,
   recommendationFeedbackSchema,
 } = require("../validators/analysisValidators");
-
+const {
+  adjustPreferenceWeight,
+} = require("../services/preferenceLearningService");
 const {
   normalizeStyleNames,
   normalizeColorName,
@@ -108,18 +110,22 @@ const saveRecommendationFeedback = async (req, res, next) => {
 
     const styleWeights = parseWeights(user.styleWeights);
     const colorWeights = parseWeights(user.colorWeights);
-    const factor = feedback === "LIKE" ? 0.1 : -0.1;
     clothes.forEach((item) => {
       const normalizedStyles = normalizeStyleNames(item.style);
       const normalizedColor = normalizeColorName(item.color);
 
       normalizedStyles.forEach((style) => {
-        styleWeights[style] = (styleWeights[style] || 1) + factor;
+        styleWeights[style] = adjustPreferenceWeight(
+          styleWeights[style],
+          feedback,
+        );
       });
 
       if (normalizedColor) {
-        colorWeights[normalizedColor] =
-          (colorWeights[normalizedColor] || 1) + factor;
+        colorWeights[normalizedColor] = adjustPreferenceWeight(
+          colorWeights[normalizedColor],
+          feedback,
+        );
       }
     });
 
