@@ -1,7 +1,7 @@
 {
   "experiment": "fitte-v2.1-evaluation",
   "algorithmVersion": "fitte-v2.1-quality-pool-seeded",
-  "generatedAt": "2026-09-09T21:35:48.681Z",
+  "generatedAt": "2026-09-10T07:57:28.358Z",
   "configuration": {
     "runsPerScenario": 5,
     "recentRecommendationLimit": 3,
@@ -9,6 +9,16 @@
     "seedStrategy": "fixed-scenario-run-seed"
   },
   "scenarioCount": 5,
+  "summary": {
+    "totalSuccessfulRuns": 25,
+    "totalUniqueResults": 17,
+    "averageUniqueResultsPerScenario": 3.4,
+    "uniqueResultRate": 0.68,
+    "repetitionRate": 0.32,
+    "consecutiveRepeatRate": 0,
+    "averageQualityLoss": 3.2,
+    "maximumQualityLoss": 14
+  },
   "results": [
     {
       "scenario": "work-clear",

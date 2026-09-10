@@ -279,6 +279,68 @@ const results = scenarios.map((scenario) => {
   };
 });
 
+const totalSuccessfulRuns = results.reduce(
+  (sum, result) => sum + result.successfulRuns,
+  0,
+);
+
+const totalUniqueResults = results.reduce(
+  (sum, result) => sum + result.uniqueResults,
+  0,
+);
+
+const totalRepeatedRuns = results.reduce(
+  (sum, result) =>
+    sum + Math.round(result.repetitionRate * result.successfulRuns),
+  0,
+);
+
+const totalQualityLoss = results.reduce(
+  (sum, result) =>
+    sum + result.averageQualityLoss * result.successfulRuns,
+  0,
+);
+
+const totalTransitions = results.reduce(
+  (sum, result) => sum + Math.max(result.successfulRuns - 1, 0),
+  0,
+);
+
+const totalConsecutiveRepeats = results.reduce(
+  (sum, result) =>
+    sum +
+    Math.round(
+      result.consecutiveRepeatRate *
+        Math.max(result.successfulRuns - 1, 0),
+    ),
+  0,
+);
+
+const summary = {
+  totalSuccessfulRuns,
+  totalUniqueResults,
+  averageUniqueResultsPerScenario: roundMetric(
+    totalUniqueResults / results.length,
+  ),
+  uniqueResultRate: roundMetric(
+    totalUniqueResults / totalSuccessfulRuns,
+  ),
+  repetitionRate: roundMetric(
+    totalRepeatedRuns / totalSuccessfulRuns,
+  ),
+  consecutiveRepeatRate: roundMetric(
+    totalTransitions === 0
+      ? 0
+      : totalConsecutiveRepeats / totalTransitions,
+  ),
+  averageQualityLoss: roundMetric(
+    totalQualityLoss / totalSuccessfulRuns,
+  ),
+  maximumQualityLoss: Math.max(
+    ...results.map((result) => result.maximumQualityLoss),
+  ),
+};
+
 const report = {
   experiment: "fitte-v2.1-evaluation",
   algorithmVersion: FITTE_ALGORITHM_VERSION,
@@ -290,6 +352,7 @@ const report = {
     seedStrategy: "fixed-scenario-run-seed",
   },
   scenarioCount: results.length,
+  summary,
   results,
 };
 
@@ -306,7 +369,7 @@ fs.writeFileSync(
 );
 
 console.log(`Zapisano wyniki v2.1: ${outputPath}`);
-
+console.log("Podsumowanie:", summary);
 results.forEach((result) => {
   console.log(
     `${result.scenario}: ` +
