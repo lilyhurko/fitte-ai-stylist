@@ -513,3 +513,66 @@ test("ostatnie zestawy pozostają dostępne, gdy nie ma świeżej alternatywy", 
 
   assert.deepEqual(result, qualityPool);
 });
+
+test("odmiany stylu i koloru korzystają z tych samych wag preferencji", () => {
+  const userProfile = {
+    styleWeights: {
+      Classic: 1.2,
+    },
+    colorWeights: {
+      biały: 1.1,
+    },
+  };
+
+  const canonicalResult = calculateOutfitScore(
+    [
+      createItem({
+        style: "Classic",
+        color: "biały",
+      }),
+    ],
+    userProfile,
+    null,
+    null,
+    "Clear",
+  );
+
+  const aliasResult = calculateOutfitScore(
+    [
+      createItem({
+        style: "klasyczna",
+        color: "BIAŁA",
+      }),
+    ],
+    userProfile,
+    null,
+    null,
+    "Clear",
+  );
+
+  assert.equal(
+    aliasResult.details.preferenceScore,
+    canonicalResult.details.preferenceScore,
+  );
+
+  assert.ok(aliasResult.details.preferenceScore > 0);
+});
+
+test("odmieniona nazwa ciemnego koloru nadal uruchamia weto na upał", () => {
+  const result = calculateOutfitScore(
+    [
+      createItem({
+        name: "Lekki t-shirt",
+        style: "Casual",
+        color: "CZARNA",
+      }),
+    ],
+    {},
+    null,
+    "Casual",
+    "Hot",
+  );
+
+  assert.equal(result.totalScore, -999);
+  assert.ok(result.details.vetoReasons.includes("color:czarny"));
+});

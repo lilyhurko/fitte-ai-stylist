@@ -4,6 +4,11 @@ const {
   QUALITY_POOL_MAX_SCORE_GAP,
 } = require("./config/algorithm");
 
+const {
+  normalizeStyleNames,
+  normalizeColorName,
+} = require("./services/attributeNormalizationService");
+
 const OCCASION_STYLE_MATCH = {
   Randka: ["Chic", "Romantic"],
   Praca: ["Classic", "Minimalizm"],
@@ -69,11 +74,7 @@ const COLOR_HARMONIES = {
 };
 
 function parseStyles(item) {
-  if (!item || !item.style) return [];
-  return String(item.style)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return normalizeStyleNames(item?.style);
 }
 
 function nameMatchesForbiddenKeyword(name, keyword) {
@@ -185,7 +186,7 @@ function calculateOutfitScore(
     outfit.forEach((item) => {
       const category = item.category;
       const itemStyles = parseStyles(item);
-      const color = item.color?.toLowerCase() || "";
+      const color = normalizeColorName(item.color);
       const name = item.name?.toLowerCase() || "";
 
       if (blacklist.categories && blacklist.categories.includes(category)) {
@@ -268,9 +269,8 @@ function calculateOutfitScore(
   }
 
   if (outfit.length > 1) {
-    const firstColor = outfit[0].color?.toLowerCase() || "";
-
-    const secondColor = outfit[1].color?.toLowerCase() || "";
+    const firstColor = normalizeColorName(outfit[0].color);
+    const secondColor = normalizeColorName(outfit[1].color);
 
     if (firstColor && secondColor) {
       const firstHarmony = COLOR_HARMONIES[firstColor]?.includes(secondColor);
@@ -283,8 +283,7 @@ function calculateOutfitScore(
     }
 
     if (outfit.length === 3) {
-      const shoesColor = outfit[2].color?.toLowerCase() || "";
-
+      const shoesColor = normalizeColorName(outfit[2].color);
       if (shoesColor === firstColor || shoesColor === secondColor) {
         details.colorScore += 15;
       }
@@ -298,8 +297,10 @@ function calculateOutfitScore(
       }
     });
 
-    if (item.color && userColorWeights[item.color]) {
-      details.preferenceScore += userColorWeights[item.color] * 8;
+    const normalizedColor = normalizeColorName(item.color);
+
+    if (normalizedColor && userColorWeights[normalizedColor]) {
+      details.preferenceScore += userColorWeights[normalizedColor] * 8;
     }
   });
 
@@ -398,9 +399,7 @@ function excludeRecentOutfitsWhenAlternativeExists(
   const recentOutfitKeys = new Set(
     recommendationHistory
       .slice(0, RECENT_RECOMMENDATION_LIMIT)
-      .map((recommendation) =>
-        createOutfitKey(recommendation.clothIds || []),
-      )
+      .map((recommendation) => createOutfitKey(recommendation.clothIds || []))
       .filter(Boolean),
   );
 
@@ -416,9 +415,7 @@ function excludeRecentOutfitsWhenAlternativeExists(
     return !recentOutfitKeys.has(candidateKey);
   });
 
-  return freshAlternatives.length > 0
-    ? freshAlternatives
-    : qualityPool;
+  return freshAlternatives.length > 0 ? freshAlternatives : qualityPool;
 }
 function generateBestOutfits(
   clothes,
@@ -501,14 +498,14 @@ function generateBestOutfits(
     });
   }
 
-const qualityPool = createQualityPool(combinations);
+  const qualityPool = createQualityPool(combinations);
 
-const selectablePool = excludeRecentOutfitsWhenAlternativeExists(
-  qualityPool,
-  recommendationHistory,
-);
+  const selectablePool = excludeRecentOutfitsWhenAlternativeExists(
+    qualityPool,
+    recommendationHistory,
+  );
 
-return selectablePool.slice(0, 3);
+  return selectablePool.slice(0, 3);
 }
 
 const WEATHER_FRIENDLY_KEYWORDS = {
@@ -548,7 +545,7 @@ function scoreWeatherFit(item, weatherTypes) {
   if (!weatherTypes || weatherTypes.length === 0) return 0;
 
   const name = item.name ? item.name.toLowerCase() : "";
-  const color = item.color ? item.color.toLowerCase() : "";
+  const color = normalizeColorName(item.color);
   let score = 0;
 
   weatherTypes.forEach((wt) => {
