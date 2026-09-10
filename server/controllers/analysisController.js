@@ -104,6 +104,7 @@ const analyze = async (req, res, next) => {
       groqResponse: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
       recommendationId: fitteResult.recommendationId,
       fitteAlgorithmVersion: fitteResult.algorithmVersion,
+      fitteRecommendationAvailability: fitteResult.recommendationAvailability,
       fitteItems: fitteResult.fitteItems,
       geminiItems: geminiResolved.items,
       groqItems: groqResolved.items,

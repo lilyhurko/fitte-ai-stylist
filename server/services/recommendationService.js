@@ -18,6 +18,7 @@ const {
 const {
   getRecommendationAvailability,
 } = require("./recommendationAvailabilityService");
+
 async function askFitteEngine(
   query,
   clothes,
@@ -132,12 +133,12 @@ async function askFitteEngine(
         selectionSeed,
 
         contextSnapshot: {
+          recommendationAvailability,
           selectedCandidateIndex: selectionIndex,
           qualityPool: topRecommendations.map((candidate, index) => ({
             index,
             clothIds: candidate.outfit.map((item) => item.id),
             totalScore: candidate.totalScore,
-            
           })),
           recentRecommendations: recommendationHistory.map(
             (recommendation) => ({
@@ -180,6 +181,7 @@ async function askFitteEngine(
       recommendationId: newRec.id,
       fitteItems: bestSet.outfit,
       algorithmVersion: FITTE_ALGORITHM_VERSION,
+      recommendationAvailability,
     };
   } catch (error) {
     writeLog("warn", "fitte_engine_fallback", {
@@ -192,6 +194,7 @@ async function askFitteEngine(
       recommendationId: null,
       fitteItems: [],
       algorithmVersion: FITTE_ALGORITHM_VERSION,
+      recommendationAvailability: null,
     };
   }
 }
