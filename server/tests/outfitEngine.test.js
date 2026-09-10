@@ -102,7 +102,7 @@ test("preferencje użytkownika zwiększają punktację", () => {
     "Clear",
   ).totalScore;
 
-  assert.equal(personalizedScore - neutralScore, 40);
+  assert.equal(personalizedScore - neutralScore, 10);
 });
 
 test("twarde niedopasowanie pogodowe daje wynik -999", () => {
@@ -306,10 +306,10 @@ test("wynik końcowy jest sumą jawnych składników punktacji", () => {
   assert.equal(weatherScore, 0);
   assert.equal(occasionScore, 150);
   assert.equal(colorScore, 40);
-  assert.equal(preferenceScore, 52);
+  assert.equal(preferenceScore, 0);
   assert.equal(formalityScore, 60);
   assert.equal(repetitionPenalty, 0);
-  assert.equal(result.totalScore, 402);
+  assert.equal(result.totalScore, 350);
 });
 
 test("kara za styl niedopasowany do pogody jest osobnym składnikiem", () => {

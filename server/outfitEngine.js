@@ -2,12 +2,17 @@ const {
   RECENT_RECOMMENDATION_LIMIT,
   REPETITION_PENALTIES,
   QUALITY_POOL_MAX_SCORE_GAP,
+  PREFERENCE_WEIGHT_CONFIG,
 } = require("./config/algorithm");
 
 const {
   normalizeStyleNames,
   normalizeColorName,
 } = require("./services/attributeNormalizationService");
+
+const {
+  clampPreferenceWeight,
+} = require("./services/preferenceLearningService");
 
 const OCCASION_STYLE_MATCH = {
   Randka: ["Chic", "Romantic"],
@@ -292,15 +297,24 @@ function calculateOutfitScore(
 
   outfit.forEach((item) => {
     parseStyles(item).forEach((style) => {
-      if (userStyleWeights[style]) {
-        details.preferenceScore += userStyleWeights[style] * 12;
-      }
+      const styleWeight = clampPreferenceWeight(
+        userStyleWeights[style] ?? PREFERENCE_WEIGHT_CONFIG.neutral,
+      );
+
+      details.preferenceScore +=
+        (styleWeight - PREFERENCE_WEIGHT_CONFIG.neutral) * 12;
     });
 
     const normalizedColor = normalizeColorName(item.color);
 
-    if (normalizedColor && userColorWeights[normalizedColor]) {
-      details.preferenceScore += userColorWeights[normalizedColor] * 8;
+    if (normalizedColor) {
+      const colorWeight = clampPreferenceWeight(
+        userColorWeights[normalizedColor] ??
+          PREFERENCE_WEIGHT_CONFIG.neutral,
+      );
+
+      details.preferenceScore +=
+        (colorWeight - PREFERENCE_WEIGHT_CONFIG.neutral) * 8;
     }
   });
 
