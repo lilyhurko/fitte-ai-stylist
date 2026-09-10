@@ -145,7 +145,14 @@ const scenarios = [
     event: { occasion: "Praca", formality: "Formal" },
   },
 ];
-const RUNS_PER_SCENARIO = 5;
+const RUNS_PER_SCENARIO = Number.parseInt(
+  process.env.EXPERIMENT_RUNS || "100",
+  10,
+);
+
+if (!Number.isInteger(RUNS_PER_SCENARIO) || RUNS_PER_SCENARIO <= 0) {
+  throw new Error("EXPERIMENT_RUNS musi być dodatnią liczbą całkowitą");
+}
 
 function createOutfitSignature(outfit) {
   return outfit
@@ -162,6 +169,32 @@ function calculateAverage(values) {
   if (values.length === 0) return 0;
 
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function calculateJaccardSimilarity(firstIds, secondIds) {
+  const firstSet = new Set(firstIds);
+  const secondSet = new Set(secondIds);
+
+  const intersectionSize = [...firstSet].filter((id) =>
+    secondSet.has(id),
+  ).length;
+
+  const unionSize = new Set([...firstSet, ...secondSet]).size;
+
+  return unionSize === 0 ? 0 : intersectionSize / unionSize;
+}
+
+function calculateJaccardSimilarity(firstIds, secondIds) {
+  const firstSet = new Set(firstIds);
+  const secondSet = new Set(secondIds);
+
+  const intersectionSize = [...firstSet].filter((id) =>
+    secondSet.has(id),
+  ).length;
+
+  const unionSize = new Set([...firstSet, ...secondSet]).size;
+
+  return unionSize === 0 ? 0 : intersectionSize / unionSize;
 }
 
 const results = scenarios.map((scenario) => {
@@ -181,10 +214,8 @@ const results = scenarios.map((scenario) => {
 
     const selectionSeed = `${scenario.id}-run-${runIndex + 1}`;
 
-    const {
-      candidate: selectedCandidate,
-      selectionIndex,
-    } = selectCandidateFromPool(qualityPool, selectionSeed);
+    const { candidate: selectedCandidate, selectionIndex } =
+      selectCandidateFromPool(qualityPool, selectionSeed);
 
     if (!selectedCandidate) {
       runs.push({
@@ -220,8 +251,7 @@ const results = scenarios.map((scenario) => {
       score: selectedCandidate.totalScore,
       bestAvailableScore,
       qualityLoss,
-      repetitionPenalty:
-        selectedCandidate.details.repetitionPenalty,
+      repetitionPenalty: selectedCandidate.details.repetitionPenalty,
       repeated,
     });
 
@@ -236,18 +266,62 @@ const results = scenarios.map((scenario) => {
   const successfulRuns = runs.filter((run) => run.signature !== null);
   const scores = successfulRuns.map((run) => run.score);
   const qualityLosses = successfulRuns.map((run) => run.qualityLoss);
-  const repeatedRuns = successfulRuns.filter((run) => run.repeated).length;
+  const signatureCounts = new Map();
 
-  let consecutiveRepeats = 0;
+  let cumulativeRepeatedRuns = 0;
+  let recentWindowRepeatedRuns = 0;
+  let consecutiveRepeatedTransitions = 0;
+  const adjacentSimilarities = [];
 
-  for (let index = 1; index < successfulRuns.length; index += 1) {
-    if (
-      successfulRuns[index].signature ===
-      successfulRuns[index - 1].signature
-    ) {
-      consecutiveRepeats += 1;
+  successfulRuns.forEach((run, index) => {
+    const previousCount = signatureCounts.get(run.signature) || 0;
+
+    if (previousCount > 0) {
+      cumulativeRepeatedRuns += 1;
     }
-  }
+
+    signatureCounts.set(run.signature, previousCount + 1);
+
+    const recentRuns = successfulRuns.slice(
+      Math.max(0, index - RECENT_RECOMMENDATION_LIMIT),
+      index,
+    );
+
+    if (
+      recentRuns.some(
+        (previousRun) => previousRun.signature === run.signature,
+      )
+    ) {
+      recentWindowRepeatedRuns += 1;
+    }
+
+    if (index > 0) {
+      const previousRun = successfulRuns[index - 1];
+
+      if (previousRun.signature === run.signature) {
+        consecutiveRepeatedTransitions += 1;
+      }
+
+      adjacentSimilarities.push(
+        calculateJaccardSimilarity(previousRun.itemIds, run.itemIds),
+      );
+    }
+  });
+
+  const probabilities = [...signatureCounts.values()].map(
+    (count) => count / successfulRuns.length,
+  );
+
+  const entropy = probabilities.reduce(
+    (sum, probability) => sum - probability * Math.log(probability),
+    0,
+  );
+
+  const normalizedEntropy =
+    signatureCounts.size <= 1 ? 0 : entropy / Math.log(signatureCounts.size);
+
+  const dominantOutfitCount =
+    signatureCounts.size === 0 ? 0 : Math.max(...signatureCounts.values());
 
   return {
     scenario: scenario.id,
@@ -258,21 +332,37 @@ const results = scenarios.map((scenario) => {
     },
     totalRuns: RUNS_PER_SCENARIO,
     successfulRuns: successfulRuns.length,
-    uniqueResults: seenSignatures.size,
-    repetitionRate: roundMetric(
+    uniqueResults: signatureCounts.size,
+    cumulativeRepeatedRuns,
+    recentWindowRepeatedRuns,
+    consecutiveRepeatedTransitions,
+    cumulativeRepetitionRate: roundMetric(
       successfulRuns.length === 0
         ? 0
-        : repeatedRuns / successfulRuns.length,
+        : cumulativeRepeatedRuns / successfulRuns.length,
+    ),
+    recentWindowRepeatRate: roundMetric(
+      successfulRuns.length === 0
+        ? 0
+        : recentWindowRepeatedRuns / successfulRuns.length,
     ),
     consecutiveRepeatRate: roundMetric(
       successfulRuns.length <= 1
         ? 0
-        : consecutiveRepeats / (successfulRuns.length - 1),
+        : consecutiveRepeatedTransitions / (successfulRuns.length - 1),
+    ),
+    normalizedEntropy: roundMetric(normalizedEntropy),
+    effectiveOutfitCount: roundMetric(Math.exp(entropy)),
+    dominantOutfitShare: roundMetric(
+      successfulRuns.length === 0
+        ? 0
+        : dominantOutfitCount / successfulRuns.length,
+    ),
+    averageAdjacentItemSimilarity: roundMetric(
+      calculateAverage(adjacentSimilarities),
     ),
     averageScore: roundMetric(calculateAverage(scores)),
-    averageQualityLoss: roundMetric(
-      calculateAverage(qualityLosses),
-    ),
+    averageQualityLoss: roundMetric(calculateAverage(qualityLosses)),
     maximumQualityLoss:
       qualityLosses.length === 0 ? 0 : Math.max(...qualityLosses),
     runs,
@@ -289,15 +379,18 @@ const totalUniqueResults = results.reduce(
   0,
 );
 
-const totalRepeatedRuns = results.reduce(
-  (sum, result) =>
-    sum + Math.round(result.repetitionRate * result.successfulRuns),
+const totalCumulativeRepeatedRuns = results.reduce(
+  (sum, result) => sum + result.cumulativeRepeatedRuns,
+  0,
+);
+
+const totalRecentWindowRepeatedRuns = results.reduce(
+  (sum, result) => sum + result.recentWindowRepeatedRuns,
   0,
 );
 
 const totalQualityLoss = results.reduce(
-  (sum, result) =>
-    sum + result.averageQualityLoss * result.successfulRuns,
+  (sum, result) => sum + result.averageQualityLoss * result.successfulRuns,
   0,
 );
 
@@ -307,12 +400,7 @@ const totalTransitions = results.reduce(
 );
 
 const totalConsecutiveRepeats = results.reduce(
-  (sum, result) =>
-    sum +
-    Math.round(
-      result.consecutiveRepeatRate *
-        Math.max(result.successfulRuns - 1, 0),
-    ),
+  (sum, result) => sum + result.consecutiveRepeatedTransitions,
   0,
 );
 
@@ -322,20 +410,30 @@ const summary = {
   averageUniqueResultsPerScenario: roundMetric(
     totalUniqueResults / results.length,
   ),
-  uniqueResultRate: roundMetric(
-    totalUniqueResults / totalSuccessfulRuns,
+  cumulativeRepetitionRate: roundMetric(
+    totalCumulativeRepeatedRuns / totalSuccessfulRuns,
   ),
-  repetitionRate: roundMetric(
-    totalRepeatedRuns / totalSuccessfulRuns,
+  recentWindowRepeatRate: roundMetric(
+    totalRecentWindowRepeatedRuns / totalSuccessfulRuns,
   ),
   consecutiveRepeatRate: roundMetric(
-    totalTransitions === 0
-      ? 0
-      : totalConsecutiveRepeats / totalTransitions,
+    totalTransitions === 0 ? 0 : totalConsecutiveRepeats / totalTransitions,
   ),
-  averageQualityLoss: roundMetric(
-    totalQualityLoss / totalSuccessfulRuns,
+  averageNormalizedEntropy: roundMetric(
+    calculateAverage(results.map((result) => result.normalizedEntropy)),
   ),
+  averageEffectiveOutfitCount: roundMetric(
+    calculateAverage(results.map((result) => result.effectiveOutfitCount)),
+  ),
+  averageDominantOutfitShare: roundMetric(
+    calculateAverage(results.map((result) => result.dominantOutfitShare)),
+  ),
+  averageAdjacentItemSimilarity: roundMetric(
+    calculateAverage(
+      results.map((result) => result.averageAdjacentItemSimilarity),
+    ),
+  ),
+  averageQualityLoss: roundMetric(totalQualityLoss / totalSuccessfulRuns),
   maximumQualityLoss: Math.max(
     ...results.map((result) => result.maximumQualityLoss),
   ),
@@ -356,25 +454,19 @@ const report = {
   results,
 };
 
-const outputPath = path.resolve(
-  __dirname,
-  "../../docs/v2.1-results.json",
-);
+const outputPath = path.resolve(__dirname, `../../docs/v2.1-results-${RUNS_PER_SCENARIO}-runs.json`,);
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(
-  outputPath,
-  `${JSON.stringify(report, null, 2)}\n`,
-  "utf8",
-);
+fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
 console.log(`Zapisano wyniki v2.1: ${outputPath}`);
 console.log("Podsumowanie:", summary);
 results.forEach((result) => {
   console.log(
-    `${result.scenario}: ` +
+      `${result.scenario}: ` +
       `${result.uniqueResults}/${result.successfulRuns} unikalnych, ` +
-      `powtórzenia: ${result.repetitionRate}, ` +
+      `powtórzenia skumulowane: ${result.cumulativeRepetitionRate}, ` +
+      `powtórzenia w ostatnich ${RECENT_RECOMMENDATION_LIMIT}: ${result.recentWindowRepeatRate}, ` +
       `średnia utrata jakości: ${result.averageQualityLoss}`,
   );
 });
