@@ -53,7 +53,7 @@ const Assistant = () => {
           () => {
             resolve({ latitude: 51.2465, longitude: 22.5684 });
           },
-          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 },
         );
       });
     };
@@ -67,10 +67,10 @@ const Assistant = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: fullQuery,
           latitude: coords.latitude,
-          longitude: coords.longitude
+          longitude: coords.longitude,
         }),
       });
 
@@ -152,7 +152,7 @@ const Assistant = () => {
       if (response.ok) {
         setFitteFeedback(feedbackType);
       }
-    } catch(error) {
+    } catch (error) {
       console.error("Błąd feedbacku Fitte Engine:", error);
     }
   };
@@ -200,7 +200,9 @@ const Assistant = () => {
 
           <div className="flex flex-col-reverse md:flex-row md:justify-between md:items-center gap-4 mt-5">
             <div className="flex flex-wrap gap-2 md:gap-3 items-center text-[9px] font-bold opacity-50">
-              <span className="w-full md:w-auto">AKTYWNE SILNIKI BADAWCZE:</span>
+              <span className="w-full md:w-auto">
+                AKTYWNE SILNIKI BADAWCZE:
+              </span>
               <span>GEMINI 2.5</span>
               <span>•</span>
               <span>GPT-OSS 120B</span>
@@ -231,7 +233,6 @@ const Assistant = () => {
           </h3>
 
           <div className="results-grid">
-            {/* COLUMN 1: GEMINI */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-3">
@@ -289,8 +290,6 @@ const Assistant = () => {
                 </div>
               </div>
             </div>
-
-            {/* COLUMN 2: GROQ */}
             <div className="ai-result-card">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-3">
@@ -349,7 +348,6 @@ const Assistant = () => {
               </div>
             </div>
 
-            {/* COLUMN 3: FITTE ENGINE */}
             <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
               <div className="ai-text-content">
                 <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-3">
@@ -358,7 +356,15 @@ const Assistant = () => {
                 <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-4">
                   {results.fitteResponse}
                 </p>
-
+                {results.fitteRecommendationAvailability?.status ===
+                  "SINGLE" && (
+                  <div
+                    role="status"
+                    className="mb-4 rounded-xl border border-amber-200/30 bg-amber-100/10 px-3 py-2 text-xs leading-relaxed text-amber-100"
+                  >
+                    {results.fitteRecommendationAvailability.message}
+                  </div>
+                )}
                 {results.fitteItems && results.fitteItems.length > 0 && (
                   <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 overflow-x-auto">
                     {results.fitteItems.map((cloth) => (
