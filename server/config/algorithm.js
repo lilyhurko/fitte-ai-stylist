@@ -15,6 +15,9 @@ const PREFERENCE_WEIGHT_CONFIG = Object.freeze({
   neutral: 1.0,
   maximum: 1.5,
   feedbackStep: 0.1,
+  decayRate: 0.05,
+  neutralSnapThreshold: 0.001,
+  decimalPlaces: 4,
 });
 
 const REPETITION_PENALTIES = Object.freeze({

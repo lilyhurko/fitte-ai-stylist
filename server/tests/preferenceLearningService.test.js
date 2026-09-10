@@ -5,6 +5,8 @@ const {
   roundWeight,
   clampPreferenceWeight,
   adjustPreferenceWeight,
+  decayPreferenceWeight,
+  decayPreferenceWeights,
 } = require("../services/preferenceLearningService");
 
 test("LIKE zwiększa neutralną wagę o 0.1", () => {
@@ -47,4 +49,41 @@ test("wielokrotne DISLIKE zatrzymuje wagę na 0.5", () => {
   }
 
   assert.equal(weight, 0.5);
+});
+
+test("wygaszanie zbliża wysoką wagę do wartości neutralnej", () => {
+  assert.equal(decayPreferenceWeight(1.5), 1.475);
+});
+
+test("wygaszanie zbliża niską wagę do wartości neutralnej", () => {
+  assert.equal(decayPreferenceWeight(0.5), 0.525);
+});
+
+test("waga neutralna pozostaje bez zmian", () => {
+  assert.equal(decayPreferenceWeight(1.0), 1.0);
+});
+
+test("wygaszanie działa na całej mapie preferencji", () => {
+  assert.deepEqual(
+    decayPreferenceWeights({
+      Classic: 1.5,
+      Casual: 0.5,
+      Romantic: 1.0,
+    }),
+    {
+      Classic: 1.475,
+      Casual: 0.525,
+      Romantic: 1.0,
+    },
+  );
+});
+
+test("wielokrotne wygaszanie ostatecznie wraca do 1.0", () => {
+  let weight = 1.5;
+
+  for (let index = 0; index < 200; index += 1) {
+    weight = decayPreferenceWeight(weight);
+  }
+
+  assert.equal(weight, 1.0);
 });

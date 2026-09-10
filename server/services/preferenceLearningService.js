@@ -3,7 +3,9 @@ const {
 } = require("../config/algorithm");
 
 function roundWeight(value) {
-  return Number(value.toFixed(2));
+  return Number(
+    value.toFixed(PREFERENCE_WEIGHT_CONFIG.decimalPlaces),
+  );
 }
 
 function clampPreferenceWeight(value) {
@@ -42,8 +44,42 @@ function adjustPreferenceWeight(currentWeight, feedback) {
   );
 }
 
+function decayPreferenceWeight(currentWeight) {
+  const safeCurrentWeight = clampPreferenceWeight(currentWeight);
+
+  const decayedWeight =
+    PREFERENCE_WEIGHT_CONFIG.neutral +
+    (safeCurrentWeight - PREFERENCE_WEIGHT_CONFIG.neutral) *
+      (1 - PREFERENCE_WEIGHT_CONFIG.decayRate);
+
+  if (
+    Math.abs(
+      decayedWeight - PREFERENCE_WEIGHT_CONFIG.neutral,
+    ) <= PREFERENCE_WEIGHT_CONFIG.neutralSnapThreshold
+  ) {
+    return PREFERENCE_WEIGHT_CONFIG.neutral;
+  }
+
+  return clampPreferenceWeight(roundWeight(decayedWeight));
+}
+
+function decayPreferenceWeights(weights) {
+  if (!weights || typeof weights !== "object" || Array.isArray(weights)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(weights).map(([name, weight]) => [
+      name,
+      decayPreferenceWeight(weight),
+    ]),
+  );
+}
+
 module.exports = {
   roundWeight,
   clampPreferenceWeight,
   adjustPreferenceWeight,
+  decayPreferenceWeight,
+  decayPreferenceWeights,
 };

@@ -6,6 +6,7 @@ const {
 } = require("../validators/analysisValidators");
 const {
   adjustPreferenceWeight,
+  decayPreferenceWeights,
 } = require("../services/preferenceLearningService");
 const {
   normalizeStyleNames,
@@ -108,25 +109,41 @@ const saveRecommendationFeedback = async (req, res, next) => {
     if (!user)
       return res.status(404).json({ error: "Nie znaleziono użytkownika" });
 
-    const styleWeights = parseWeights(user.styleWeights);
-    const colorWeights = parseWeights(user.colorWeights);
-    clothes.forEach((item) => {
-      const normalizedStyles = normalizeStyleNames(item.style);
-      const normalizedColor = normalizeColorName(item.color);
+    const styleWeights = decayPreferenceWeights(
+      parseWeights(user.styleWeights),
+    );
 
-      normalizedStyles.forEach((style) => {
-        styleWeights[style] = adjustPreferenceWeight(
-          styleWeights[style],
-          feedback,
-        );
+    const colorWeights = decayPreferenceWeights(
+      parseWeights(user.colorWeights),
+    );
+
+    const stylesToUpdate = new Set();
+    const colorsToUpdate = new Set();
+
+    clothes.forEach((item) => {
+      normalizeStyleNames(item.style).forEach((style) => {
+        stylesToUpdate.add(style);
       });
 
+      const normalizedColor = normalizeColorName(item.color);
+
       if (normalizedColor) {
-        colorWeights[normalizedColor] = adjustPreferenceWeight(
-          colorWeights[normalizedColor],
-          feedback,
-        );
+        colorsToUpdate.add(normalizedColor);
       }
+    });
+
+    stylesToUpdate.forEach((style) => {
+      styleWeights[style] = adjustPreferenceWeight(
+        styleWeights[style],
+        feedback,
+      );
+    });
+
+    colorsToUpdate.forEach((color) => {
+      colorWeights[color] = adjustPreferenceWeight(
+        colorWeights[color],
+        feedback,
+      );
     });
 
     const operations = [
