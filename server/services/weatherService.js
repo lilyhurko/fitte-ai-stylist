@@ -1,20 +1,117 @@
 const { writeLog } = require("./logger");
 const { resilientFetch } = require("./resilienceService");
 
-const classifyDailyWeather = (maxTemp, rainSum) => {
-  if (rainSum > 0.2) return "Rain";
-  if (maxTemp >= 24) return "Hot";
-  if (maxTemp <= 10) return "Cold";
-  return "Clear";
+const toNumberOrDefault = (value, fallback = 0) => {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : fallback;
 };
 
-const getLiveWeather = async (latitude, longitude) => {
+const createWeatherContext = ({
+  temperatureC,
+  apparentTemperatureC,
+  precipitationMm,
+  rainMm,
+  snowfallCm,
+  windSpeedKmh,
+  temperatureMinC,
+  temperatureMaxC,
+  apparentTemperatureMinC,
+  apparentTemperatureMaxC,
+}) => {
+  const normalizedTemperature = toNumberOrDefault(temperatureC, null);
+  const normalizedApparentTemperature = toNumberOrDefault(
+    apparentTemperatureC,
+    normalizedTemperature,
+  );
+  const normalizedTemperatureMin = toNumberOrDefault(temperatureMinC, null);
+  const normalizedTemperatureMax = toNumberOrDefault(temperatureMaxC, null);
+  const normalizedApparentTemperatureMin = toNumberOrDefault(
+    apparentTemperatureMinC,
+    null,
+  );
+  const normalizedApparentTemperatureMax = toNumberOrDefault(
+    apparentTemperatureMaxC,
+    null,
+  );
+
+  const hotTemperatures = [
+    normalizedTemperature,
+    normalizedApparentTemperature,
+    normalizedTemperatureMax,
+    normalizedApparentTemperatureMax,
+  ].filter(Number.isFinite);
+
+  const coldTemperatures = [
+    normalizedTemperature,
+    normalizedApparentTemperature,
+    normalizedTemperatureMin,
+    normalizedApparentTemperatureMin,
+  ].filter(Number.isFinite);
+  const normalizedPrecipitation = toNumberOrDefault(precipitationMm);
+  const normalizedRain = toNumberOrDefault(rainMm);
+  const normalizedSnowfall = toNumberOrDefault(snowfallCm);
+  const normalizedWindSpeed = toNumberOrDefault(windSpeedKmh);
+
+  const conditions = [];
+
+  if (normalizedSnowfall > 0) {
+    conditions.push("Snow");
+  } else if (normalizedRain > 0.1 || normalizedPrecipitation > 0.1) {
+    conditions.push("Rain");
+  }
+
+  if (hotTemperatures.some((value) => value >= 24)) {
+    conditions.push("Hot");
+  }
+
+  if (coldTemperatures.some((value) => value <= 10)) {
+    conditions.push("Cold");
+  }
+
+  if (normalizedWindSpeed >= 30) {
+    conditions.push("Windy");
+  }
+
+  if (conditions.length === 0) {
+    conditions.push("Clear");
+  }
+
+  return {
+    conditions,
+    temperatureC: normalizedTemperature,
+    apparentTemperatureC: normalizedApparentTemperature,
+    temperatureMinC: normalizedTemperatureMin,
+    temperatureMaxC: normalizedTemperatureMax,
+    apparentTemperatureMinC: normalizedApparentTemperatureMin,
+    apparentTemperatureMaxC: normalizedApparentTemperatureMax,
+    precipitationMm: normalizedPrecipitation,
+    rainMm: normalizedRain,
+    snowfallCm: normalizedSnowfall,
+    windSpeedKmh: normalizedWindSpeed,
+  };
+};
+
+const getLiveWeatherContext = async (latitude, longitude) => {
   try {
+    const currentVariables = [
+      "temperature_2m",
+      "apparent_temperature",
+      "precipitation",
+      "rain",
+      "snowfall",
+      "wind_speed_10m",
+    ].join(",");
+
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${latitude}` +
       `&longitude=${longitude}` +
-      `&current=temperature_2m,rain,snow_depth`;
+      `&current=${currentVariables}` +
+      `&timezone=auto`;
 
     const response = await resilientFetch(
       "open-meteo",
@@ -31,22 +128,27 @@ const getLiveWeather = async (latitude, longitude) => {
     }
 
     const data = await response.json();
-    const temperature = data.current.temperature_2m;
-    const rain = data.current.rain;
-    const snow = data.current.snow_depth;
+    const current = data.current;
 
-    if (rain > 0.1 || snow > 0) return "Rain";
-    if (temperature >= 24) return "Hot";
-    if (temperature <= 10) return "Cold";
+    if (!current) {
+      throw new Error("Brak aktualnych danych pogodowych");
+    }
 
-    return "Clear";
+    return createWeatherContext({
+      temperatureC: current.temperature_2m,
+      apparentTemperatureC: current.apparent_temperature,
+      precipitationMm: current.precipitation,
+      rainMm: current.rain,
+      snowfallCm: current.snowfall,
+      windSpeedKmh: current.wind_speed_10m,
+    });
   } catch (error) {
     writeLog("warn", "weather_fallback", {
       provider: "open-meteo",
       errorName: error.name,
     });
 
-    return "Clear";
+    return createWeatherContext({});
   }
 };
 
@@ -87,11 +189,24 @@ const geocodeCity = async (cityName) => {
 };
 
 const getMultiDayForecast = async (latitude, longitude, days) => {
+  const dailyVariables = [
+    "temperature_2m_min",
+    "temperature_2m_max",
+    "temperature_2m_mean",
+    "apparent_temperature_min",
+    "apparent_temperature_max",
+    "apparent_temperature_mean",
+    "precipitation_sum",
+    "rain_sum",
+    "snowfall_sum",
+    "wind_speed_10m_max",
+  ].join(",");
+
   const url =
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${latitude}` +
     `&longitude=${longitude}` +
-    `&daily=temperature_2m_max,rain_sum` +
+    `&daily=${dailyVariables}` +
     `&forecast_days=${days}` +
     `&timezone=auto`;
 
@@ -116,37 +231,42 @@ const getMultiDayForecast = async (latitude, longitude, days) => {
   }
 
   return data.daily.time.map((date, index) => {
-    const maxTemp = data.daily.temperature_2m_max[index];
-    const rainSum = data.daily.rain_sum[index];
+    const weatherContext = createWeatherContext({
+      temperatureC: data.daily.temperature_2m_mean?.[index],
+      apparentTemperatureC: data.daily.apparent_temperature_mean?.[index],
+      temperatureMinC: data.daily.temperature_2m_min?.[index],
+      temperatureMaxC: data.daily.temperature_2m_max?.[index],
+      apparentTemperatureMinC: data.daily.apparent_temperature_min?.[index],
+      apparentTemperatureMaxC: data.daily.apparent_temperature_max?.[index],
+      precipitationMm: data.daily.precipitation_sum?.[index],
+      rainMm: data.daily.rain_sum?.[index],
+      snowfallCm: data.daily.snowfall_sum?.[index],
+      windSpeedKmh: data.daily.wind_speed_10m_max?.[index],
+    });
 
     return {
       date,
-      maxTemp,
-      rainSum,
-      weatherType: classifyDailyWeather(maxTemp, rainSum),
+      weatherContext,
+      weatherType: weatherContext.conditions[0] || "Clear",
     };
   });
 };
 
-const getCalendarWeatherMap = async () => {
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=51.2465&longitude=22.5684&daily=temperature_2m_max,rain_sum&timezone=auto";
-  const response = await resilientFetch("open-meteo", url, {}, { timeoutMs: 5000, retries: 2 });
-  if (!response.ok) throw new Error("Błąd pobierania pogody kalendarza");
-  const data = await response.json();
-  const weatherMap = {};
-  data.daily?.time?.forEach((date, index) => {
-    weatherMap[date] = classifyDailyWeather(
-      data.daily.temperature_2m_max[index],
-      data.daily.rain_sum[index],
-    );
-  });
-  return weatherMap;
+const getCalendarWeatherMap = async (
+  latitude = 51.2465,
+  longitude = 22.5684,
+) => {
+  const dailyForecast = await getMultiDayForecast(latitude, longitude, 7);
+
+  return Object.fromEntries(
+    dailyForecast.map((day) => [day.date, day.weatherContext]),
+  );
 };
 
 module.exports = {
-  classifyDailyWeather,
-  getLiveWeather,
-  geocodeCity,
+  getLiveWeatherContext,
   getMultiDayForecast,
   getCalendarWeatherMap,
+  createWeatherContext,
+  geocodeCity,
 };

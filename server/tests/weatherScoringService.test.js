@@ -119,3 +119,118 @@ test("łączna kara zestawu jest ograniczona do bezpiecznego zakresu", () => {
   assert.equal(result.rawScore, -264);
   assert.equal(result.score, -90);
 });
+
+test("śnieg ma inne reguły niż deszcz", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Zamszowe sandały",
+      materials: ["SUEDE"],
+      seasons: ["SUMMER"],
+      waterResistance: "NONE",
+    },
+    {
+      conditions: ["Snow"],
+      temperatureC: -2,
+      apparentTemperatureC: -6,
+      precipitationMm: 3,
+      rainMm: 0,
+      snowfallCm: 1.5,
+      windSpeedKmh: 10,
+    },
+  );
+
+  assert.equal(result.score, -65);
+  assert.ok(
+    result.reasons.some(
+      (reason) => reason.code === "open-shoes-in-snow",
+    ),
+  );
+  assert.equal(
+    result.reasons.some(
+      (reason) => reason.code === "open-shoes-in-rain",
+    ),
+    false,
+  );
+});
+
+test("wysokość temperatury zwiększa karę podczas silnego upału", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Ciepła bluza",
+      materials: [],
+      seasons: [],
+      warmthLevel: 5,
+    },
+    {
+      conditions: ["Hot"],
+      temperatureC: 35,
+      apparentTemperatureC: 34,
+      precipitationMm: 0,
+      rainMm: 0,
+      snowfallCm: 0,
+      windSpeedKmh: 5,
+    },
+  );
+
+  assert.equal(result.score, -52);
+  assert.ok(
+    result.reasons.some(
+      (reason) => reason.code === "high-heat-intensity",
+    ),
+  );
+});
+
+test("intensywny deszcz zwiększa znaczenie wodoodporności", () => {
+  const unprotected = scoreItemWeatherFit(
+    {
+      name: "Zwykła kurtka",
+      materials: [],
+      seasons: [],
+      waterResistance: "NONE",
+    },
+    {
+      conditions: ["Rain"],
+      precipitationMm: 7,
+    },
+  );
+
+  const waterproof = scoreItemWeatherFit(
+    {
+      name: "Kurtka przeciwdeszczowa",
+      materials: [],
+      seasons: [],
+      waterResistance: "WATERPROOF",
+    },
+    {
+      conditions: ["Rain"],
+      precipitationMm: 7,
+    },
+  );
+
+  assert.equal(unprotected.score, -20);
+  assert.equal(waterproof.score, 23);
+  assert.ok(waterproof.score > unprotected.score);
+});
+
+test("lekki element otrzymuje większą karę podczas bardzo silnego wiatru", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Lekka kurtka",
+      category: "Okrycia wierzchnie",
+      materials: [],
+      seasons: [],
+      warmthLevel: 1,
+    },
+    {
+      conditions: ["Windy"],
+      windSpeedKmh: 55,
+    },
+  );
+
+  assert.equal(result.score, -14);
+  assert.ok(
+    result.reasons.some(
+      (reason) => reason.code === "strong-wind-light-item",
+    ),
+  );
+});

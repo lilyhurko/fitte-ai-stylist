@@ -2,14 +2,70 @@ const { genAI, groq, GROQ_MODEL } = require("../config/aiClients");
 const { writeLog } = require("./logger");
 const { resilientOperation } = require("./resilienceService");
 
-const getBasePrompt = (query, context, weatherType = "Clear") => {
-  let opisPogody = "Słonecznie i przyjemnie";
-  if (weatherType === "Rain") opisPogody = "Pada deszcz / ulewa (jest mokro)";
-  if (weatherType === "Hot")
-    opisPogody = "Jest bardzo gorąco, upał (powyżej 24°C)";
-  if (weatherType === "Cold")
-    opisPogody = "Jest zimno / chłodno (poniżej 14°C)";
+const WEATHER_LABELS = {
+  Clear: "bez opadów",
+  Rain: "deszcz",
+  Snow: "śnieg",
+  Hot: "upał",
+  Cold: "chłód",
+  Windy: "silny wiatr",
+};
 
+const describeWeather = (weatherInput = "Clear") => {
+  if (typeof weatherInput === "string") {
+    const legacyDescriptions = {
+      Clear: "Bez opadów, spokojne warunki",
+      Rain: "Deszcz i mokra nawierzchnia",
+      Snow: "Opady śniegu i zimowe warunki",
+      Hot: "Wysoka temperatura",
+      Cold: "Niska temperatura",
+      Windy: "Silny wiatr",
+    };
+
+    return legacyDescriptions[weatherInput] || legacyDescriptions.Clear;
+  }
+
+  if (!weatherInput || typeof weatherInput !== "object") {
+    return "Brak dokładnych danych pogodowych";
+  }
+
+  const conditions = Array.isArray(weatherInput.conditions)
+    ? weatherInput.conditions
+    : ["Clear"];
+
+  const conditionDescription = conditions
+    .map((condition) => WEATHER_LABELS[condition] || condition)
+    .join(", ");
+
+  const measurements = [];
+
+  if (Number.isFinite(weatherInput.temperatureC)) {
+    measurements.push(`temperatura ${weatherInput.temperatureC}°C`);
+  }
+
+  if (Number.isFinite(weatherInput.apparentTemperatureC)) {
+    measurements.push(`odczuwalna ${weatherInput.apparentTemperatureC}°C`);
+  }
+
+  if (Number.isFinite(weatherInput.precipitationMm)) {
+    measurements.push(`opady ${weatherInput.precipitationMm} mm`);
+  }
+
+  if (Number.isFinite(weatherInput.snowfallCm)) {
+    measurements.push(`śnieg ${weatherInput.snowfallCm} cm`);
+  }
+
+  if (Number.isFinite(weatherInput.windSpeedKmh)) {
+    measurements.push(`wiatr ${weatherInput.windSpeedKmh} km/h`);
+  }
+
+  return [`Warunki: ${conditionDescription}`, measurements.join(", ")]
+    .filter(Boolean)
+    .join(". ");
+};
+
+const getBasePrompt = (query, context, weatherInput = "Clear") => {
+  const opisPogody = describeWeather(weatherInput);
   return `
 Jesteś profesjonalnym osobistym stylistą mody. 
 
@@ -36,10 +92,10 @@ PYTANIE UŻYTKOWNIKA: ${query}
 `;
 };
 
-async function askGemini(query, context, weatherType) {
+async function askGemini(query, context, weatherInput) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = getBasePrompt(query, context, weatherType);
+    const prompt = getBasePrompt(query, context, weatherInput);
     const result = await resilientOperation(
       "gemini",
       () =>
@@ -63,7 +119,7 @@ async function askGemini(query, context, weatherType) {
 
 async function askGroqCloud(query, context, weatherType) {
   try {
-    const prompt = getBasePrompt(query, context, weatherType);
+    const prompt = getBasePrompt(query, context, weatherInput);
     const chatCompletion = await resilientOperation(
       "groq",
       () =>
@@ -95,4 +151,5 @@ async function askGroqCloud(query, context, weatherType) {
 module.exports = {
   askGemini,
   askGroqCloud,
+  describeWeather,
 };

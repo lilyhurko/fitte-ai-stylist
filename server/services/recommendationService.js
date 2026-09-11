@@ -25,7 +25,7 @@ async function askFitteEngine(
   user,
   currentEvent,
   selectedOccasion,
-  weatherType,
+  weatherContext,
 ) {
   try {
     const recommendationHistory = await prisma.outfitRecommendation.findMany({
@@ -47,7 +47,7 @@ async function askFitteEngine(
       user,
       currentEvent,
       selectedOccasion,
-      weatherType,
+      weatherContext,
       recommendationHistory,
     );
     const recommendationAvailability = getRecommendationAvailability(
@@ -149,7 +149,7 @@ async function askFitteEngine(
           ),
           selectedOccasion,
           appliedOccasion: bestSet.details.appliedOccasion || null,
-          weatherType,
+          weatherContext,
           event: currentEvent
             ? {
                 id: currentEvent.id,

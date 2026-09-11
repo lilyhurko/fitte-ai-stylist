@@ -1,6 +1,6 @@
 const { prisma } = require("../config/prisma");
 const { analyzeSchema } = require("../validators/analysisValidators");
-const { getLiveWeather } = require("../services/weatherService");
+const { getLiveWeatherContext } = require("../services/weatherService");
 const { askGemini, askGroqCloud } = require("../services/aiService");
 const { askFitteEngine } = require("../services/recommendationService");
 const {
@@ -18,7 +18,7 @@ const analyze = async (req, res, next) => {
   try {
     const { query, latitude, longitude } = validation.data;
     const userId = req.user.userId;
-    const weatherType = await getLiveWeather(latitude, longitude);
+    const weatherContext = await getLiveWeatherContext(latitude, longitude);
     const occasionMatch = query.match(/Okazja:\s*([^.]+)/);
     const selectedOccasion = occasionMatch?.[1]?.trim() || "Casual";
     const startOfToday = new Date();
@@ -50,10 +50,10 @@ const analyze = async (req, res, next) => {
     writeLog("info", "ai_analysis_started", { requestId: req.requestId });
 
     const geminiStart = Date.now();
-    const geminiResponse = await askGemini(query, context, weatherType);
+    const geminiResponse = await askGemini(query, context, weatherContext);
     const geminiTime = Date.now() - geminiStart;
     const groqStart = Date.now();
-    const groqResponse = await askGroqCloud(query, context, weatherType);
+    const groqResponse = await askGroqCloud(query, context, weatherContext);
     const groqTime = Date.now() - groqStart;
     const fitteStart = Date.now();
     const fitteResult = await askFitteEngine(
@@ -62,7 +62,7 @@ const analyze = async (req, res, next) => {
       user,
       currentEvent,
       selectedOccasion,
-      weatherType,
+      weatherContext,
     );
     const fitteTime = Date.now() - fitteStart;
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
@@ -105,6 +105,7 @@ const analyze = async (req, res, next) => {
       recommendationId: fitteResult.recommendationId,
       fitteAlgorithmVersion: fitteResult.algorithmVersion,
       fitteRecommendationAvailability: fitteResult.recommendationAvailability,
+      weatherContext,
       fitteItems: fitteResult.fitteItems,
       geminiItems: geminiResolved.items,
       groqItems: groqResolved.items,
