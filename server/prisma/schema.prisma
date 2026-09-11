@@ -38,6 +38,7 @@ model User {
   styleWeights    Json?
   colorWeights    Json?
   clothes         Cloth[]
+  clothingDrafts  ClothDraft[]
   analyses        Analysis[]
   recommendations OutfitRecommendation[]
   createdAt       DateTime               @default(now())
@@ -45,23 +46,44 @@ model User {
 }
 
 model Cloth {
-  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
-  name               String
-  category           String
-  color              String?
-  style              String?
-  materials          ClothingMaterial[] @default([])
-  seasons            ClothingSeason[]   @default([])
-  warmthLevel        Int?
-  waterResistance    WaterResistance?
-  formality          ClothingFormality?
-  pattern            ClothingPattern?
-  sleeveLength       SleeveLength?
-  imageUrl           String?
-  cloudinaryPublicId String?
-  userId             String             @db.ObjectId
-  user               User               @relation(fields: [userId], references: [id])
-  createdAt          DateTime           @default(now())
+  id                    String             @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String
+  category              String
+  color                 String?
+  style                 String?
+  materials             ClothingMaterial[] @default([])
+  seasons               ClothingSeason[]   @default([])
+  warmthLevel           Int?
+  waterResistance       WaterResistance?
+  formality             ClothingFormality?
+  pattern               ClothingPattern?
+  sleeveLength          SleeveLength?
+  imageUrl              String?
+  cloudinaryPublicId    String?
+  userId                String             @db.ObjectId
+  user                  User               @relation(fields: [userId], references: [id])
+  aiSuggestedAttributes Json?
+  correctedFields       String[]           @default([])
+  attributesConfirmedAt DateTime?
+  createdAt             DateTime           @default(now())
+}
+
+model ClothDraft {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  aiAnalysis Json
+
+  imageUrl           String
+  cloudinaryPublicId String @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Event {
