@@ -9,7 +9,9 @@ const {
   normalizeStyleNames,
   normalizeColorName,
 } = require("./services/attributeNormalizationService");
-
+const {
+  scoreOutfitWeatherFit,
+} = require("./services/weatherScoringService");
 const {
   clampPreferenceWeight,
 } = require("./services/preferenceLearningService");
@@ -170,6 +172,7 @@ function calculateOutfitScore(
   const details = {
     baseScore: 100,
     weatherScore: 0,
+    weatherReasons: [],
     occasionScore: 0,
     colorScore: 0,
     preferenceScore: 0,
@@ -184,62 +187,16 @@ function calculateOutfitScore(
     colorWeights: userColorWeights,
   };
 
-  if (weatherType && WEATHER_BLACKLIST[weatherType]) {
-    const blacklist = WEATHER_BLACKLIST[weatherType];
-    let weatherStylePenalty = 0;
+const weatherResult = scoreOutfitWeatherFit(outfit, weatherType);
 
-    outfit.forEach((item) => {
-      const category = item.category;
-      const itemStyles = parseStyles(item);
-      const color = normalizeColorName(item.color);
-      const name = item.name?.toLowerCase() || "";
-
-      if (blacklist.categories && blacklist.categories.includes(category)) {
-        details.hardVeto = true;
-        details.vetoReasons.push(`category:${category}`);
-      }
-
-      if (blacklist.colors && blacklist.colors.includes(color)) {
-        details.hardVeto = true;
-        details.vetoReasons.push(`color:${color}`);
-      }
-
-      if (blacklist.forbiddenKeywords) {
-        blacklist.forbiddenKeywords.forEach((keyword) => {
-          if (nameMatchesForbiddenKeyword(name, keyword)) {
-            details.hardVeto = true;
-            details.vetoReasons.push(`keyword:${keyword}`);
-          }
-        });
-      }
-
-      if (
-        blacklist.styles &&
-        itemStyles.some((style) => blacklist.styles.includes(style))
-      ) {
-        weatherStylePenalty += 45;
-      }
-    });
-
-    if (details.hardVeto) {
-      details.vetoReasons = [...new Set(details.vetoReasons)];
-
-      details.weatherScore = -1099;
-      details.totalScore = -999;
-
-      return {
-        totalScore: -999,
-        details: {
-          ...details,
-          message:
-            `Zestaw niedostosowany do warunków ` +
-            `atmosferycznych (${weatherType})`,
-        },
-      };
-    }
-
-    details.weatherScore -= weatherStylePenalty;
-  }
+details.weatherScore = weatherResult.score;
+details.weatherReasons = weatherResult.itemResults.flatMap(
+  ({ itemId, reasons }) =>
+    reasons.map((reason) => ({
+      itemId,
+      ...reason,
+    })),
+);
 
   let matchingStylesCount = 0;
 

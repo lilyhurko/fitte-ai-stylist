@@ -576,3 +576,4 @@ test("odmieniona nazwa ciemnego koloru nadal uruchamia weto na upał", () => {
   assert.equal(result.totalScore, -999);
   assert.ok(result.details.vetoReasons.includes("color:czarny"));
 });
+
