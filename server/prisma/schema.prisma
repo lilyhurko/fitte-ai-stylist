@@ -45,16 +45,23 @@ model User {
 }
 
 model Cloth {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
   name               String
   category           String
   color              String?
   style              String?
+  materials          ClothingMaterial[] @default([])
+  seasons            ClothingSeason[]   @default([])
+  warmthLevel        Int?
+  waterResistance    WaterResistance?
+  formality          ClothingFormality?
+  pattern            ClothingPattern?
+  sleeveLength       SleeveLength?
   imageUrl           String?
   cloudinaryPublicId String?
-  userId             String   @db.ObjectId
-  user               User     @relation(fields: [userId], references: [id])
-  createdAt          DateTime @default(now())
+  userId             String             @db.ObjectId
+  user               User               @relation(fields: [userId], references: [id])
+  createdAt          DateTime           @default(now())
 }
 
 model Event {
@@ -94,4 +101,64 @@ model OutfitRecommendation {
   generationConfig Json?
   status           String   @default("PENDING")
   createdAt        DateTime @default(now())
+}
+
+enum ClothingMaterial {
+  COTTON
+  LINEN
+  WOOL
+  CASHMERE
+  SILK
+  VISCOSE
+  POLYESTER
+  POLYAMIDE
+  ELASTANE
+  ACRYLIC
+  DENIM
+  LEATHER
+  SUEDE
+  OTHER
+}
+
+enum ClothingSeason {
+  SPRING
+  SUMMER
+  AUTUMN
+  WINTER
+  ALL_SEASON
+}
+
+enum WaterResistance {
+  NONE
+  WATER_REPELLENT
+  WATERPROOF
+}
+
+enum ClothingFormality {
+  VERY_CASUAL
+  CASUAL
+  SMART_CASUAL
+  BUSINESS
+  FORMAL
+}
+
+enum ClothingPattern {
+  SOLID
+  STRIPED
+  CHECKERED
+  FLORAL
+  POLKA_DOT
+  ANIMAL_PRINT
+  GEOMETRIC
+  ABSTRACT
+  LOGO
+  OTHER
+}
+
+enum SleeveLength {
+  SLEEVELESS
+  SHORT
+  THREE_QUARTER
+  LONG
+  NOT_APPLICABLE
 }
