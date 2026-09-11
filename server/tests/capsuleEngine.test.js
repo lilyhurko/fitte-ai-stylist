@@ -124,6 +124,36 @@ test("sandały są wykluczane z kapsuły na deszcz", () => {
   assert.equal(usedIds.has("sandals"), false);
 });
 
+test("sandały pozostają dostępne podczas deszczu, gdy nie ma innych butów", () => {
+  const wardrobe = [
+    createItem("top-1", "Góra"),
+    createItem("top-2", "Góra"),
+    createItem("bottom-1", "Dół"),
+    createItem("bottom-2", "Dół"),
+    createItem("sandals", "Obuwie", {
+      name: "Lekkie sandały",
+      style: "Casual, Boho",
+      color: "beżowy",
+      materials: [],
+      seasons: ["SUMMER"],
+      waterResistance: "NONE",
+    }),
+  ];
+
+  const result = generateCapsuleWardrobe(
+    wardrobe,
+    {},
+    "Rain",
+  );
+
+  const usedIds = new Set(
+    result.capsuleItems.map((item) => item.id),
+  );
+
+  assert.equal(usedIds.has("sandals"), true);
+  assert.ok(result.combinations.length > 0);
+});
+
 test("baseline nie tworzy kombinacji kapsuły bez obuwia", () => {
   const wardrobeWithoutShoes = [
     createItem("top-1", "Góra"),

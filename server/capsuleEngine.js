@@ -2,42 +2,44 @@ const {
   calculateOutfitScore,
   parseStyles,
   isNonOutfitItem,
-  scoreWeatherFit,
-  nameMatchesForbiddenKeyword,
   OCCASION_STYLE_MATCH,
-  WEATHER_BLACKLIST
 } = require("./outfitEngine");
 
-const NEUTRAL_COLORS = ["czarny", "biały", "kremowy", "beżowy", "szary", "granatowy"];
+const { scoreItemWeatherFit } = require("./services/weatherScoringService");
 
+const NEUTRAL_COLORS = [
+  "czarny",
+  "biały",
+  "kremowy",
+  "beżowy",
+  "szary",
+  "granatowy",
+];
 
-const isHardWeatherVetoed = (item, weatherType) => {
-  const blacklist = WEATHER_BLACKLIST[weatherType];
-  if (!blacklist) return false;
+const scoreItemAcrossWeather = (item, weatherTypes) => {
+  if (!Array.isArray(weatherTypes) || weatherTypes.length === 0) {
+    return 0;
+  }
 
-  const col = item.color ? item.color.toLowerCase() : "";
-  const name = item.name ? item.name.toLowerCase() : "";
+  const totalScore = weatherTypes.reduce(
+    (sum, weatherType) => sum + scoreItemWeatherFit(item, weatherType).score,
+    0,
+  );
 
-  if (blacklist.categories && blacklist.categories.includes(item.category)) return true;
-  if (blacklist.colors && blacklist.colors.includes(col)) return true;
-  if (blacklist.forbiddenKeywords && blacklist.forbiddenKeywords.some(k => nameMatchesForbiddenKeyword(name, k))) return true;
-
-  return false;
+  return totalScore / weatherTypes.length;
 };
-
-
-const isHardVetoedForTrip = (item, weatherTypes) =>
-  weatherTypes.some((wt) => isHardWeatherVetoed(item, wt));
-
 
 const scoreVersatility = (item, userProfile = {}) => {
   let score = 0;
   const itemStyles = parseStyles(item);
 
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
-  const matchingOccasions = occasions.filter(
-    (occ) => itemStyles.some((st) => OCCASION_STYLE_MATCH[occ].includes(st))
+  const matchingOccasions = occasions.filter((occasion) =>
+    itemStyles.some((style) =>
+      OCCASION_STYLE_MATCH[occasion].includes(style),
+    ),
   );
+
   score += matchingOccasions.length * 20;
 
   if (NEUTRAL_COLORS.includes(item.color?.toLowerCase())) {
@@ -45,28 +47,42 @@ const scoreVersatility = (item, userProfile = {}) => {
   }
 
   const styleWeights = userProfile?.styleWeights
-    ? (typeof userProfile.styleWeights === "string" ? JSON.parse(userProfile.styleWeights) : userProfile.styleWeights)
-    : {};
-  const colorWeights = userProfile?.colorWeights
-    ? (typeof userProfile.colorWeights === "string" ? JSON.parse(userProfile.colorWeights) : userProfile.colorWeights)
+    ? typeof userProfile.styleWeights === "string"
+      ? JSON.parse(userProfile.styleWeights)
+      : userProfile.styleWeights
     : {};
 
-  itemStyles.forEach((st) => {
-    if (styleWeights[st]) score += styleWeights[st] * 8;
+  const colorWeights = userProfile?.colorWeights
+    ? typeof userProfile.colorWeights === "string"
+      ? JSON.parse(userProfile.colorWeights)
+      : userProfile.colorWeights
+    : {};
+
+  itemStyles.forEach((style) => {
+    if (styleWeights[style]) {
+      score += styleWeights[style] * 8;
+    }
   });
-  if (item.color && colorWeights[item.color]) score += colorWeights[item.color] * 5;
+
+  if (item.color && colorWeights[item.color]) {
+    score += colorWeights[item.color] * 5;
+  }
 
   return score;
 };
 
-
-const scoreComboAcrossWeather = (outfit, userProfile, occasion, weatherTypes) => {
+const scoreComboAcrossWeather = (
+  outfit,
+  userProfile,
+  occasion,
+  weatherTypes,
+) => {
   const scores = weatherTypes.map(
-    (wt) => calculateOutfitScore(outfit, userProfile, null, occasion, wt).totalScore
+    (wt) =>
+      calculateOutfitScore(outfit, userProfile, null, occasion, wt).totalScore,
   );
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 };
-
 
 function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
   let nG = goras.length > 0 ? 1 : 0;
@@ -76,8 +92,8 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
 
   const comboCount = () => nG * nD * nB + nS * nB;
 
-
-  const maxIterations = goras.length + dols.length + sukienki.length + buty.length;
+  const maxIterations =
+    goras.length + dols.length + sukienki.length + buty.length;
   let iterations = 0;
 
   while (comboCount() < targetCombos && iterations < maxIterations) {
@@ -105,30 +121,45 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
     selectedButy: buty.slice(0, nB),
   };
 }
-function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) {
+function buildCapsule(
+  wearableClothes,
+  userProfile,
+  weatherTypes,
+  options = {},
+) {
   const { targetCombos = null } = options;
 
-  const weatherSafe = wearableClothes.filter((c) => !isHardVetoedForTrip(c, weatherTypes));
-  const pool = weatherSafe.length >= 5 ? weatherSafe : wearableClothes;
-
+  const pool = wearableClothes;
   const byVersatility = (a, b) =>
-    (scoreVersatility(b, userProfile) + scoreWeatherFit(b, weatherTypes)) -
-    (scoreVersatility(a, userProfile) + scoreWeatherFit(a, weatherTypes));
+    scoreVersatility(b, userProfile) +
+    scoreItemAcrossWeather(b, weatherTypes) -
+    (scoreVersatility(a, userProfile) +
+      scoreItemAcrossWeather(a, weatherTypes));
 
   const goras = pool.filter((c) => c.category === "Góra").sort(byVersatility);
   const dols = pool.filter((c) => c.category === "Dół").sort(byVersatility);
-  const sukienki = pool.filter((c) => c.category === "Sukienki").sort(byVersatility);
-  const buty = pool.filter((c) => c.category === "Buty" || c.category === "Obuwie").sort(byVersatility);
-  const { selectedGoras, selectedDols, selectedSukienki, selectedButy } = targetCombos
-    ? selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos)
-    : {
-        selectedGoras: goras.slice(0, 4),
-        selectedDols: dols.slice(0, 3),
-        selectedSukienki: sukienki.slice(0, 1),
-        selectedButy: buty.slice(0, 2),
-      };
+  const sukienki = pool
+    .filter((c) => c.category === "Sukienki")
+    .sort(byVersatility);
+  const buty = pool
+    .filter((c) => c.category === "Buty" || c.category === "Obuwie")
+    .sort(byVersatility);
+  const { selectedGoras, selectedDols, selectedSukienki, selectedButy } =
+    targetCombos
+      ? selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos)
+      : {
+          selectedGoras: goras.slice(0, 4),
+          selectedDols: dols.slice(0, 3),
+          selectedSukienki: sukienki.slice(0, 1),
+          selectedButy: buty.slice(0, 2),
+        };
 
-  const capsuleItems = [...selectedGoras, ...selectedDols, ...selectedSukienki, ...selectedButy];
+  const capsuleItems = [
+    ...selectedGoras,
+    ...selectedDols,
+    ...selectedSukienki,
+    ...selectedButy,
+  ];
 
   let rawCombos = [];
 
@@ -147,24 +178,28 @@ function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) 
   });
 
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
-  const scoredCombos = rawCombos
-    .map((outfit) => {
-      let best = { score: -Infinity, occasion: null };
-      occasions.forEach((occ) => {
-        const score = scoreComboAcrossWeather(outfit, userProfile, occ, weatherTypes);
-        if (score > best.score) best = { score, occasion: occ };
-      });
-      return { outfit, ...best };
-    })
-    .filter((c) => c.score > -500);
+  const scoredCombos = rawCombos.map((outfit) => {
+    let best = { score: -Infinity, occasion: null };
+    occasions.forEach((occ) => {
+      const score = scoreComboAcrossWeather(
+        outfit,
+        userProfile,
+        occ,
+        weatherTypes,
+      );
+      if (score > best.score) best = { score, occasion: occ };
+    });
+    return { outfit, ...best };
+  });
 
   const byOccasion = {};
   scoredCombos.forEach((c) => {
     if (!byOccasion[c.occasion]) byOccasion[c.occasion] = [];
     byOccasion[c.occasion].push(c);
   });
-  Object.values(byOccasion).forEach((list) => list.sort((a, b) => b.score - a.score));
-
+  Object.values(byOccasion).forEach((list) =>
+    list.sort((a, b) => b.score - a.score),
+  );
 
   const diversified = [];
   const usedKeys = new Set();
@@ -197,11 +232,15 @@ function buildCapsule(wearableClothes, userProfile, weatherTypes, options = {}) 
   return {
     capsuleItems,
     totalCombinations: rawCombos.length,
-    combinations: diversified.slice(0, finalLimit).map((c) => c.outfit)
+    combinations: diversified.slice(0, finalLimit).map((c) => c.outfit),
   };
 }
 
-function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear") {
+function generateCapsuleWardrobe(
+  clothes,
+  userProfile = {},
+  weatherType = "Clear",
+) {
   if (!clothes) {
     return { capsuleItems: [], totalCombinations: 0, combinations: [] };
   }
@@ -214,8 +253,12 @@ function generateCapsuleWardrobe(clothes, userProfile = {}, weatherType = "Clear
   return buildCapsule(wearableClothes, userProfile, [weatherType]);
 }
 
-
-function generateTripCapsuleWardrobe(clothes, userProfile = {}, weatherTypes = ["Clear"], days = 1) {
+function generateTripCapsuleWardrobe(
+  clothes,
+  userProfile = {},
+  weatherTypes = ["Clear"],
+  days = 1,
+) {
   if (!clothes) {
     return { capsuleItems: [], totalCombinations: 0, combinations: [] };
   }
@@ -227,7 +270,9 @@ function generateTripCapsuleWardrobe(clothes, userProfile = {}, weatherTypes = [
 
   const safeWeatherTypes = weatherTypes.length > 0 ? weatherTypes : ["Clear"];
   const targetCombos = Math.max(1, parseInt(days, 10) || 1);
-  return buildCapsule(wearableClothes, userProfile, safeWeatherTypes, { targetCombos });
+  return buildCapsule(wearableClothes, userProfile, safeWeatherTypes, {
+    targetCombos,
+  });
 }
 
 module.exports = { generateCapsuleWardrobe, generateTripCapsuleWardrobe };

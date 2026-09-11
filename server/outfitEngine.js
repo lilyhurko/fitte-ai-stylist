@@ -34,43 +34,6 @@ const OCCASION_KEYWORDS = {
   Podróż: ["wygodn", "sportow", "praktyczn", "casual"],
 };
 
-const WEATHER_BLACKLIST = {
-  Rain: {
-    categories: ["Sukienki", "Sandały"],
-    colors: [],
-    forbiddenKeywords: ["sandał", "klapk", "siatkow"],
-  },
-  Hot: {
-    categories: [],
-    styles: ["Classic"],
-    colors: ["czarny", "ciemnobrązowy", "granatowy"],
-    forbiddenKeywords: [
-      "bufiast",
-      "grub",
-      "wełn",
-      "skórz",
-      "kozak",
-      "śniegowc",
-      "marynark",
-      "żakiet",
-      "garnitur",
-    ],
-  },
-  Cold: {
-    categories: ["Sukienki", "Sandały"],
-    styles: ["Boho"],
-    colors: [],
-    forbiddenKeywords: [
-      "cienki",
-      "krótki",
-      "jedwab",
-      "sandał",
-      "klapk",
-      "letni",
-    ],
-  },
-};
-
 const COLOR_HARMONIES = {
   czarny: ["biały", "kremowy", "beżowy", "szary", "pastelowy róż"],
   granatowy: ["biały", "beżowy", "kremowy", "ecru", "czerwony"],
@@ -83,18 +46,13 @@ const COLOR_HARMONIES = {
 function parseStyles(item) {
   return normalizeStyleNames(item?.style);
 }
-
-function nameMatchesForbiddenKeyword(name, keyword) {
-  if (keyword === "wełn") {
-    return /(?<!ba)wełn/i.test(name);
-  }
-  return name.includes(keyword);
-}
-
 function createOutfitKey(ids) {
-  return ids.filter(Boolean).map(String).sort().join(":");
+  return ids
+    .filter(Boolean)
+    .map(String)
+    .sort()
+    .join(":");
 }
-
 function calculateRepetitionPenalty(outfit, recommendationHistory = []) {
   const currentIds = outfit
     .map((item) => item.id)
@@ -479,56 +437,6 @@ function generateBestOutfits(
   return selectablePool.slice(0, 3);
 }
 
-const WEATHER_FRIENDLY_KEYWORDS = {
-  Hot: [
-    "lnian",
-    "bawełnian",
-    "przewiewn",
-    "letni",
-    "krótk",
-    "sandał",
-    "bez rękaw",
-    "koszulk",
-  ],
-  Cold: [
-    "wełn",
-    "ciepł",
-    "grub",
-    "dzianin",
-    "swetr",
-    "kurtk",
-    "płaszcz",
-    "polar",
-    "kożuch",
-  ],
-  Rain: ["nieprzemakaln", "wodoodporn", "goretex", "płaszcz"],
-  Clear: [],
-};
-
-const WEATHER_COLOR_BONUS = {
-  Hot: ["biały", "kremowy", "beżowy", "żółty", "różowy", "błękitny"],
-  Cold: ["czarny", "ciemnobrązowy", "granatowy", "bordowy", "szary"],
-  Rain: [],
-  Clear: [],
-};
-
-function scoreWeatherFit(item, weatherTypes) {
-  if (!weatherTypes || weatherTypes.length === 0) return 0;
-
-  const name = item.name ? item.name.toLowerCase() : "";
-  const color = normalizeColorName(item.color);
-  let score = 0;
-
-  weatherTypes.forEach((wt) => {
-    const keywords = WEATHER_FRIENDLY_KEYWORDS[wt] || [];
-    if (keywords.some((k) => name.includes(k))) score += 15;
-
-    const bonusColors = WEATHER_COLOR_BONUS[wt] || [];
-    if (bonusColors.includes(color)) score += 8;
-  });
-
-  return score / weatherTypes.length;
-}
 
 module.exports = {
   generateBestOutfits,
@@ -536,11 +444,8 @@ module.exports = {
   parseStyles,
   isNonOutfitItem,
   NON_OUTFIT_KEYWORDS,
-  scoreWeatherFit,
-  nameMatchesForbiddenKeyword,
   OCCASION_STYLE_MATCH,
   OCCASION_KEYWORDS,
-  WEATHER_BLACKLIST,
   COLOR_HARMONIES,
   createOutfitKey,
   calculateRepetitionPenalty,
