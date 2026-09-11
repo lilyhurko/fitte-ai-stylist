@@ -36,8 +36,6 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
     setCustomStyleInput("");
   };
 
-  // Style spoza wbudowanej listy (np. dodane wcześniej ręcznie), które i tak są przypisane do ubrania —
-  // pokazujemy je jako osobne, usuwalne chipy, żeby nie zniknęły z widoku.
   const extraSelectedStyles = selectedStyles.filter((s) => !STYLE_OPTIONS.includes(s));
 
   const handleSubmit = async (e) => {
