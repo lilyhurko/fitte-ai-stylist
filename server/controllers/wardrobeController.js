@@ -21,6 +21,13 @@ const addCloth = async (req, res, next) => {
         category: analysis.category || "Góra",
         style: analysis.style || "Minimalizm",
         color: analysis.color || "kremowy",
+        materials: Array.isArray(analysis.materials) ? analysis.materials : [],
+        seasons: Array.isArray(analysis.seasons) ? analysis.seasons : [],
+        warmthLevel: analysis.warmthLevel ?? null,
+        waterResistance: analysis.waterResistance ?? null,
+        formality: analysis.formality ?? null,
+        pattern: analysis.pattern ?? null,
+        sleeveLength: analysis.sleeveLength ?? null,
         imageUrl: uploadedImage.imageUrl,
         cloudinaryPublicId: uploadedImage.publicId,
         userId: req.user.userId,
@@ -82,13 +89,11 @@ const updateCloth = async (req, res, next) => {
   const idValidation = objectIdSchema.safeParse(req.params.id);
   const bodyValidation = updateClothSchema.safeParse(req.body);
   if (!idValidation.success || !bodyValidation.success) {
-    return res
-      .status(400)
-      .json({
-        error:
-          idValidation.error?.issues[0].message ||
-          bodyValidation.error?.issues[0].message,
-      });
+    return res.status(400).json({
+      error:
+        idValidation.error?.issues[0].message ||
+        bodyValidation.error?.issues[0].message,
+    });
   }
   try {
     const cloth = await prisma.cloth.findFirst({
