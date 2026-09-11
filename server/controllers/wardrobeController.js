@@ -183,7 +183,10 @@ const confirmClothDraft = async (req, res, next) => {
 
     next(error);
   }
-  const cancelClothDraft = async (req, res, next) => {
+};
+
+
+const cancelClothDraft = async (req, res, next) => {
     const idValidation = objectIdSchema.safeParse(req.params.id);
 
     if (!idValidation.success) {
@@ -224,7 +227,7 @@ const confirmClothDraft = async (req, res, next) => {
       next(error);
     }
   };
-};
+
 
 const addCloth = async (req, res, next) => {
   try {

@@ -8,14 +8,7 @@ const {
   deleteCloth,
   updateCloth,
 } = require("../controllers/wardrobeController");
-const {
-  analyzeClothDraft,
-  confirmClothDraft,
-  addCloth,
-  getWardrobe,
-  deleteCloth,
-  updateCloth,
-} = require("../controllers/wardrobeController");
+
 const { authenticateToken } = require("../middleware/authenticate");
 const { uploadLimiter } = require("../middleware/rateLimiters");
 const { upload } = require("../middleware/upload");
