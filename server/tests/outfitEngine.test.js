@@ -105,18 +105,28 @@ test("preferencje użytkownika zwiększają punktację", () => {
   assert.equal(personalizedScore - neutralScore, 10);
 });
 
-test("twarde niedopasowanie pogodowe daje wynik -999", () => {
+test("niedopasowanie do deszczu daje karę zamiast twardego weta", () => {
   const sandals = createItem({
     name: "Lekkie sandały",
     category: "Obuwie",
     style: "Casual",
     color: "beżowy",
+    materials: [],
+    seasons: ["SUMMER"],
+    waterResistance: "NONE",
   });
 
-  const result = calculateOutfitScore([sandals], {}, null, "Casual", "Rain");
+  const result = calculateOutfitScore(
+    [sandals],
+    {},
+    null,
+    "Casual",
+    "Rain",
+  );
 
-  assert.equal(result.totalScore, -999);
-  assert.match(result.details.message, /Rain/);
+  assert.equal(result.details.weatherScore, -40);
+  assert.equal(result.details.hardVeto, false);
+  assert.notEqual(result.totalScore, -999);
 });
 
 test("generateBestOutfits zwraca maksymalnie trzy posortowane zestawy", () => {
@@ -210,24 +220,38 @@ test("identyczne dane wejściowe dają identyczny ranking baseline", () => {
   assert.deepEqual(secondRun, firstRun);
 });
 
-test("ciemne ubranie otrzymuje twarde weto podczas upału", () => {
+test("ciemne zimowe ubranie otrzymuje karę podczas upału", () => {
   const darkItem = createItem({
-    name: "Czarny casualowy t-shirt",
+    name: "Czarny wełniany płaszcz",
     style: "Casual",
     color: "czarny",
+    materials: ["WOOL"],
+    seasons: ["WINTER"],
+    warmthLevel: 5,
   });
 
-  const result = calculateOutfitScore([darkItem], {}, null, "Casual", "Hot");
+  const result = calculateOutfitScore(
+    [darkItem],
+    {},
+    null,
+    "Casual",
+    "Hot",
+  );
 
-  assert.equal(result.totalScore, -999);
+  assert.equal(result.details.weatherScore, -88);
+  assert.equal(result.details.hardVeto, false);
+  assert.notEqual(result.totalScore, -999);
 });
 
-test("letnia sukienka otrzymuje twarde weto podczas zimna", () => {
+test("letnia sukienka otrzymuje karę podczas zimna", () => {
   const summerDress = createItem({
     name: "Lekka letnia sukienka",
     category: "Sukienki",
     style: "Romantic",
     color: "pastelowy róż",
+    materials: [],
+    seasons: ["SUMMER"],
+    warmthLevel: 1,
   });
 
   const result = calculateOutfitScore(
@@ -238,7 +262,9 @@ test("letnia sukienka otrzymuje twarde weto podczas zimna", () => {
     "Cold",
   );
 
-  assert.equal(result.totalScore, -999);
+  assert.equal(result.details.weatherScore, -53);
+  assert.equal(result.details.hardVeto, false);
+  assert.notEqual(result.totalScore, -999);
 });
 
 test("wynik końcowy jest sumą jawnych składników punktacji", () => {
@@ -312,7 +338,7 @@ test("wynik końcowy jest sumą jawnych składników punktacji", () => {
   assert.equal(result.totalScore, 350);
 });
 
-test("kara za styl niedopasowany do pogody jest osobnym składnikiem", () => {
+test("sam styl Classic nie powoduje kary podczas upału", () => {
   const item = createItem({
     name: "Lekka biała bluzka",
     category: "Góra",
@@ -323,10 +349,11 @@ test("kara za styl niedopasowany do pogody jest osobnym składnikiem", () => {
   const result = calculateOutfitScore([item], {}, null, null, "Hot");
 
   assert.equal(result.details.baseScore, 100);
-  assert.equal(result.details.weatherScore, -45);
+  assert.equal(result.details.weatherScore, 0);
+  assert.deepEqual(result.details.weatherReasons, []);
   assert.equal(result.details.occasionScore, 0);
   assert.equal(result.details.colorScore, 0);
-  assert.equal(result.totalScore, 55);
+  assert.equal(result.totalScore, 100);
 });
 
 test("klucz zestawu nie zależy od kolejności elementów", () => {
@@ -558,7 +585,7 @@ test("odmiany stylu i koloru korzystają z tych samych wag preferencji", () => {
   assert.ok(aliasResult.details.preferenceScore > 0);
 });
 
-test("odmieniona nazwa ciemnego koloru nadal uruchamia weto na upał", () => {
+test("odmieniona nazwa ciemnego koloru nadal daje karę podczas upału", () => {
   const result = calculateOutfitScore(
     [
       createItem({
@@ -573,7 +600,11 @@ test("odmieniona nazwa ciemnego koloru nadal uruchamia weto na upał", () => {
     "Hot",
   );
 
-  assert.equal(result.totalScore, -999);
-  assert.ok(result.details.vetoReasons.includes("color:czarny"));
+  assert.equal(result.details.weatherScore, -6);
+  assert.equal(result.details.hardVeto, false);
+  assert.ok(
+    result.details.weatherReasons.some(
+      (reason) => reason.code === "dark-color-in-heat",
+    ),
+  );
 });
-
