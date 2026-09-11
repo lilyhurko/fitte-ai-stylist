@@ -116,6 +116,7 @@ enum ClothingMaterial {
   ACRYLIC
   DENIM
   LEATHER
+  FAUX_LEATHER
   SUEDE
   OTHER
 }

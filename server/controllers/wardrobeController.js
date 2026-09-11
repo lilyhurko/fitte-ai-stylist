@@ -1,5 +1,8 @@
 const { prisma } = require("../config/prisma");
 const { objectIdSchema } = require("../validators/commonValidators");
+const {
+  normalizeColorName,
+} = require("../services/attributeNormalizationService");
 const { updateClothSchema } = require("../validators/wardrobeValidators");
 const { writeLog } = require("../services/logger");
 const { processAndUploadImage } = require("../services/wardrobeService");
@@ -20,7 +23,7 @@ const addCloth = async (req, res, next) => {
         name: analysis.name || "Eleganckie ubranie",
         category: analysis.category || "Góra",
         style: analysis.style || "Minimalizm",
-        color: analysis.color || "kremowy",
+        color: normalizeColorName(analysis.color) || "kremowy",
         materials: Array.isArray(analysis.materials) ? analysis.materials : [],
         seasons: Array.isArray(analysis.seasons) ? analysis.seasons : [],
         warmthLevel: analysis.warmthLevel ?? null,

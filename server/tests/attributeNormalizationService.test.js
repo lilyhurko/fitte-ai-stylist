@@ -9,10 +9,7 @@ const {
 } = require("../services/attributeNormalizationService");
 
 test("normalizuje wielkość liter, spacje i polskie znaki", () => {
-  assert.equal(
-    normalizeAttributeKey("  BŁĘKITNY  "),
-    "blekitny",
-  );
+  assert.equal(normalizeAttributeKey("  BŁĘKITNY  "), "blekitny");
 });
 
 test("łączy różne nazwy tego samego stylu", () => {
@@ -23,9 +20,7 @@ test("łączy różne nazwy tego samego stylu", () => {
 
 test("rozdziela i deduplikuje wiele stylów ubrania", () => {
   assert.deepEqual(
-    normalizeStyleNames(
-      "Classic, minimalistyczna / klasyczna; Romantic",
-    ),
+    normalizeStyleNames("Classic, minimalistyczna / klasyczna; Romantic"),
     ["Classic", "Minimalizm", "Romantic"],
   );
 });
@@ -35,4 +30,5 @@ test("łączy odmiany tej samej nazwy koloru", () => {
   assert.equal(normalizeColorName("beżowe"), "beżowy");
   assert.equal(normalizeColorName("Pastelowa róż"), "pastelowy róż");
   assert.equal(normalizeColorName("Błękitna"), "błękitny");
+  assert.equal(normalizeColorName("Ciemny brąz"), "ciemnobrązowy");
 });

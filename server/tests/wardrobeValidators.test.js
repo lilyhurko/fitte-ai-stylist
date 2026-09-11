@@ -1,13 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  updateClothSchema,
-} = require("../validators/wardrobeValidators");
+const { updateClothSchema } = require("../validators/wardrobeValidators");
 
 test("akceptuje komplet poprawnych właściwości ubrania", () => {
   const result = updateClothSchema.safeParse({
-    materials: ["COTTON", "ELASTANE"],
+    materials: ["COTTON", "ELASTANE", "FAUX_LEATHER"],
     seasons: ["SPRING", "SUMMER"],
     warmthLevel: 2,
     waterResistance: "NONE",

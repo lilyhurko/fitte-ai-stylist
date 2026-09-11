@@ -74,6 +74,8 @@ const COLOR_ALIASES = Object.freeze({
 
   ciemnobrazowy: "ciemnobrązowy",
   ciemnobrazowa: "ciemnobrązowy",
+  "ciemny braz": "ciemnobrązowy",
+  "ciemny brazowy": "ciemnobrązowy",
 
   zielony: "zielony",
   zielona: "zielony",
@@ -104,7 +106,6 @@ function normalizeAttributeKey(value) {
     .replace(/\p{Diacritic}/gu, "")
     .replace(/ł/g, "l")
     .replace(/\s+/g, " ");
-    
 }
 
 function normalizeStyleName(value) {

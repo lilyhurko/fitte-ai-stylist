@@ -13,6 +13,7 @@ const clothingMaterialSchema = z.enum([
   "ACRYLIC",
   "DENIM",
   "LEATHER",
+  "FAUX_LEATHER",
   "SUEDE",
   "OTHER",
 ]);
@@ -25,11 +26,7 @@ const clothingSeasonSchema = z.enum([
   "ALL_SEASON",
 ]);
 
-const waterResistanceSchema = z.enum([
-  "NONE",
-  "WATER_REPELLENT",
-  "WATERPROOF",
-]);
+const waterResistanceSchema = z.enum(["NONE", "WATER_REPELLENT", "WATERPROOF"]);
 
 const clothingFormalitySchema = z.enum([
   "VERY_CASUAL",
