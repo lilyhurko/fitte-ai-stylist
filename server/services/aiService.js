@@ -117,7 +117,7 @@ async function askGemini(query, context, weatherInput) {
   }
 }
 
-async function askGroqCloud(query, context, weatherType) {
+async function askGroqCloud(query, context, weatherInput) {
   try {
     const prompt = getBasePrompt(query, context, weatherInput);
     const chatCompletion = await resilientOperation(
