@@ -28,21 +28,25 @@ model Analysis {
 }
 
 model User {
-  id              String                 @id @default(auto()) @map("_id") @db.ObjectId
-  email           String                 @unique
-  name            String
-  gender          String?
-  password        String
-  styleTags       Json?
-  favoriteColors  Json?
-  styleWeights    Json?
-  colorWeights    Json?
-  clothes         Cloth[]
-  clothingDrafts  ClothDraft[]
-  analyses        Analysis[]
-  recommendations OutfitRecommendation[]
-  createdAt       DateTime               @default(now())
-  events          Event[]
+  id                  String                 @id @default(auto()) @map("_id") @db.ObjectId
+  email               String                 @unique
+  name                String
+  gender              String?
+  password            String
+  styleTags           Json?
+  favoriteColors      Json?
+  styleWeights        Json?
+  colorWeights        Json?
+  clothes             Cloth[]
+  clothingDrafts      ClothDraft[]
+  analyses            Analysis[]
+  recommendations     OutfitRecommendation[]
+  defaultLocationName String?
+  defaultLatitude     Float?
+  defaultLongitude    Float?
+  defaultTimezone     String?
+  createdAt           DateTime               @default(now())
+  events              Event[]
 }
 
 model Cloth {
@@ -87,19 +91,20 @@ model ClothDraft {
 }
 
 model Event {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  date      DateTime
-  occasion  String
-  formality String
-
-  outfitIds String[] @db.ObjectId
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  date            DateTime
+  occasion        String
+  formality       String
+  locationName    String?
+  latitude        Float?
+  longitude       Float?
+  defaultTimezone String?
+  outfitIds       String[] @db.ObjectId
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String   @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model OutfitRecommendation {

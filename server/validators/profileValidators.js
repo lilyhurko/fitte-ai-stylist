@@ -1,19 +1,44 @@
 const { z } = require("zod");
 const { emailSchema } = require("./authValidators");
+const {
+  optionalLocationNameSchema,
+  optionalLatitudeSchema,
+  optionalLongitudeSchema,
+} = require("./commonValidators");
 
-const updateProfileSchema = z.object({
-  firstName: z
-    .string()
-    .trim()
-    .min(2, "Imię musi mieć minimum 2 znaki")
-    .max(80, "Imię jest za długie"),
+const updateProfileSchema = z
+  .object({
+    firstName: z
+      .string()
+      .trim()
+      .min(2, "Imię musi mieć minimum 2 znaki")
+      .max(80, "Imię jest za długie"),
 
-  email: emailSchema,
+    email: emailSchema,
 
-  gender: z.enum(["Kobieta", "Mężczyzna", "Inna"], {
-    error: "Nieprawidłowa wartość płci",
-  }),
-});
+    gender: z.enum(["Kobieta", "Mężczyzna", "Inna"], {
+      error: "Nieprawidłowa wartość płci",
+    }),
+
+    defaultLocationName: optionalLocationNameSchema,
+    defaultLatitude: optionalLatitudeSchema,
+    defaultLongitude: optionalLongitudeSchema,
+  })
+  .superRefine((data, ctx) => {
+    const hasLatitude = data.defaultLatitude !== undefined;
+    const hasLongitude = data.defaultLongitude !== undefined;
+
+    if (hasLatitude !== hasLongitude) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Szerokość i długość geograficzna muszą zostać podane razem",
+        path: hasLatitude
+          ? ["defaultLongitude"]
+          : ["defaultLatitude"],
+      });
+    }
+  });
 
 const deleteAccountSchema = z.object({
   password: z

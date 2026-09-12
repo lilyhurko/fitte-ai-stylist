@@ -252,14 +252,30 @@ const getMultiDayForecast = async (latitude, longitude, days) => {
   });
 };
 
-const getCalendarWeatherMap = async (
-  latitude = 51.2465,
-  longitude = 22.5684,
-) => {
-  const dailyForecast = await getMultiDayForecast(latitude, longitude, 7);
+const getCalendarWeatherMap = async (latitude, longitude) => {
+  const hasValidCoordinates =
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180;
+
+  if (!hasValidCoordinates) {
+    return {};
+  }
+
+  const dailyForecast = await getMultiDayForecast(
+    latitude,
+    longitude,
+    7,
+  );
 
   return Object.fromEntries(
-    dailyForecast.map((day) => [day.date, day.weatherContext]),
+    dailyForecast.map((day) => [
+      day.date,
+      day.weatherContext,
+    ]),
   );
 };
 

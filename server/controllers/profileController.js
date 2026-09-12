@@ -2,9 +2,10 @@ const bcrypt = require("bcryptjs");
 const { prisma } = require("../config/prisma");
 const { changePasswordSchema } = require("../validators/authValidators");
 const {
-  pdateProfileSchema,
+  updateProfileSchema,
   deleteAccountSchema,
 } = require("../validators/profileValidators");
+const { PUBLIC_USER_SELECT } = require("../config/userSelect");
 const {
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_CLEAR_OPTIONS,
@@ -17,7 +18,7 @@ const getProfile = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { email: true, gender: true, styleTags: true, name: true },
+      select: PUBLIC_USER_SELECT,
     });
     res.json({ ...user, firstName: user.name });
   } catch (error) {
@@ -31,7 +32,14 @@ const updateProfile = async (req, res, next) => {
   if (!validation.success)
     return res.status(400).json({ error: validation.error.issues[0].message });
 
-  const { firstName, email, gender } = validation.data;
+  const {
+    firstName,
+    email,
+    gender,
+    defaultLocationName,
+    defaultLatitude,
+    defaultLongitude,
+  } = validation.data;
   try {
     if (email) {
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -41,7 +49,15 @@ const updateProfile = async (req, res, next) => {
     }
     const updatedUser = await prisma.user.update({
       where: { id: req.user.userId },
-      data: { name: firstName, email, gender },
+      data: {
+        name: firstName,
+        email,
+        gender,
+        defaultLocationName,
+        defaultLatitude,
+        defaultLongitude,
+      },
+      select: PUBLIC_USER_SELECT,
     });
     res.json(updatedUser);
   } catch (error) {

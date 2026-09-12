@@ -8,6 +8,9 @@ const PUBLIC_USER_SELECT = {
   styleWeights: true,
   colorWeights: true,
   createdAt: true,
+  defaultLocationName: true,
+  defaultLatitude: true,
+  defaultLongitude: true,
 };
 
 module.exports = { PUBLIC_USER_SELECT };

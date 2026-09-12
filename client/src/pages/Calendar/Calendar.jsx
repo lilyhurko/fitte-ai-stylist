@@ -7,6 +7,7 @@ import {
   Loader2,
   Sparkles,
   Shirt,
+  MapPin,
 } from "lucide-react";
 import "./Calendar.css";
 
@@ -17,6 +18,7 @@ const Calendar = () => {
     date: "",
     occasion: "Casual",
     formality: "Casual",
+    locationName: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,7 +26,6 @@ const Calendar = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // --- LOGIKA GENEROWANIA BIEŻĄCEGO TYGODNIA ---
   const currentWeekDays = React.useMemo(() => {
     const startOfWeek = new Date();
     const day = startOfWeek.getDay();
@@ -58,6 +59,7 @@ const Calendar = () => {
         date: "",
         occasion: "Casual",
         formality: "Casual",
+        locationName: "",
       });
     }
     setIsSubmitting(false);
@@ -184,7 +186,25 @@ const Calendar = () => {
                 required
               />
             </div>
-
+            <div className="form-group">
+              <label>Lokalizacja wydarzenia</label>
+              <input
+                type="text"
+                placeholder="np. Warszawa lub Kraków, Polska"
+                autoComplete="address-level2"
+                value={formData.locationName}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    locationName: e.target.value,
+                  })
+                }
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                Opcjonalnie — lokalizacja pozwala dopasować stylizację do
+                miejscowej pogody.
+              </p>
+            </div>
             <div className="form-group">
               <label>Okazja</label>
               <select
@@ -234,7 +254,6 @@ const Calendar = () => {
           </form>
         </div>
 
-        {/* Lista szczegółowa nadchodzących wydarzeń */}
         <div className="events-list-container">
           <h3 className="font-playfair text-2xl italic text-fitte-brown-dark mb-6">
             Szczegóły nadchodzących dni
@@ -271,6 +290,12 @@ const Calendar = () => {
                           timeStyle: "short",
                         })}
                       </p>
+                      {event.locationName && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                          <MapPin size={12} />
+                          {event.locationName}
+                        </p>
+                      )}
                       <div className="flex gap-2 mt-2">
                         <span className="tag tag-occasion">
                           {event.occasion}
