@@ -185,6 +185,7 @@ const geocodeCity = async (cityName) => {
     country: best.country,
     latitude: best.latitude,
     longitude: best.longitude,
+    timezone: best.timezone || null,
   };
 };
 
@@ -265,17 +266,10 @@ const getCalendarWeatherMap = async (latitude, longitude) => {
     return {};
   }
 
-  const dailyForecast = await getMultiDayForecast(
-    latitude,
-    longitude,
-    7,
-  );
+  const dailyForecast = await getMultiDayForecast(latitude, longitude, 7);
 
   return Object.fromEntries(
-    dailyForecast.map((day) => [
-      day.date,
-      day.weatherContext,
-    ]),
+    dailyForecast.map((day) => [day.date, day.weatherContext]),
   );
 };
 

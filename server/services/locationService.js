@@ -12,20 +12,17 @@ const resolveEventWeatherLocation = (event, user) => {
       latitude: event.latitude,
       longitude: event.longitude,
       name: event.locationName || null,
+      timezone: event.timezone || null,
       source: "EVENT",
     };
   }
 
-  if (
-    hasValidCoordinates(
-      user?.defaultLatitude,
-      user?.defaultLongitude,
-    )
-  ) {
+  if (hasValidCoordinates(user?.defaultLatitude, user?.defaultLongitude)) {
     return {
       latitude: user.defaultLatitude,
       longitude: user.defaultLongitude,
       name: user.defaultLocationName || null,
+      timezone: user.defaultTimezone || null,
       source: "USER",
     };
   }

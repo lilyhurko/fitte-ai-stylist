@@ -4,6 +4,7 @@ const {
   optionalLocationNameSchema,
   optionalLatitudeSchema,
   optionalLongitudeSchema,
+  optionalTimezoneSchema,
 } = require("./commonValidators");
 
 const createEventSchema = z
@@ -32,6 +33,7 @@ const createEventSchema = z
     locationName: optionalLocationNameSchema,
     latitude: optionalLatitudeSchema,
     longitude: optionalLongitudeSchema,
+    timezone: optionalTimezoneSchema,
     outfitIds: z.array(objectIdSchema).max(20).default([]),
   })
   .superRefine((data, ctx) => {

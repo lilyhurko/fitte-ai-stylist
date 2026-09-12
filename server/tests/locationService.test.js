@@ -22,11 +22,13 @@ test("lokalizacja wydarzenia ma pierwszeństwo przed lokalizacją użytkownika",
       latitude: 50.06,
       longitude: 19.94,
       locationName: "Kraków",
+      timezone: "Europe/Warsaw",
     },
     {
       defaultLatitude: 52.23,
       defaultLongitude: 21.01,
       defaultLocationName: "Warszawa",
+      defaultTimezone: "Europe/Kyiv",
     },
   );
 
@@ -34,6 +36,7 @@ test("lokalizacja wydarzenia ma pierwszeństwo przed lokalizacją użytkownika",
     latitude: 50.06,
     longitude: 19.94,
     name: "Kraków",
+    timezone: "Europe/Warsaw",
     source: "EVENT",
   });
 });
@@ -45,6 +48,7 @@ test("korzysta z lokalizacji użytkownika, gdy wydarzenie jej nie posiada", () =
       defaultLatitude: 52.23,
       defaultLongitude: 21.01,
       defaultLocationName: "Warszawa",
+      defaultTimezone: "Europe/Warsaw",
     },
   );
 
@@ -52,6 +56,7 @@ test("korzysta z lokalizacji użytkownika, gdy wydarzenie jej nie posiada", () =
     latitude: 52.23,
     longitude: 21.01,
     name: "Warszawa",
+    timezone: "Europe/Warsaw",
     source: "USER",
   });
 });

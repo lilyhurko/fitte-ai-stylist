@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import "./Calendar.css";
 
+const BROWSER_TIMEZONE =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
 const Calendar = () => {
   const { events, loading, fetchEvents, addEvent, deleteEvent } = useCalendar();
   const [formData, setFormData] = useState({
@@ -19,6 +22,7 @@ const Calendar = () => {
     occasion: "Casual",
     formality: "Casual",
     locationName: "",
+    timezone: BROWSER_TIMEZONE,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +64,7 @@ const Calendar = () => {
         occasion: "Casual",
         formality: "Casual",
         locationName: "",
+        timezone: BROWSER_TIMEZONE,
       });
     }
     setIsSubmitting(false);
@@ -288,6 +293,8 @@ const Calendar = () => {
                         {new Date(event.date).toLocaleString("pl-PL", {
                           dateStyle: "short",
                           timeStyle: "short",
+                          timeZone: event.timezone || BROWSER_TIMEZONE,
+                          timeZoneName: "short",
                         })}
                       </p>
                       {event.locationName && (

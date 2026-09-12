@@ -23,6 +23,7 @@ const updateProfileSchema = z
     defaultLocationName: optionalLocationNameSchema,
     defaultLatitude: optionalLatitudeSchema,
     defaultLongitude: optionalLongitudeSchema,
+    defaultTimezone: optionalTimezoneSchema,
   })
   .superRefine((data, ctx) => {
     const hasLatitude = data.defaultLatitude !== undefined;

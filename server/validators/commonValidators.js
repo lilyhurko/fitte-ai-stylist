@@ -32,9 +32,29 @@ const optionalLongitudeSchema = z.preprocess(
     .optional(),
 );
 
+const optionalTimezoneSchema = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z
+    .string()
+    .trim()
+    .refine((value) => {
+      try {
+        new Intl.DateTimeFormat("pl-PL", {
+          timeZone: value,
+        }).format();
+
+        return true;
+      } catch {
+        return false;
+      }
+    }, "Nieprawidłowa strefa czasowa")
+    .optional(),
+);
+
 module.exports = {
   objectIdSchema,
   optionalLocationNameSchema,
   optionalLatitudeSchema,
   optionalLongitudeSchema,
+  optionalTimezoneSchema,
 };

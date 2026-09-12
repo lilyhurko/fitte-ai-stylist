@@ -6,6 +6,11 @@ const {
   geocodeCity,
 } = require("../services/weatherService");
 const {
+  DEFAULT_TIMEZONE,
+  parseEventLocalDateTime,
+  getDateKeyInTimezone,
+} = require("../services/dateTimeService");
+const {
   resolveEventWeatherLocation,
   createLocationKey,
 } = require("../services/locationService");
@@ -57,8 +62,15 @@ const getEvents = async (req, res, next) => {
     const neutralWeatherContext = createWeatherContext({});
 
     const eventsWithOutfits = events.map((event) => {
-      const date = new Date(event.date).toISOString().split("T")[0];
       const location = resolveEventWeatherLocation(event, user);
+
+      const eventTimezone =
+        event.timezone ||
+        location?.timezone ||
+        user?.defaultTimezone ||
+        DEFAULT_TIMEZONE;
+
+      const date = getDateKeyInTimezone(event.date, eventTimezone);
 
       const weatherContext = location
         ? weatherMapsByLocation.get(createLocationKey(location))?.[date]
@@ -102,10 +114,12 @@ const createEvent = async (req, res, next) => {
       locationName,
       latitude,
       longitude,
+      timezone,
     } = validation.data;
     let resolvedLocationName = locationName;
     let resolvedLatitude = latitude;
     let resolvedLongitude = longitude;
+    let resolvedTimezone = timezone || DEFAULT_TIMEZONE;
 
     if (locationName && (latitude === undefined || longitude === undefined)) {
       const geocodedLocation = await geocodeCity(locationName);
@@ -122,17 +136,27 @@ const createEvent = async (req, res, next) => {
 
       resolvedLatitude = geocodedLocation.latitude;
       resolvedLongitude = geocodedLocation.longitude;
+      resolvedTimezone = geocodedLocation.timezone || resolvedTimezone;
     }
+    const eventDate = parseEventLocalDateTime(date, resolvedTimezone);
+
+    if (!eventDate) {
+      return res.status(400).json({
+        error: "Nieprawidłowa data lub strefa czasowa wydarzenia.",
+      });
+    }
+
     const event = await prisma.event.create({
       data: {
         title,
-        date: new Date(date),
+        date: eventDate,
         occasion,
         formality,
         outfitIds,
         locationName: resolvedLocationName,
         latitude: resolvedLatitude,
         longitude: resolvedLongitude,
+        timezone: resolvedTimezone,
         userId: req.user.userId,
       },
     });
