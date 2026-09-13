@@ -1,0 +1,2323 @@
+{
+  "experiment": "fitte-v2.7-context-aware-evaluation",
+  "algorithmVersion": "fitte-v2.7-multidimensional-weather",
+  "generatedAt": "2026-09-13T18:45:26.094Z",
+  "configuration": {
+    "runsPerScenario": 5,
+    "recentRecommendationLimit": 3,
+    "qualityPoolMaxScoreGap": 20,
+    "seedStrategy": "fixed-scenario-run-seed"
+  },
+  "scenarioCount": 7,
+  "summary": {
+    "totalSuccessfulRuns": 35,
+    "totalUniqueResults": 28,
+    "averageUniqueResultsPerScenario": 4,
+    "cumulativeRepetitionRate": 0.2,
+    "recentWindowRepeatRate": 0.06,
+    "consecutiveRepeatRate": 0.04,
+    "averageNormalizedEntropy": 0.95,
+    "averageEffectiveOutfitCount": 3.79,
+    "averageDominantOutfitShare": 0.4,
+    "averageAdjacentItemSimilarity": 0.37,
+    "averageQualityLoss": 3.94,
+    "maximumQualityLoss": 19
+  },
+  "results": [
+    {
+      "scenario": "work-mild",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": {
+          "conditions": [
+            "Clear"
+          ],
+          "temperatureC": 18,
+          "apparentTemperatureC": 18,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 0,
+          "rainMm": 0,
+          "snowfallCm": 0,
+          "windSpeedKmh": 8
+        },
+        "formality": "Formal"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "cumulativeRepeatedRuns": 1,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0.2,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 0.96,
+      "effectiveOutfitCount": 3.79,
+      "dominantOutfitShare": 0.4,
+      "averageAdjacentItemSimilarity": 0.35,
+      "averageScore": 312.2,
+      "averageWeatherScore": 0,
+      "minimumWeatherScore": 0,
+      "maximumWeatherScore": 0,
+      "weatherPenaltySelectionRate": 0,
+      "averageOccasionScore": 134,
+      "averageFormalityScore": 60,
+      "averageQualityLoss": 7.2,
+      "maximumQualityLoss": 14,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "work-mild-run-1",
+          "selectedCandidateIndex": 2,
+          "qualityPoolSize": 3,
+          "signature": "black-heels+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 333,
+          "bestAvailableScore": 347,
+          "qualityLoss": 14,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "work-mild-run-2",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "black-heels+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 323,
+          "bestAvailableScore": 335,
+          "qualityLoss": 12,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 140,
+          "formalityScore": 60,
+          "preferenceScore": 22,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "work-mild-run-3",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 305,
+          "bestAvailableScore": 315,
+          "qualityLoss": 10,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "work-mild-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-boots+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 303,
+          "bestAvailableScore": 303,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 140,
+          "formalityScore": 60,
+          "preferenceScore": 22,
+          "repetitionPenalty": -44,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "work-mild-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "black-heels+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 297,
+          "bestAvailableScore": 297,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": -36,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "date-mild",
+      "inputs": {
+        "occasion": "Randka",
+        "weather": {
+          "conditions": [
+            "Clear"
+          ],
+          "temperatureC": 18,
+          "apparentTemperatureC": 18,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 0,
+          "rainMm": 0,
+          "snowfallCm": 0,
+          "windSpeedKmh": 8
+        },
+        "formality": "Smart Casual"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "cumulativeRepeatedRuns": 1,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0.2,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 0.96,
+      "effectiveOutfitCount": 3.79,
+      "dominantOutfitShare": 0.4,
+      "averageAdjacentItemSimilarity": 0.3,
+      "averageScore": 209.4,
+      "averageWeatherScore": 0,
+      "minimumWeatherScore": 0,
+      "maximumWeatherScore": 0,
+      "weatherPenaltySelectionRate": 0,
+      "averageOccasionScore": 110,
+      "averageFormalityScore": 0,
+      "averageQualityLoss": 0.8,
+      "maximumQualityLoss": 4,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "date-mild-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+black-heels+pink-blouse",
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 256,
+          "bestAvailableScore": 256,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 6,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "date-mild-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "black-heels+pink-dress",
+          "itemIds": [
+            "pink-dress",
+            "black-heels"
+          ],
+          "score": 219,
+          "bestAvailableScore": 219,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 100,
+          "formalityScore": 0,
+          "preferenceScore": 6,
+          "repetitionPenalty": -12,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "date-mild-run-3",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 3,
+          "signature": "beige-skirt+black-heels+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 184,
+          "bestAvailableScore": 188,
+          "qualityLoss": 4,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 75,
+          "formalityScore": 0,
+          "preferenceScore": 12,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "date-mild-run-4",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 3,
+          "signature": "beige-boots+beige-skirt+pink-blouse",
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "beige-boots"
+          ],
+          "score": 176,
+          "bestAvailableScore": 176,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 75,
+          "formalityScore": 0,
+          "preferenceScore": 6,
+          "repetitionPenalty": -20,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "date-mild-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+black-heels+pink-blouse",
+          "itemIds": [
+            "pink-blouse",
+            "beige-skirt",
+            "black-heels"
+          ],
+          "score": 212,
+          "bestAvailableScore": 212,
+          "qualityLoss": 0,
+          "weatherScore": 0,
+          "weatherReasons": [],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 6,
+          "repetitionPenalty": -44,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-hot",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": {
+          "conditions": [
+            "Hot"
+          ],
+          "temperatureC": 32,
+          "apparentTemperatureC": 35,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 0,
+          "rainMm": 0,
+          "snowfallCm": 0,
+          "windSpeedKmh": 10
+        },
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "cumulativeRepeatedRuns": 1,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0.2,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 0.96,
+      "effectiveOutfitCount": 3.79,
+      "dominantOutfitShare": 0.4,
+      "averageAdjacentItemSimilarity": 0.35,
+      "averageScore": 243.2,
+      "averageWeatherScore": 10.2,
+      "minimumWeatherScore": -9,
+      "maximumWeatherScore": 39,
+      "weatherPenaltySelectionRate": 0.4,
+      "averageOccasionScore": 116,
+      "averageFormalityScore": 0,
+      "averageQualityLoss": 0,
+      "maximumQualityLoss": 0,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-hot-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 289,
+          "bestAvailableScore": 289,
+          "qualityLoss": 0,
+          "weatherScore": -9,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "cotton-in-heat",
+              "value": 6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-hot-weather",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "dark-color-in-heat",
+              "value": -6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "high-heat-intensity",
+              "value": -12
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-hot-weather",
+              "value": 5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "leather-in-heat",
+              "value": -12
+            }
+          ],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-hot-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "blue-jeans+casual-tshirt+summer-sandals",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "summer-sandals"
+          ],
+          "score": 251,
+          "bestAvailableScore": 251,
+          "qualityLoss": 0,
+          "weatherScore": 6,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "cotton-in-heat",
+              "value": 6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-hot-weather",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "dark-color-in-heat",
+              "value": -6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "high-heat-intensity",
+              "value": -12
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "leather-in-heat",
+              "value": -12
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 4,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-hot-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-skirt+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "white-sneakers"
+          ],
+          "score": 219,
+          "bestAvailableScore": 219,
+          "qualityLoss": 0,
+          "weatherScore": 24,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "cotton-in-heat",
+              "value": 6
+            },
+            {
+              "itemId": "beige-skirt",
+              "code": "warmth-2-in-hot-weather",
+              "value": 5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-hot-weather",
+              "value": 5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "leather-in-heat",
+              "value": -12
+            }
+          ],
+          "occasionScore": 75,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-hot-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-skirt+casual-tshirt+summer-sandals",
+          "itemIds": [
+            "casual-tshirt",
+            "beige-skirt",
+            "summer-sandals"
+          ],
+          "score": 204,
+          "bestAvailableScore": 204,
+          "qualityLoss": 0,
+          "weatherScore": 39,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "cotton-in-heat",
+              "value": 6
+            },
+            {
+              "itemId": "beige-skirt",
+              "code": "warmth-2-in-hot-weather",
+              "value": 5
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "leather-in-heat",
+              "value": -12
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 4,
+          "repetitionPenalty": -44,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-hot-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 253,
+          "bestAvailableScore": 253,
+          "qualityLoss": 0,
+          "weatherScore": -9,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-hot-weather",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-heat",
+              "value": 10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "cotton-in-heat",
+              "value": 6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-hot-weather",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "dark-color-in-heat",
+              "value": -6
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "high-heat-intensity",
+              "value": -12
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-hot-weather",
+              "value": 5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "leather-in-heat",
+              "value": -12
+            }
+          ],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": -36,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-heavy-rain",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": {
+          "conditions": [
+            "Rain",
+            "Cold"
+          ],
+          "temperatureC": 12,
+          "apparentTemperatureC": 9,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 18,
+          "rainMm": 18,
+          "snowfallCm": 0,
+          "windSpeedKmh": 25
+        },
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 5,
+      "cumulativeRepeatedRuns": 0,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 1,
+      "effectiveOutfitCount": 5,
+      "dominantOutfitShare": 0.2,
+      "averageAdjacentItemSimilarity": 0.3,
+      "averageScore": 191.4,
+      "averageWeatherScore": -39.4,
+      "minimumWeatherScore": -90,
+      "maximumWeatherScore": 13,
+      "weatherPenaltySelectionRate": 0.8,
+      "averageOccasionScore": 112,
+      "averageFormalityScore": 0,
+      "averageQualityLoss": 13.6,
+      "maximumQualityLoss": 19,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-heavy-rain-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 250,
+          "bestAvailableScore": 250,
+          "qualityLoss": 0,
+          "weatherScore": -25,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "water-repellent",
+              "value": 8
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 10,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-heavy-rain-run-2",
+          "selectedCandidateIndex": 2,
+          "qualityPoolSize": 3,
+          "signature": "navy-trousers+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "white-sneakers"
+          ],
+          "score": 177,
+          "bestAvailableScore": 191,
+          "qualityLoss": 14,
+          "weatherScore": -5,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "water-repellent",
+              "value": 8
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 16,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-heavy-rain-run-3",
+          "selectedCandidateIndex": 2,
+          "qualityPoolSize": 3,
+          "signature": "blue-jeans+casual-tshirt+summer-sandals",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "summer-sandals"
+          ],
+          "score": 171,
+          "bestAvailableScore": 187,
+          "qualityLoss": 16,
+          "weatherScore": -90,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-cold-weather",
+              "value": -35
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-cold",
+              "value": -18
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "open-shoes-in-rain",
+              "value": -30
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "warmth-1-in-cold-weather",
+              "value": -35
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "summer-season-in-cold",
+              "value": -18
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "open-shoes-in-cold",
+              "value": -30
+            },
+            {
+              "itemId": "summer-sandals",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 4,
+          "repetitionPenalty": -8,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-heavy-rain-run-4",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 168,
+          "bestAvailableScore": 187,
+          "qualityLoss": 19,
+          "weatherScore": -90,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-cold-weather",
+              "value": -35
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-cold",
+              "value": -18
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "water-repellent",
+              "value": 8
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": -40,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-heavy-rain-run-5",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+blue-jeans+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "beige-boots"
+          ],
+          "score": 191,
+          "bestAvailableScore": 210,
+          "qualityLoss": 19,
+          "weatherScore": 13,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance",
+              "value": -10
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "heavy-rain-no-protection",
+              "value": -10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "water-repellent",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 12,
+          "repetitionPenalty": -24,
+          "repeated": false
+        }
+      ]
+    },
+    {
+      "scenario": "work-cold",
+      "inputs": {
+        "occasion": "Praca",
+        "weather": {
+          "conditions": [
+            "Cold"
+          ],
+          "temperatureC": 2,
+          "apparentTemperatureC": -3,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 0,
+          "rainMm": 0,
+          "snowfallCm": 0,
+          "windSpeedKmh": 20
+        },
+        "formality": "Formal"
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 3,
+      "cumulativeRepeatedRuns": 2,
+      "recentWindowRepeatedRuns": 2,
+      "consecutiveRepeatedTransitions": 1,
+      "cumulativeRepetitionRate": 0.4,
+      "recentWindowRepeatRate": 0.4,
+      "consecutiveRepeatRate": 0.25,
+      "normalizedEntropy": 0.86,
+      "effectiveOutfitCount": 2.59,
+      "dominantOutfitShare": 0.6,
+      "averageAdjacentItemSimilarity": 0.55,
+      "averageScore": 318,
+      "averageWeatherScore": 31,
+      "minimumWeatherScore": 3,
+      "maximumWeatherScore": 45,
+      "weatherPenaltySelectionRate": 0,
+      "averageOccasionScore": 132,
+      "averageFormalityScore": 60,
+      "averageQualityLoss": 0,
+      "maximumQualityLoss": 0,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "work-cold-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 378,
+          "bestAvailableScore": 378,
+          "qualityLoss": 0,
+          "weatherScore": 45,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "work-cold-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+white-shirt",
+          "itemIds": [
+            "white-shirt",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 326,
+          "bestAvailableScore": 326,
+          "qualityLoss": 0,
+          "weatherScore": 3,
+          "weatherReasons": [
+            {
+              "itemId": "white-shirt",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            },
+            {
+              "itemId": "white-shirt",
+              "code": "freezing-temperature-light-item",
+              "value": -15
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 60,
+          "preferenceScore": 22,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "work-cold-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "black-heels+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "black-heels"
+          ],
+          "score": 322,
+          "bestAvailableScore": 322,
+          "qualityLoss": 0,
+          "weatherScore": 17,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "black-heels",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            },
+            {
+              "itemId": "black-heels",
+              "code": "freezing-temperature-light-item",
+              "value": -15
+            }
+          ],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "work-cold-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 286,
+          "bestAvailableScore": 286,
+          "qualityLoss": 0,
+          "weatherScore": 45,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": -92,
+          "repeated": true
+        },
+        {
+          "run": 5,
+          "selectionSeed": "work-cold-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 3,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 278,
+          "bestAvailableScore": 278,
+          "qualityLoss": 0,
+          "weatherScore": 45,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 130,
+          "formalityScore": 60,
+          "preferenceScore": 18,
+          "repetitionPenalty": -100,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-snow",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": {
+          "conditions": [
+            "Snow",
+            "Cold",
+            "Windy"
+          ],
+          "temperatureC": -4,
+          "apparentTemperatureC": -9,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 8,
+          "rainMm": 0,
+          "snowfallCm": 6,
+          "windSpeedKmh": 35
+        },
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "cumulativeRepeatedRuns": 1,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0.2,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 0.96,
+      "effectiveOutfitCount": 3.79,
+      "dominantOutfitShare": 0.4,
+      "averageAdjacentItemSimilarity": 0.38,
+      "averageScore": 203.2,
+      "averageWeatherScore": 3.6,
+      "minimumWeatherScore": -90,
+      "maximumWeatherScore": 45,
+      "weatherPenaltySelectionRate": 0.4,
+      "averageOccasionScore": 82,
+      "averageFormalityScore": 0,
+      "averageQualityLoss": 4.2,
+      "maximumQualityLoss": 11,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-snow-run-1",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "beige-boots+blue-jeans+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "beige-boots"
+          ],
+          "score": 244,
+          "bestAvailableScore": 254,
+          "qualityLoss": 10,
+          "weatherScore": 42,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "water-repellent-in-snow",
+              "value": 7
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 12,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-snow-run-2",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 230,
+          "bestAvailableScore": 230,
+          "qualityLoss": 0,
+          "weatherScore": -21,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "water-repellent-in-snow",
+              "value": 7
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "freezing-temperature-light-item",
+              "value": -15
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 10,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-snow-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 3,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 176,
+          "bestAvailableScore": 176,
+          "qualityLoss": 0,
+          "weatherScore": -90,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-cold-weather",
+              "value": -35
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-cold",
+              "value": -18
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "very-light-item-in-wind",
+              "value": -12
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "freezing-temperature-light-item",
+              "value": -15
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "water-repellent-in-snow",
+              "value": 7
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "freezing-temperature-light-item",
+              "value": -15
+            }
+          ],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": -32,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-snow-run-4",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 3,
+          "signature": "beige-boots+navy-trousers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "beige-boots"
+          ],
+          "score": 162,
+          "bestAvailableScore": 173,
+          "qualityLoss": 11,
+          "weatherScore": 45,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "water-repellent-in-snow",
+              "value": 7
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": -10,
+          "formalityScore": 0,
+          "preferenceScore": 18,
+          "repetitionPenalty": -16,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-snow-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-boots+blue-jeans+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "beige-boots"
+          ],
+          "score": 204,
+          "bestAvailableScore": 204,
+          "qualityLoss": 0,
+          "weatherScore": 42,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "no-water-resistance-in-snow",
+              "value": -15
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "water-repellent-in-snow",
+              "value": 7
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "freezing-temperature-warm-item",
+              "value": 5
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 12,
+          "repetitionPenalty": -40,
+          "repeated": true
+        }
+      ]
+    },
+    {
+      "scenario": "casual-strong-wind",
+      "inputs": {
+        "occasion": "Casual",
+        "weather": {
+          "conditions": [
+            "Cold",
+            "Windy"
+          ],
+          "temperatureC": 13,
+          "apparentTemperatureC": 9,
+          "temperatureMinC": null,
+          "temperatureMaxC": null,
+          "apparentTemperatureMinC": null,
+          "apparentTemperatureMaxC": null,
+          "precipitationMm": 0,
+          "rainMm": 0,
+          "snowfallCm": 0,
+          "windSpeedKmh": 45
+        },
+        "formality": null
+      },
+      "totalRuns": 5,
+      "successfulRuns": 5,
+      "uniqueResults": 4,
+      "cumulativeRepeatedRuns": 1,
+      "recentWindowRepeatedRuns": 0,
+      "consecutiveRepeatedTransitions": 0,
+      "cumulativeRepetitionRate": 0.2,
+      "recentWindowRepeatRate": 0,
+      "consecutiveRepeatRate": 0,
+      "normalizedEntropy": 0.96,
+      "effectiveOutfitCount": 3.79,
+      "dominantOutfitShare": 0.4,
+      "averageAdjacentItemSimilarity": 0.35,
+      "averageScore": 227.8,
+      "averageWeatherScore": 2.2,
+      "minimumWeatherScore": -90,
+      "maximumWeatherScore": 45,
+      "weatherPenaltySelectionRate": 0.2,
+      "averageOccasionScore": 112,
+      "averageFormalityScore": 0,
+      "averageQualityLoss": 1.8,
+      "maximumQualityLoss": 9,
+      "runs": [
+        {
+          "run": 1,
+          "selectionSeed": "casual-strong-wind-run-1",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 287,
+          "bestAvailableScore": 287,
+          "qualityLoss": 0,
+          "weatherScore": 12,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 10,
+          "repetitionPenalty": 0,
+          "repeated": false
+        },
+        {
+          "run": 2,
+          "selectionSeed": "casual-strong-wind-run-2",
+          "selectedCandidateIndex": 1,
+          "qualityPoolSize": 2,
+          "signature": "navy-trousers+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "navy-trousers",
+            "white-sneakers"
+          ],
+          "score": 214,
+          "bestAvailableScore": 223,
+          "qualityLoss": 9,
+          "weatherScore": 32,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "navy-trousers",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 16,
+          "repetitionPenalty": -24,
+          "repeated": false
+        },
+        {
+          "run": 3,
+          "selectionSeed": "casual-strong-wind-run-3",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "beige-boots+blue-jeans+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "beige-boots"
+          ],
+          "score": 219,
+          "bestAvailableScore": 219,
+          "qualityLoss": 0,
+          "weatherScore": 45,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warmth-4-in-cold-weather",
+              "value": 8
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "beige-boots",
+              "code": "warm-item-in-wind",
+              "value": 5
+            }
+          ],
+          "occasionScore": 65,
+          "formalityScore": 0,
+          "preferenceScore": 12,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 4,
+          "selectionSeed": "casual-strong-wind-run-4",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+casual-tshirt+white-sneakers",
+          "itemIds": [
+            "casual-tshirt",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 180,
+          "bestAvailableScore": 180,
+          "qualityLoss": 0,
+          "weatherScore": -90,
+          "weatherReasons": [
+            {
+              "itemId": "casual-tshirt",
+              "code": "warmth-1-in-cold-weather",
+              "value": -35
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "summer-season-in-cold",
+              "value": -18
+            },
+            {
+              "itemId": "casual-tshirt",
+              "code": "very-light-item-in-wind",
+              "value": -12
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 150,
+          "formalityScore": 0,
+          "preferenceScore": 8,
+          "repetitionPenalty": -28,
+          "repeated": false
+        },
+        {
+          "run": 5,
+          "selectionSeed": "casual-strong-wind-run-5",
+          "selectedCandidateIndex": 0,
+          "qualityPoolSize": 1,
+          "signature": "blue-jeans+white-sneakers+wool-sweater",
+          "itemIds": [
+            "wool-sweater",
+            "blue-jeans",
+            "white-sneakers"
+          ],
+          "score": 239,
+          "bestAvailableScore": 239,
+          "qualityLoss": 0,
+          "weatherScore": 12,
+          "weatherReasons": [
+            {
+              "itemId": "wool-sweater",
+              "code": "warmth-5-in-cold-weather",
+              "value": 12
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "winter-season-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-material-in-cold",
+              "value": 10
+            },
+            {
+              "itemId": "wool-sweater",
+              "code": "warm-item-in-wind",
+              "value": 5
+            },
+            {
+              "itemId": "blue-jeans",
+              "code": "warmth-3-in-cold-weather",
+              "value": -5
+            },
+            {
+              "itemId": "white-sneakers",
+              "code": "warmth-2-in-cold-weather",
+              "value": -20
+            }
+          ],
+          "occasionScore": 140,
+          "formalityScore": 0,
+          "preferenceScore": 10,
+          "repetitionPenalty": -48,
+          "repeated": true
+        }
+      ]
+    }
+  ]
+}

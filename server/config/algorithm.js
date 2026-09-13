@@ -1,6 +1,8 @@
 const FITTE_ALGORITHM_VERSION =
-  "fitte-v2.7-multidimensional-weather";
-  const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
+  "fitte-v2.8-weather-guardrail";
+
+const FITTE_EXPLANATION_PROMPT_VERSION =
+  "fitte-explanation-v1";
 
 const FITTE_EXPLANATION_CONFIG = Object.freeze({
   temperature: 0.2,
@@ -10,7 +12,10 @@ const FITTE_EXPLANATION_CONFIG = Object.freeze({
 
 const RECENT_RECOMMENDATION_LIMIT = 3;
 const QUALITY_POOL_MAX_SCORE_GAP = 20;
-
+const WEATHER_GUARDRAIL_CONFIG = Object.freeze({
+  severeMismatchThreshold: -60,
+  acceptableAlternativeThreshold: -20,
+});
 const PREFERENCE_WEIGHT_CONFIG = Object.freeze({
   minimum: 0.5,
   neutral: 1.0,
@@ -34,4 +39,5 @@ module.exports = {
   REPETITION_PENALTIES,
   QUALITY_POOL_MAX_SCORE_GAP,
   PREFERENCE_WEIGHT_CONFIG,
+  WEATHER_GUARDRAIL_CONFIG,
 };

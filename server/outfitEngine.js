@@ -3,15 +3,14 @@ const {
   REPETITION_PENALTIES,
   QUALITY_POOL_MAX_SCORE_GAP,
   PREFERENCE_WEIGHT_CONFIG,
+  WEATHER_GUARDRAIL_CONFIG,
 } = require("./config/algorithm");
 
 const {
   normalizeStyleNames,
   normalizeColorName,
 } = require("./services/attributeNormalizationService");
-const {
-  scoreOutfitWeatherFit,
-} = require("./services/weatherScoringService");
+const { scoreOutfitWeatherFit } = require("./services/weatherScoringService");
 const {
   clampPreferenceWeight,
 } = require("./services/preferenceLearningService");
@@ -47,11 +46,7 @@ function parseStyles(item) {
   return normalizeStyleNames(item?.style);
 }
 function createOutfitKey(ids) {
-  return ids
-    .filter(Boolean)
-    .map(String)
-    .sort()
-    .join(":");
+  return ids.filter(Boolean).map(String).sort().join(":");
 }
 function calculateRepetitionPenalty(outfit, recommendationHistory = []) {
   const currentIds = outfit
@@ -145,16 +140,16 @@ function calculateOutfitScore(
     colorWeights: userColorWeights,
   };
 
-const weatherResult = scoreOutfitWeatherFit(outfit, weatherType);
+  const weatherResult = scoreOutfitWeatherFit(outfit, weatherType);
 
-details.weatherScore = weatherResult.score;
-details.weatherReasons = weatherResult.itemResults.flatMap(
-  ({ itemId, reasons }) =>
-    reasons.map((reason) => ({
-      itemId,
-      ...reason,
-    })),
-);
+  details.weatherScore = weatherResult.score;
+  details.weatherReasons = weatherResult.itemResults.flatMap(
+    ({ itemId, reasons }) =>
+      reasons.map((reason) => ({
+        itemId,
+        ...reason,
+      })),
+  );
 
   let matchingStylesCount = 0;
 
@@ -224,8 +219,7 @@ details.weatherReasons = weatherResult.itemResults.flatMap(
 
     if (normalizedColor) {
       const colorWeight = clampPreferenceWeight(
-        userColorWeights[normalizedColor] ??
-          PREFERENCE_WEIGHT_CONFIG.neutral,
+        userColorWeights[normalizedColor] ?? PREFERENCE_WEIGHT_CONFIG.neutral,
       );
 
       details.preferenceScore +=
@@ -299,6 +293,33 @@ function isNonOutfitItem(item) {
 
   return NON_OUTFIT_KEYWORDS.some((kw) => name.includes(kw));
 }
+function applyWeatherGuardrail(
+  combinations,
+  config = WEATHER_GUARDRAIL_CONFIG,
+) {
+  if (!Array.isArray(combinations) || combinations.length === 0) {
+    return [];
+  }
+
+  const getWeatherScore = (candidate) => {
+    const score = candidate?.details?.weatherScore;
+    return Number.isFinite(score) ? score : 0;
+  };
+
+  const hasAcceptableAlternative = combinations.some(
+    (candidate) =>
+      getWeatherScore(candidate) >= config.acceptableAlternativeThreshold,
+  );
+
+  if (!hasAcceptableAlternative) {
+    return combinations;
+  }
+
+  return combinations.filter(
+    (candidate) => getWeatherScore(candidate) > config.severeMismatchThreshold,
+  );
+}
+
 function createQualityPool(
   combinations,
   maxScoreGap = QUALITY_POOL_MAX_SCORE_GAP,
@@ -427,8 +448,9 @@ function generateBestOutfits(
     });
   }
 
-  const qualityPool = createQualityPool(combinations);
+  const weatherGuardedCombinations = applyWeatherGuardrail(combinations);
 
+  const qualityPool = createQualityPool(weatherGuardedCombinations);
   const selectablePool = excludeRecentOutfitsWhenAlternativeExists(
     qualityPool,
     recommendationHistory,
@@ -436,7 +458,6 @@ function generateBestOutfits(
 
   return selectablePool.slice(0, 3);
 }
-
 
 module.exports = {
   generateBestOutfits,
@@ -452,4 +473,5 @@ module.exports = {
   roundScore,
   createQualityPool,
   excludeRecentOutfitsWhenAlternativeExists,
+  applyWeatherGuardrail,
 };

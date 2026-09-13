@@ -11,6 +11,7 @@ const {
   createQualityPool,
   roundScore,
   excludeRecentOutfitsWhenAlternativeExists,
+  applyWeatherGuardrail,
 } = require("../outfitEngine");
 
 const createItem = (overrides = {}) => ({
@@ -607,4 +608,52 @@ test("odmieniona nazwa ciemnego koloru nadal daje karę podczas upału", () => {
       (reason) => reason.code === "dark-color-in-heat",
     ),
   );
+});
+
+test("guardrail odrzuca skrajnie niedopasowany zestaw, gdy istnieje bezpieczniejsza alternatywa", () => {
+  const severeCandidate = {
+    outfit: [{ id: "summer-outfit" }],
+    totalScore: 300,
+    details: {
+      weatherScore: -90,
+    },
+  };
+
+  const acceptableCandidate = {
+    outfit: [{ id: "winter-outfit" }],
+    totalScore: 210,
+    details: {
+      weatherScore: -10,
+    },
+  };
+
+  const result = applyWeatherGuardrail([
+    severeCandidate,
+    acceptableCandidate,
+  ]);
+
+  assert.deepEqual(result, [acceptableCandidate]);
+});
+
+test("guardrail zachowuje dostępne zestawy, gdy nie istnieje bezpieczna alternatywa", () => {
+  const firstCandidate = {
+    outfit: [{ id: "outfit-a" }],
+    totalScore: 200,
+    details: {
+      weatherScore: -90,
+    },
+  };
+
+  const secondCandidate = {
+    outfit: [{ id: "outfit-b" }],
+    totalScore: 180,
+    details: {
+      weatherScore: -70,
+    },
+  };
+
+  const candidates = [firstCandidate, secondCandidate];
+  const result = applyWeatherGuardrail(candidates);
+
+  assert.deepEqual(result, candidates);
 });
