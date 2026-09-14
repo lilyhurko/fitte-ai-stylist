@@ -15,7 +15,7 @@ const NEUTRAL_COLORS = [
   "szary",
   "granatowy",
 ];
-
+const CAPSULE_OVERLAP_PENALTY_WEIGHT = 30;
 const scoreItemAcrossWeather = (item, weatherTypes) => {
   if (!Array.isArray(weatherTypes) || weatherTypes.length === 0) {
     return 0;
@@ -35,9 +35,7 @@ const scoreVersatility = (item, userProfile = {}) => {
 
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
   const matchingOccasions = occasions.filter((occasion) =>
-    itemStyles.some((style) =>
-      OCCASION_STYLE_MATCH[occasion].includes(style),
-    ),
+    itemStyles.some((style) => OCCASION_STYLE_MATCH[occasion].includes(style)),
   );
 
   score += matchingOccasions.length * 20;
@@ -90,7 +88,10 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
   let nB = buty.length > 0 ? 1 : 0;
   let nS = sukienki.length > 0 ? 1 : 0;
 
-  const comboCount = () => nG * nD * nB + nS * nB;
+  const hasShoes = buty.length > 0;
+
+  const comboCount = () => (hasShoes ? nG * nD * nB + nS * nB : nG * nD + nS);
+  nS * nB;
 
   const maxIterations =
     goras.length + dols.length + sukienki.length + buty.length;
@@ -99,10 +100,23 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
   while (comboCount() < targetCombos && iterations < maxIterations) {
     iterations++;
     const candidates = [];
-    if (nG < goras.length) candidates.push({ cat: "g", gain: nD * nB });
-    if (nD < dols.length) candidates.push({ cat: "d", gain: nG * nB });
-    if (nB < buty.length) candidates.push({ cat: "b", gain: nG * nD + nS });
-    if (nS < sukienki.length) candidates.push({ cat: "s", gain: nB });
+    const shoeMultiplier = hasShoes ? nB : 1;
+
+    if (nG < goras.length) {
+      candidates.push({ cat: "g", gain: nD * shoeMultiplier });
+    }
+
+    if (nD < dols.length) {
+      candidates.push({ cat: "d", gain: nG * shoeMultiplier });
+    }
+
+    if (nB < buty.length) {
+      candidates.push({ cat: "b", gain: nG * nD + nS });
+    }
+
+    if (nS < sukienki.length) {
+      candidates.push({ cat: "s", gain: shoeMultiplier });
+    }
 
     if (candidates.length === 0) break;
 
@@ -121,6 +135,118 @@ function selectMinimalForTarget(goras, dols, sukienki, buty, targetCombos) {
     selectedButy: buty.slice(0, nB),
   };
 }
+function calculateJaccardSimilarity(firstOutfit, secondOutfit) {
+  const firstIds = new Set(firstOutfit.map((item) => item.id));
+  const secondIds = new Set(secondOutfit.map((item) => item.id));
+
+  const intersectionSize = [...firstIds].filter((id) =>
+    secondIds.has(id),
+  ).length;
+
+  const unionSize = new Set([...firstIds, ...secondIds]).size;
+
+  return unionSize === 0 ? 0 : intersectionSize / unionSize;
+}
+
+function calculateOverlapPenalty(candidate, selectedCandidates) {
+  if (selectedCandidates.length === 0) {
+    return 0;
+  }
+
+  const maximumSimilarity = Math.max(
+    ...selectedCandidates.map((selected) =>
+      calculateJaccardSimilarity(candidate.outfit, selected.outfit),
+    ),
+  );
+
+  return maximumSimilarity * CAPSULE_OVERLAP_PENALTY_WEIGHT;
+}
+
+function selectOccasionDiverseCombos(scoredCombos, limit) {
+  if (!Array.isArray(scoredCombos) || limit <= 0) {
+    return [];
+  }
+
+  const groups = new Map();
+
+  scoredCombos.forEach((candidate) => {
+    const occasion = candidate.occasion || "Inne";
+
+    if (!groups.has(occasion)) {
+      groups.set(occasion, []);
+    }
+
+    groups.get(occasion).push(candidate);
+  });
+
+  const orderedGroups = [...groups.values()].sort((a, b) => {
+    const bestScoreA = Math.max(...a.map((candidate) => candidate.score));
+    const bestScoreB = Math.max(...b.map((candidate) => candidate.score));
+
+    return bestScoreB - bestScoreA;
+  });
+
+  const selected = [];
+  const usedKeys = new Set();
+
+  while (selected.length < limit) {
+    let addedInRound = false;
+
+    for (const group of orderedGroups) {
+      const availableCandidates = group
+        .filter((candidate) => {
+          const key = candidate.outfit
+            .map((item) => item.id)
+            .sort()
+            .join(",");
+
+          return !usedKeys.has(key);
+        })
+        .map((candidate) => {
+          const overlapPenalty = calculateOverlapPenalty(candidate, selected);
+
+          return {
+            candidate,
+            overlapPenalty,
+            adjustedScore: candidate.score - overlapPenalty,
+          };
+        })
+        .sort((a, b) => b.adjustedScore - a.adjustedScore);
+
+      const selectedEntry = availableCandidates[0];
+
+      if (!selectedEntry) {
+        continue;
+      }
+
+      const selectedCandidate = {
+        ...selectedEntry.candidate,
+        overlapPenalty: selectedEntry.overlapPenalty,
+        adjustedScore: selectedEntry.adjustedScore,
+      };
+
+      const key = selectedCandidate.outfit
+        .map((item) => item.id)
+        .sort()
+        .join(",");
+
+      selected.push(selectedCandidate);
+      usedKeys.add(key);
+      addedInRound = true;
+
+      if (selected.length >= limit) {
+        break;
+      }
+    }
+
+    if (!addedInRound) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
 function buildCapsule(
   wearableClothes,
   userProfile,
@@ -163,19 +289,31 @@ function buildCapsule(
 
   let rawCombos = [];
 
-  selectedGoras.forEach((g) => {
-    selectedDols.forEach((d) => {
-      selectedButy.forEach((b) => {
-        rawCombos.push([g, d, b]);
+  if (selectedButy.length > 0) {
+    selectedGoras.forEach((g) => {
+      selectedDols.forEach((d) => {
+        selectedButy.forEach((b) => {
+          rawCombos.push([g, d, b]);
+        });
       });
     });
-  });
 
-  selectedSukienki.forEach((s) => {
-    selectedButy.forEach((b) => {
-      rawCombos.push([s, b]);
+    selectedSukienki.forEach((s) => {
+      selectedButy.forEach((b) => {
+        rawCombos.push([s, b]);
+      });
     });
-  });
+  } else {
+    selectedGoras.forEach((g) => {
+      selectedDols.forEach((d) => {
+        rawCombos.push([g, d]);
+      });
+    });
+
+    selectedSukienki.forEach((s) => {
+      rawCombos.push([s]);
+    });
+  }
 
   const occasions = Object.keys(OCCASION_STYLE_MATCH);
   const scoredCombos = rawCombos.map((outfit) => {
@@ -189,50 +327,35 @@ function buildCapsule(
       );
       if (score > best.score) best = { score, occasion: occ };
     });
-    return { outfit, ...best };
+    const hasShoes = outfit.some(
+      (item) => item.category === "Buty" || item.category === "Obuwie",
+    );
+
+    return {
+      outfit,
+      ...best,
+      isComplete: hasShoes,
+      missingCategories: hasShoes ? [] : ["Obuwie"],
+    };
   });
-
-  const byOccasion = {};
-  scoredCombos.forEach((c) => {
-    if (!byOccasion[c.occasion]) byOccasion[c.occasion] = [];
-    byOccasion[c.occasion].push(c);
-  });
-  Object.values(byOccasion).forEach((list) =>
-    list.sort((a, b) => b.score - a.score),
-  );
-
-  const diversified = [];
-  const usedKeys = new Set();
-
-  Object.values(byOccasion).forEach((list) => {
-    list.slice(0, 3).forEach((c) => {
-      const key = c.outfit.map((i) => i.id).join(",");
-      if (!usedKeys.has(key)) {
-        diversified.push(c);
-        usedKeys.add(key);
-      }
-    });
-  });
-
-  scoredCombos
-    .sort((a, b) => b.score - a.score)
-    .forEach((c) => {
-      if (diversified.length >= 30) return;
-      const key = c.outfit.map((i) => i.id).join(",");
-      if (!usedKeys.has(key)) {
-        diversified.push(c);
-        usedKeys.add(key);
-      }
-    });
-
-  diversified.sort((a, b) => b.score - a.score);
 
   const finalLimit = targetCombos || 30;
+
+  const diversified = selectOccasionDiverseCombos(scoredCombos, finalLimit);
 
   return {
     capsuleItems,
     totalCombinations: rawCombos.length,
-    combinations: diversified.slice(0, finalLimit).map((c) => c.outfit),
+    combinations: diversified.map((candidate) => candidate.outfit),
+    combinationDetails: diversified.map((candidate) => ({
+      outfit: candidate.outfit,
+      occasion: candidate.occasion,
+      score: candidate.score,
+      overlapPenalty: candidate.overlapPenalty,
+      adjustedScore: candidate.adjustedScore,
+      isComplete: candidate.isComplete,
+      missingCategories: candidate.missingCategories,
+    })),
   };
 }
 
@@ -253,26 +376,77 @@ function generateCapsuleWardrobe(
   return buildCapsule(wearableClothes, userProfile, [weatherType]);
 }
 
+function addTripAvailability(capsule, requestedDays) {
+  const generatedOutfitCount = capsule.combinations.length;
+  const missingOutfitCount = Math.max(
+    0,
+    requestedDays - generatedOutfitCount,
+  );
+
+  return {
+    ...capsule,
+    requestedDays,
+    generatedOutfitCount,
+    missingOutfitCount,
+    hasEnoughOutfits: missingOutfitCount === 0,
+    availabilityMessage:
+      missingOutfitCount > 0
+        ? `Udało się przygotować ${generatedOutfitCount} z ${requestedDays} wymaganych zestawów. Brakuje ${missingOutfitCount}.`
+        : null,
+  };
+}
+
 function generateTripCapsuleWardrobe(
   clothes,
   userProfile = {},
   weatherTypes = ["Clear"],
   days = 1,
 ) {
-  if (!clothes) {
-    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+  const requestedDays = Math.max(
+    1,
+    parseInt(days, 10) || 1,
+  );
+
+  const emptyCapsule = {
+    capsuleItems: [],
+    totalCombinations: 0,
+    combinations: [],
+    combinationDetails: [],
+  };
+
+  if (!Array.isArray(clothes)) {
+    return addTripAvailability(emptyCapsule, requestedDays);
   }
 
-  const wearableClothes = clothes.filter((c) => !isNonOutfitItem(c));
+  const wearableClothes = clothes.filter(
+    (item) => !isNonOutfitItem(item),
+  );
+
   if (wearableClothes.length < 5) {
-    return { capsuleItems: [], totalCombinations: 0, combinations: [] };
+    return addTripAvailability(emptyCapsule, requestedDays);
   }
 
-  const safeWeatherTypes = weatherTypes.length > 0 ? weatherTypes : ["Clear"];
-  const targetCombos = Math.max(1, parseInt(days, 10) || 1);
-  return buildCapsule(wearableClothes, userProfile, safeWeatherTypes, {
-    targetCombos,
-  });
+  const safeWeatherTypes =
+    Array.isArray(weatherTypes) && weatherTypes.length > 0
+      ? weatherTypes
+      : ["Clear"];
+
+  const capsule = buildCapsule(
+    wearableClothes,
+    userProfile,
+    safeWeatherTypes,
+    {
+      targetCombos: requestedDays,
+    },
+  );
+
+  return addTripAvailability(capsule, requestedDays);
 }
 
-module.exports = { generateCapsuleWardrobe, generateTripCapsuleWardrobe };
+module.exports = {
+  generateCapsuleWardrobe,
+  generateTripCapsuleWardrobe,
+  selectOccasionDiverseCombos,
+  calculateJaccardSimilarity,
+  calculateOverlapPenalty,
+};

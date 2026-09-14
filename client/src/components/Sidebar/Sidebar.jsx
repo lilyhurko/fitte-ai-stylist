@@ -84,8 +84,8 @@ const Sidebar = () => {
 
     const handleTouchEnd = () => {
       const distance = touchEndX.current - touchStartX.current;
-      const isSwipeRight = distance > 70; 
-      const isSwipeLeft = distance < -70; 
+      const isSwipeRight = distance > 70;
+      const isSwipeLeft = distance < -70;
 
       if (isSwipeRight && touchStartX.current < 50 && !isOpen) {
         setIsOpen(true);
@@ -246,22 +246,21 @@ const Sidebar = () => {
 
   return (
     <>
-      <button 
-        className="mobile-nav-toggle touch-manipulation" 
+      <button
+        className="mobile-nav-toggle touch-manipulation"
         onClick={() => setIsOpen(true)}
         aria-label="Otwórz menu"
       >
         <Menu size={22} />
       </button>
 
-
       {isOpen && (
         <div className="sidebar-overlay" onClick={() => setIsOpen(false)}></div>
       )}
 
       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
-        <button 
-          className="mobile-nav-close touch-manipulation" 
+        <button
+          className="mobile-nav-close touch-manipulation"
           onClick={() => setIsOpen(false)}
           aria-label="Zamknij menu"
         >
@@ -445,7 +444,9 @@ const Sidebar = () => {
         stats={stats}
       />
       <CapsuleModal
-        key={capsuleData?.capsuleItems?.map((item) => item.id).join(",") || "empty"}
+        key={
+          capsuleData?.capsuleItems?.map((item) => item.id).join(",") || "empty"
+        }
         isOpen={isCapsuleOpen}
         onClose={() => setIsCapsuleOpen(false)}
         data={capsuleData}
@@ -461,7 +462,7 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
+      <div
         className="modal-content apple-card max-w-lg w-[90%] max-h-[90vh] overflow-y-auto p-6 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -603,7 +604,8 @@ const StatsModal = ({ isOpen, onClose, stats }) => {
                           className="h-full rounded-full transition-all duration-500"
                           style={{
                             width: `${percentage}%`,
-                            background: "linear-gradient(90deg, #8E7A6B, #3D2B1F)",
+                            background:
+                              "linear-gradient(90deg, #8E7A6B, #3D2B1F)",
                           }}
                         ></div>
                       </div>
@@ -635,23 +637,53 @@ const CapsuleModal = ({
   const [tripError, setTripError] = useState("");
 
   const combinations = useMemo(() => {
-    const goras = items.filter((i) => i.category === "Góra");
-    const dols = items.filter((i) => i.category === "Dół");
-    const sukienki = items.filter((i) => i.category === "Sukienki");
+    const goras = items.filter((item) => item.category === "Góra");
+    const dols = items.filter((item) => item.category === "Dół");
+    const sukienki = items.filter((item) => item.category === "Sukienki");
     const buty = items.filter(
-      (i) => i.category === "Buty" || i.category === "Obuwie",
+      (item) => item.category === "Buty" || item.category === "Obuwie",
     );
 
     const combos = [];
-    if (buty.length === 0) {
-      goras.forEach((g) => dols.forEach((d) => combos.push([g, d])));
-      sukienki.forEach((s) => combos.push([s]));
-    } else {
-      goras.forEach((g) =>
-        dols.forEach((d) => buty.forEach((b) => combos.push([g, d, b]))),
+
+    const addCombination = (outfit) => {
+      const hasShoes = outfit.some(
+        (item) => item.category === "Buty" || item.category === "Obuwie",
       );
-      sukienki.forEach((s) => buty.forEach((b) => combos.push([s, b])));
+
+      combos.push({
+        outfit,
+        isComplete: hasShoes,
+        missingCategories: hasShoes ? [] : ["Obuwie"],
+      });
+    };
+
+    if (buty.length === 0) {
+      goras.forEach((gora) => {
+        dols.forEach((dol) => {
+          addCombination([gora, dol]);
+        });
+      });
+
+      sukienki.forEach((sukienka) => {
+        addCombination([sukienka]);
+      });
+    } else {
+      goras.forEach((gora) => {
+        dols.forEach((dol) => {
+          buty.forEach((obuwie) => {
+            addCombination([gora, dol, obuwie]);
+          });
+        });
+      });
+
+      sukienki.forEach((sukienka) => {
+        buty.forEach((obuwie) => {
+          addCombination([sukienka, obuwie]);
+        });
+      });
     }
+
     return combos;
   }, [items]);
 
@@ -660,7 +692,8 @@ const CapsuleModal = ({
     [allClothes, items],
   );
 
-  const handleRemove = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const handleRemove = (id) =>
+    setItems((prev) => prev.filter((i) => i.id !== id));
   const handleAdd = (cloth) => setItems((prev) => [...prev, cloth]);
 
   const handleGenerateTripCapsule = async () => {
@@ -688,7 +721,7 @@ const CapsuleModal = ({
 
       const result = await res.json().catch(() => ({}));
       if (res.ok) {
-        onDataChange?.(result); 
+        onDataChange?.(result);
       } else {
         setTripError(result.error || "Nie udało się wygenerować kapsuły.");
       }
@@ -703,7 +736,7 @@ const CapsuleModal = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
+      <div
         className="modal-content apple-card max-w-2xl w-[90%] max-h-[88vh] overflow-y-auto p-5 md:p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -748,12 +781,17 @@ const CapsuleModal = ({
           <div className="bg-white p-3 md:p-4 rounded-2xl border border-[#E8DDD0]/50 mb-4">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
-                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <MapPin
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   value={tripCity}
                   onChange={(e) => setTripCity(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleGenerateTripCapsule()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleGenerateTripCapsule()
+                  }
                   placeholder="Miasto, np. Rzym"
                   className="w-full bg-[#FDFBF9] border border-[#E8DDD0] rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none"
                 />
@@ -776,17 +814,32 @@ const CapsuleModal = ({
                 </button>
               </div>
             </div>
-            {tripError && <p className="text-[10px] text-red-500 mt-1">{tripError}</p>}
-            
+            {tripError && (
+              <p className="text-[10px] text-red-500 mt-1">{tripError}</p>
+            )}
+
             {data?.city && mode === "trip" && (
               <div className="mt-2 pt-2 border-t border-[#E8DDD0]/30 flex flex-wrap justify-between items-center text-[10px] text-gray-500">
+                {mode === "trip" && data?.availabilityMessage && (
+                  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-medium text-amber-800">
+                    {data.availabilityMessage}
+                  </div>
+                )}
                 <span>
-                  Trasa: <strong className="text-[#3D2B1F]">{data.city}{data.country ? `, ${data.country}` : ""}</strong> ({data.days} dni)
+                  Trasa:{" "}
+                  <strong className="text-[#3D2B1F]">
+                    {data.city}
+                    {data.country ? `, ${data.country}` : ""}
+                  </strong>{" "}
+                  ({data.days} dni)
                 </span>
                 {data?.weatherTypes && (
                   <div className="flex gap-1 mt-1 sm:mt-0">
                     {data.weatherTypes.map((wt) => (
-                      <span key={wt} className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200/50">
+                      <span
+                        key={wt}
+                        className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200/50"
+                      >
                         {wt}
                       </span>
                     ))}
@@ -830,15 +883,24 @@ const CapsuleModal = ({
 
               <div className="grid grid-cols-3 md:grid-cols-5 gap-2 bg-white p-3 rounded-2xl border border-[#E8DDD0]/40">
                 {items.map((item) => (
-                  <div key={item.id} className="relative flex flex-col items-center bg-[#FDFBF9] p-1.5 rounded-xl border border-gray-100">
+                  <div
+                    key={item.id}
+                    className="relative flex flex-col items-center bg-[#FDFBF9] p-1.5 rounded-xl border border-gray-100"
+                  >
                     <button
                       onClick={() => handleRemove(item.id)}
                       className="absolute -top-1 -right-1 bg-white border border-gray-200 rounded-full p-0.5 text-red-500 shadow-2xs touch-manipulation"
                     >
                       <X size={10} />
                     </button>
-                    <img src={item.imageUrl} alt={item.name} className="h-12 w-12 object-contain mb-1" />
-                    <span className="text-[8px] font-bold text-gray-500 truncate w-full text-center">{item.name}</span>
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="h-12 w-12 object-contain mb-1"
+                    />
+                    <span className="text-[8px] font-bold text-gray-500 truncate w-full text-center">
+                      {item.name}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -852,8 +914,14 @@ const CapsuleModal = ({
                         onClick={() => handleAdd(cloth)}
                         className="flex flex-col items-center bg-[#FDFBF9] p-1.5 rounded-xl border border-gray-100 touch-manipulation"
                       >
-                        <img src={cloth.imageUrl} alt={cloth.name} className="h-10 w-10 object-contain mb-1" />
-                        <span className="text-[8px] font-bold text-gray-500 truncate w-full">{cloth.name}</span>
+                        <img
+                          src={cloth.imageUrl}
+                          alt={cloth.name}
+                          className="h-10 w-10 object-contain mb-1"
+                        />
+                        <span className="text-[8px] font-bold text-gray-500 truncate w-full">
+                          {cloth.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -865,15 +933,39 @@ const CapsuleModal = ({
               <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
                 Kombinacje zestawów ({combinations.length})
               </h4>
+              {mode === "trip" && data?.hasEnoughOutfits && (
+                <p className="mb-2 text-[9px] font-medium text-emerald-700">
+                  Przygotowano komplet zestawów na wszystkie dni wyjazdu.
+                </p>
+              )}
               <div className="flex flex-col gap-2">
-                {combinations.map((outfit, index) => (
-                  <div key={index} className="combinations-list-item flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#E8DDD0]/30">
-                    <span className="text-[9px] font-bold text-[#8E7A6B]">#{index + 1}</span>
+                {combinations.map((combination, index) => (
+                  <div
+                    key={index}
+                    className="combinations-list-item flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#E8DDD0]/30"
+                  >
+                    <span className="text-[9px] font-bold text-[#8E7A6B]">
+                      #{index + 1}
+                    </span>
+                    {!combination.isComplete && (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-[8px] font-bold text-amber-700">
+                        Brakuje: {combination.missingCategories.join(", ")}
+                      </span>
+                    )}
                     <div className="flex gap-1.5 overflow-x-auto w-full md:w-auto">
-                      {outfit.map((cloth) => (
-                        <div key={cloth.id} className="flex items-center gap-1 bg-gray-50/50 p-1 rounded-lg border border-gray-100 shrink-0">
-                          <img src={cloth.imageUrl} alt={cloth.name} className="h-6 w-6 object-contain" />
-                          <span className="text-[8px] font-medium text-gray-600 max-w-[60px] truncate">{cloth.name}</span>
+                      {combination.outfit.map((cloth) => (
+                        <div
+                          key={cloth.id}
+                          className="flex items-center gap-1 bg-gray-50/50 p-1 rounded-lg border border-gray-100 shrink-0"
+                        >
+                          <img
+                            src={cloth.imageUrl}
+                            alt={cloth.name}
+                            className="h-6 w-6 object-contain"
+                          />
+                          <span className="text-[8px] font-medium text-gray-600 max-w-[60px] truncate">
+                            {cloth.name}
+                          </span>
                         </div>
                       ))}
                     </div>
