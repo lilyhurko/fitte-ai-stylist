@@ -4,6 +4,7 @@ const {
   optionalLocationNameSchema,
   optionalLatitudeSchema,
   optionalLongitudeSchema,
+  optionalTimezoneSchema,
 } = require("./commonValidators");
 
 const updateProfileSchema = z
