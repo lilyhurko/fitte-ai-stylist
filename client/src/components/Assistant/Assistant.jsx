@@ -387,6 +387,7 @@ const Assistant = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleFitteFeedback("LIKE")}
+                      aria-label="Polub rekomendację Fitte"
                       disabled={fitteFeedback !== null}
                       className={`p-2 rounded-xl transition-all ${
                         fitteFeedback === "LIKE"
@@ -398,6 +399,8 @@ const Assistant = () => {
                     </button>
                     <button
                       onClick={() => handleFitteFeedback("DISLIKE")}
+                      type="button"
+                      aria-label="Odrzuć rekomendację Fitte"
                       disabled={fitteFeedback !== null}
                       className={`p-2 rounded-xl transition-all ${
                         fitteFeedback === "DISLIKE"

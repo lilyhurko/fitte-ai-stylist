@@ -90,34 +90,37 @@ async function askFitteEngine(
     let explanation =
       "Zestaw został najlepiej oceniony pod kątem okazji, pogody i Twoich preferencji.";
     let explanationModel = null;
+    if (process.env.E2E_MODE !== "true") {
+      try {
+        const chatCompletion = await resilientOperation(
+          "groq",
+          () =>
+            groq.chat.completions.create({
+              model: GROQ_MODEL,
+              messages: [{ role: "user", content: explanationPrompt }],
+              temperature: FITTE_EXPLANATION_CONFIG.temperature,
+              reasoning_effort: FITTE_EXPLANATION_CONFIG.reasoningEffort,
+              max_completion_tokens:
+                FITTE_EXPLANATION_CONFIG.maxCompletionTokens,
+            }),
+          {
+            retries: 0,
+          },
+        );
+        const generatedExplanation =
+          chatCompletion.choices[0]?.message?.content;
 
-    try {
-      const chatCompletion = await resilientOperation(
-        "groq",
-        () =>
-          groq.chat.completions.create({
-            model: GROQ_MODEL,
-            messages: [{ role: "user", content: explanationPrompt }],
-            temperature: FITTE_EXPLANATION_CONFIG.temperature,
-            reasoning_effort: FITTE_EXPLANATION_CONFIG.reasoningEffort,
-            max_completion_tokens: FITTE_EXPLANATION_CONFIG.maxCompletionTokens,
-          }),
-        {
-          retries: 0,
-        },
-      );
-      const generatedExplanation = chatCompletion.choices[0]?.message?.content;
-
-      if (generatedExplanation) {
-        explanation = generatedExplanation;
-        explanationModel = GROQ_MODEL;
+        if (generatedExplanation) {
+          explanation = generatedExplanation;
+          explanationModel = GROQ_MODEL;
+        }
+      } catch (explanationError) {
+        writeLog("warn", "groq_explanation_fallback", {
+          provider: "groq",
+          model: GROQ_MODEL,
+          errorName: explanationError.name,
+        });
       }
-    } catch (explanationError) {
-      writeLog("warn", "groq_explanation_fallback", {
-        provider: "groq",
-        model: GROQ_MODEL,
-        errorName: explanationError.name,
-      });
     }
     const newRec = await prisma.outfitRecommendation.create({
       data: {

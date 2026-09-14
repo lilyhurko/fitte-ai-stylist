@@ -96,6 +96,16 @@ const createWeatherContext = ({
 };
 
 const getLiveWeatherContext = async (latitude, longitude) => {
+  if (process.env.E2E_MODE === "true") {
+    return createWeatherContext({
+      temperatureC: 18,
+      apparentTemperatureC: 18,
+      precipitationMm: 0,
+      rainMm: 0,
+      snowfallCm: 0,
+      windSpeedKmh: 8,
+    });
+  }
   try {
     const currentVariables = [
       "temperature_2m",

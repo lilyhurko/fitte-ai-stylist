@@ -291,8 +291,11 @@ const Calendar = () => {
                       </h4>
                       <p className="text-xs text-gray-400">
                         {new Date(event.date).toLocaleString("pl-PL", {
-                          dateStyle: "short",
-                          timeStyle: "short",
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
                           timeZone: event.timezone || BROWSER_TIMEZONE,
                           timeZoneName: "short",
                         })}

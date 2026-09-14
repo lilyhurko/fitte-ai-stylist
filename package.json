@@ -7,9 +7,12 @@
     "client": "cd client && npm run dev",
     "server": "cd server && node index.js",
     "ai": "cd ai-service && ./.venv/bin/python main.py",
-    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\""
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\"",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2"
   },
   "dependencies": {

@@ -93,6 +93,12 @@ PYTANIE UŻYTKOWNIKA: ${query}
 };
 
 async function askGemini(query, context, weatherInput) {
+  if (process.env.E2E_MODE === "true") {
+    return [
+      "Testowa propozycja Gemini.",
+      "UBRANIA: Koszula testowa E2E|Spodnie testowe E2E|Buty testowe E2E",
+    ].join("\n");
+  }
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = getBasePrompt(query, context, weatherInput);
@@ -118,6 +124,12 @@ async function askGemini(query, context, weatherInput) {
 }
 
 async function askGroqCloud(query, context, weatherInput) {
+  if (process.env.E2E_MODE === "true") {
+    return [
+      "Testowa propozycja GPT-OSS.",
+      "UBRANIA: Koszula testowa E2E|Spodnie testowe E2E|Buty testowe E2E",
+    ].join("\n");
+  }
   try {
     const prompt = getBasePrompt(query, context, weatherInput);
     const chatCompletion = await resilientOperation(
