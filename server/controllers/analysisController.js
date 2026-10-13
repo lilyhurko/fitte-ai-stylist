@@ -50,11 +50,52 @@ const analyze = async (req, res, next) => {
     writeLog("info", "ai_analysis_started", { requestId: req.requestId });
 
     const geminiStart = Date.now();
-    const geminiResponse = await askGemini(query, context, weatherContext);
+    const geminiResponse = await askGemini(
+      query,
+      context,
+      weatherContext,
+      req.requestId,
+    );
     const geminiTime = Date.now() - geminiStart;
+    writeLog(
+      geminiResponse === "Model Gemini jest chwilowo niedostępny."
+        ? "warn"
+        : "info",
+      "ai_provider_completed",
+      {
+        requestId: req.requestId,
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+        status:
+          geminiResponse === "Model Gemini jest chwilowo niedostępny."
+            ? "fallback"
+            : "success",
+        durationMs: geminiTime,
+      },
+    );
     const groqStart = Date.now();
-    const groqResponse = await askGroqCloud(query, context, weatherContext);
+    const groqResponse = await askGroqCloud(
+      query,
+      context,
+      weatherContext,
+      req.requestId,
+    );
     const groqTime = Date.now() - groqStart;
+    writeLog(
+      groqResponse === "Model Groq jest chwilowo niedostępny."
+        ? "warn"
+        : "info",
+      "ai_provider_completed",
+      {
+        requestId: req.requestId,
+        provider: "groq",
+        status:
+          groqResponse === "Model Groq jest chwilowo niedostępny."
+            ? "fallback"
+            : "success",
+        durationMs: groqTime,
+      },
+    );
     const fitteStart = Date.now();
     const fitteResult = await askFitteEngine(
       query,
@@ -63,8 +104,22 @@ const analyze = async (req, res, next) => {
       currentEvent,
       selectedOccasion,
       weatherContext,
+      req.requestId,
     );
     const fitteTime = Date.now() - fitteStart;
+    writeLog(
+      fitteResult.recommendationAvailability ? "info" : "warn",
+      "fitte_engine_completed",
+      {
+        requestId: req.requestId,
+        provider: "fitte-engine",
+        status: fitteResult.recommendationAvailability
+          ? fitteResult.recommendationAvailability.status
+          : "fallback",
+        algorithmVersion: fitteResult.algorithmVersion,
+        durationMs: fitteTime,
+      },
+    );
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
     const groqResolved = resolveMatchedItems(groqResponse, clothes);
 

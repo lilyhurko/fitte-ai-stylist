@@ -26,6 +26,7 @@ async function askFitteEngine(
   currentEvent,
   selectedOccasion,
   weatherContext,
+  requestId,
 ) {
   try {
     const recommendationHistory = await prisma.outfitRecommendation.findMany({
@@ -107,6 +108,18 @@ async function askFitteEngine(
             retries: 0,
           },
         );
+        const usage = chatCompletion.usage;
+
+        writeLog("info", "ai_token_usage", {
+          requestId,
+          provider: "groq",
+          operation: "fitte_explanation",
+          model: chatCompletion.model || GROQ_MODEL,
+          promptTokens: usage?.prompt_tokens ?? null,
+          outputTokens: usage?.completion_tokens ?? null,
+          totalTokens: usage?.total_tokens ?? null,
+        });
+
         const generatedExplanation =
           chatCompletion.choices[0]?.message?.content;
 
@@ -117,6 +130,7 @@ async function askFitteEngine(
       } catch (explanationError) {
         writeLog("warn", "groq_explanation_fallback", {
           provider: "groq",
+          requestId,
           model: GROQ_MODEL,
           errorName: explanationError.name,
         });
@@ -189,6 +203,7 @@ async function askFitteEngine(
   } catch (error) {
     writeLog("warn", "fitte_engine_fallback", {
       provider: "fitte-engine",
+      requestId,
       errorName: error.name,
     });
 

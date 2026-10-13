@@ -12,22 +12,25 @@ const analysisRoutes = require("./routes/analysisRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const historyRoutes = require("./routes/historyRoutes");
 const eventRoutes = require("./routes/eventRoutes");
-
+const { writeLog } = require("./services/logger");
 const app = express();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim());
 
 app.set("trust proxy", 1);
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("Origin niedozwolony przez CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type"],
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin))
+        return callback(null, true);
+      return callback(new Error("Origin niedozwolony przez CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type"],
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
 app.use(cookieParser());
@@ -40,7 +43,25 @@ app.get("/", (req, res) => {
     academicProject: "Politechnika Lubelska - Praca Magisterska",
   });
 });
+app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
 
+  res.on("finish", () => {
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+    const level =
+      res.statusCode >= 500 ? "error" : res.statusCode >= 400 ? "warn" : "info";
+
+    writeLog(level, "http_request_completed", {
+      requestId: req.requestId,
+      method: req.method,
+      route: req.route ? `${req.baseUrl}${req.route.path}` : "unmatched",
+      statusCode: res.statusCode,
+      durationMs: Math.round(durationMs * 10) / 10,
+    });
+  });
+
+  next();
+});
 app.use("/api", authRoutes);
 app.use("/api/wardrobe", wardrobeRoutes);
 app.use("/api/capsule", capsuleRoutes);

@@ -92,7 +92,7 @@ PYTANIE UŻYTKOWNIKA: ${query}
 `;
 };
 
-async function askGemini(query, context, weatherInput) {
+async function askGemini(query, context, weatherInput, requestId) {
   if (process.env.E2E_MODE === "true") {
     return [
       "Testowa propozycja Gemini.",
@@ -112,10 +112,22 @@ async function askGemini(query, context, weatherInput) {
         retries: 1,
       },
     );
+    const usage = result.response.usageMetadata;
+
+    writeLog("info", "ai_token_usage", {
+      requestId,
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      promptTokens: usage?.promptTokenCount ?? null,
+      outputTokens: usage?.candidatesTokenCount ?? null,
+      thoughtsTokens: usage?.thoughtsTokenCount ?? null,
+      totalTokens: usage?.totalTokenCount ?? null,
+    });
     return result.response.text();
   } catch (error) {
     writeLog("warn", "gemini_fallback", {
       provider: "gemini",
+      requestId,
       errorName: error.name,
     });
 
@@ -123,7 +135,7 @@ async function askGemini(query, context, weatherInput) {
   }
 }
 
-async function askGroqCloud(query, context, weatherInput) {
+async function askGroqCloud(query, context, weatherInput, requestId) {
   if (process.env.E2E_MODE === "true") {
     return [
       "Testowa propozycja GPT-OSS.",
@@ -146,6 +158,18 @@ async function askGroqCloud(query, context, weatherInput) {
         retries: 0,
       },
     );
+    const usage = chatCompletion.usage;
+
+    writeLog("info", "ai_token_usage", {
+      requestId,
+      provider: "groq",
+      operation: "comparison_response",
+      model: chatCompletion.model || GROQ_MODEL,
+      promptTokens: usage?.prompt_tokens ?? null,
+      outputTokens: usage?.completion_tokens ?? null,
+      totalTokens: usage?.total_tokens ?? null,
+    });
+
     return (
       chatCompletion.choices[0]?.message?.content ||
       "Brak odpowiedzi ze strony modelu Groq."
@@ -153,6 +177,7 @@ async function askGroqCloud(query, context, weatherInput) {
   } catch (error) {
     writeLog("warn", "groq_fallback", {
       provider: "groq",
+      requestId,
       errorName: error.name,
     });
 
