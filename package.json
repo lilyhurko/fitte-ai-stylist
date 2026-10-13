@@ -9,11 +9,20 @@
     "ai": "cd ai-service && ./.venv/bin/python main.py",
     "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\"",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "lint-staged": {
+    "*.{js,jsx,css,md,yml,yaml,json}": "prettier --write"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.10"
   },
   "dependencies": {
     "cloudinary": "^2.10.0",
