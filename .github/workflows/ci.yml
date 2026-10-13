@@ -1,0 +1,74 @@
+name: Fitte CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Testy, lint i build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v7
+
+      - name: Ustaw Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Zainstaluj zależności główne
+        run: npm ci
+
+      - name: Zainstaluj zależności backendu
+        run: npm ci --prefix server
+
+      - name: Zainstaluj zależności frontendu
+        run: npm ci --prefix client
+
+      - name: Wygeneruj Prisma Client
+        run: npx prisma generate
+        working-directory: server
+        env:
+          DATABASE_URL: mongodb://127.0.0.1:27017/fitte-ci
+
+      - name: Testy backendu
+        run: npm test --prefix server
+
+      - name: ESLint
+        run: npm run lint --prefix client
+
+      - name: Build frontendu
+        run: npm run build --prefix client
+
+      - name: Skan zależności
+        run: |
+          npm audit --audit-level=high
+          npm audit --prefix server --audit-level=high
+          npm audit --prefix client --audit-level=high
+
+  secret-scan:
+    name: Skan sekretów
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pobierz pełną historię repozytorium
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Wykryj ujawnione sekrety
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
