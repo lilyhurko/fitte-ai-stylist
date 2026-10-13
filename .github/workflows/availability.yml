@@ -1,0 +1,27 @@
+name: Dostępność produkcji
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Sprawdź dostępność backendu
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      PRODUCTION_HEALTH_URL: https://fitte-ai-stylist.onrender.com/
+
+    steps:
+      - name: Sprawdź odpowiedź i czas backendu
+        run: |
+          curl --fail --silent --show-error --location \
+            --connect-timeout 10 \
+            --max-time 90 \
+            --write-out '\nstatus=%{http_code} duration_seconds=%{time_total}\n' \
+            --output /dev/null \
+            "$PRODUCTION_HEALTH_URL"

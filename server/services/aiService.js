@@ -1,6 +1,10 @@
 const { genAI, groq, GROQ_MODEL } = require("../config/aiClients");
 const { writeLog } = require("./logger");
 const { resilientOperation } = require("./resilienceService");
+const {
+  estimateGeminiCostUsd,
+  estimateGroqCostUsd,
+} = require("./aiCostService");
 
 const WEATHER_LABELS = {
   Clear: "bez opadów",
@@ -113,15 +117,24 @@ async function askGemini(query, context, weatherInput, requestId) {
       },
     );
     const usage = result.response.usageMetadata;
+    const promptTokens = usage?.promptTokenCount ?? null;
+    const outputTokens = usage?.candidatesTokenCount ?? null;
+    const thoughtsTokens = usage?.thoughtsTokenCount ?? null;
 
     writeLog("info", "ai_token_usage", {
       requestId,
       provider: "gemini",
       model: "gemini-2.5-flash",
-      promptTokens: usage?.promptTokenCount ?? null,
-      outputTokens: usage?.candidatesTokenCount ?? null,
-      thoughtsTokens: usage?.thoughtsTokenCount ?? null,
+      promptTokens,
+      outputTokens,
+      thoughtsTokens,
       totalTokens: usage?.totalTokenCount ?? null,
+      estimatedCostUsd: estimateGeminiCostUsd({
+        promptTokens,
+        outputTokens,
+        thoughtsTokens,
+      }),
+      costType: "estimate",
     });
     return result.response.text();
   } catch (error) {
@@ -159,15 +172,26 @@ async function askGroqCloud(query, context, weatherInput, requestId) {
       },
     );
     const usage = chatCompletion.usage;
+    const promptTokens = usage?.prompt_tokens ?? null;
+    const outputTokens = usage?.completion_tokens ?? null;
+    const cachedInputTokens =
+      usage?.prompt_tokens_details?.cached_tokens ?? null;
 
     writeLog("info", "ai_token_usage", {
       requestId,
       provider: "groq",
       operation: "comparison_response",
       model: chatCompletion.model || GROQ_MODEL,
-      promptTokens: usage?.prompt_tokens ?? null,
-      outputTokens: usage?.completion_tokens ?? null,
+      promptTokens,
+      outputTokens,
+      cachedInputTokens,
       totalTokens: usage?.total_tokens ?? null,
+      estimatedCostUsd: estimateGroqCostUsd({
+        promptTokens,
+        outputTokens,
+        cachedInputTokens,
+      }),
+      costType: "estimate",
     });
 
     return (

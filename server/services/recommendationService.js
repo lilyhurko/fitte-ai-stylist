@@ -3,6 +3,7 @@ const { groq, GROQ_MODEL } = require("../config/aiClients");
 const { generateBestOutfits } = require("../outfitEngine");
 const { writeLog } = require("./logger");
 const { resilientOperation } = require("./resilienceService");
+const { estimateGroqCostUsd } = require("./aiCostService");
 const {
   FITTE_ALGORITHM_VERSION,
   FITTE_EXPLANATION_PROMPT_VERSION,
@@ -109,15 +110,26 @@ async function askFitteEngine(
           },
         );
         const usage = chatCompletion.usage;
+        const promptTokens = usage?.prompt_tokens ?? null;
+        const outputTokens = usage?.completion_tokens ?? null;
+        const cachedInputTokens =
+          usage?.prompt_tokens_details?.cached_tokens ?? null;
 
         writeLog("info", "ai_token_usage", {
           requestId,
           provider: "groq",
           operation: "fitte_explanation",
           model: chatCompletion.model || GROQ_MODEL,
-          promptTokens: usage?.prompt_tokens ?? null,
-          outputTokens: usage?.completion_tokens ?? null,
+          promptTokens,
+          outputTokens,
+          cachedInputTokens,
           totalTokens: usage?.total_tokens ?? null,
+          estimatedCostUsd: estimateGroqCostUsd({
+            promptTokens,
+            outputTokens,
+            cachedInputTokens,
+          }),
+          costType: "estimate",
         });
 
         const generatedExplanation =
