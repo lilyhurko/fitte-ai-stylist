@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useWardrobe } from "../../context/WardrobeContext";
 import {
+  ArrowRight,
+  Shirt,
   Loader2,
   Sparkles,
   Brain,
@@ -15,6 +19,30 @@ import { API_BASE_URL } from "../../config";
 
 const Assistant = () => {
   const { logout } = useAuth();
+  const { clothes } = useWardrobe();
+  const navigate = useNavigate();
+
+  const wardrobeReadiness = useMemo(() => {
+    const hasTop = clothes.some((item) => item.category === "Góra");
+
+    const hasBottomOrDress = clothes.some(
+      (item) => item.category === "Dół" || item.category === "Sukienki",
+    );
+
+    const hasShoes = clothes.some((item) => item.category === "Obuwie");
+
+    const missingParts = [];
+
+    if (!hasTop) missingParts.push("góry");
+    if (!hasBottomOrDress) missingParts.push("dołu lub sukienki");
+    if (!hasShoes) missingParts.push("obuwia");
+
+    return {
+      isEmpty: clothes.length === 0,
+      isComplete: hasTop && hasBottomOrDress && hasShoes,
+      missingParts,
+    };
+  }, [clothes]);
   const [selectedOccasion, setSelectedOccasion] = useState("Randka");
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +58,13 @@ const Assistant = () => {
   const handleGenerate = async () => {
     if (loading || (!prompt && !selectedOccasion)) return;
 
+    if (wardrobeReadiness.isEmpty) {
+      setGenerationError(
+        "Dodaj przynajmniej jedno ubranie do garderoby, zanim poprosisz o propozycję.",
+      );
+      return;
+    }
+
     setLoading(true);
     setGenerationError("");
 
@@ -38,7 +73,7 @@ const Assistant = () => {
     const getCoordinates = () => {
       return new Promise((resolve) => {
         if (!navigator.geolocation) {
-          resolve({ latitude: 51.2465, longitude: 22.5684 }); // Lublin
+          resolve({ latitude: 51.2465, longitude: 22.5684 });
           return;
         }
 
@@ -179,6 +214,38 @@ const Assistant = () => {
           Dostosuję propozycje do Twojego stylu.
         </p>
       </header>
+      {!wardrobeReadiness.isComplete && (
+        <section className="wardrobe-assistant-hint" role="status">
+          <div className="wardrobe-assistant-hint-icon">
+            <Shirt size={20} aria-hidden="true" />
+          </div>
+
+          <div>
+            <p className="wardrobe-assistant-hint-title">
+              {wardrobeReadiness.isEmpty
+                ? "Twoja garderoba jest jeszcze pusta"
+                : "Możemy stworzyć propozycję, ale szafa nie jest jeszcze kompletna"}
+            </p>
+
+            <p className="wardrobe-assistant-hint-text">
+              {wardrobeReadiness.isEmpty
+                ? "Dodaj pierwsze ubranie, aby Fitte mogło przygotować stylizację z Twojej prawdziwej szafy."
+                : `Dla pełniejszych zestawów warto dodać: ${wardrobeReadiness.missingParts.join(
+                    ", ",
+                  )}.`}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="wardrobe-assistant-hint-action"
+            onClick={() => navigate("/wardrobe")}
+          >
+            Przejdź do szafy
+            <ArrowRight size={15} aria-hidden="true" />
+          </button>
+        </section>
+      )}
 
       <section className="input-card bg-white rounded-[24px] md:rounded-[40px] p-5 md:p-10 border border-fitte-sand shadow-sm">
         <div className="mb-5">
