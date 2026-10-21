@@ -2,7 +2,18 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useWardrobe } from "../../context/WardrobeContext";
 import AddItemModal from "../../components/Wardrobe/AddItemModal";
 import EditItemModal from "../../components/Wardrobe/EditItemModal";
-import { Trash2, Loader2, Plus, Pencil, Search, X } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Shirt,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import "./Wardrobe.css";
 import { API_BASE_URL } from "../../config";
 
@@ -16,6 +27,27 @@ const Wardrobe = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedStyles, setSelectedStyles] = useState([]);
+  const wardrobeReadiness = useMemo(() => {
+    const hasTop = clothes.some((item) => item.category === "Góra");
+
+    const hasBottomOrDress = clothes.some(
+      (item) => item.category === "Dół" || item.category === "Sukienki",
+    );
+
+    const hasShoes = clothes.some((item) => item.category === "Obuwie");
+
+    const completedSteps = [hasTop, hasBottomOrDress, hasShoes].filter(
+      Boolean,
+    ).length;
+
+    return {
+      hasTop,
+      hasBottomOrDress,
+      hasShoes,
+      completedSteps,
+      isReady: hasTop && hasBottomOrDress && hasShoes,
+    };
+  }, [clothes]);
 
   const categories = [
     "Wszystkie",
@@ -245,6 +277,41 @@ const Wardrobe = () => {
           )}
         </div>
       )}
+      {clothes.length > 0 && !wardrobeReadiness.isReady && (
+        <section className="wardrobe-readiness-card">
+          <div>
+            <span className="wardrobe-readiness-eyebrow">
+              TWOJA GARDEROBA: {wardrobeReadiness.completedSteps}/3
+            </span>
+
+            <h3>Jeszcze chwila do pierwszego pełnego zestawu</h3>
+
+            <p>
+              Dodaj po jednym elemencie z każdej kategorii, aby Fitte mogło
+              tworzyć kompletne stylizacje.
+            </p>
+          </div>
+
+          <ul>
+            <li className={wardrobeReadiness.hasTop ? "completed" : ""}>
+              <CheckCircle2 size={17} />
+              Góra
+            </li>
+
+            <li
+              className={wardrobeReadiness.hasBottomOrDress ? "completed" : ""}
+            >
+              <CheckCircle2 size={17} />
+              Dół lub sukienka
+            </li>
+
+            <li className={wardrobeReadiness.hasShoes ? "completed" : ""}>
+              <CheckCircle2 size={17} />
+              Obuwie
+            </li>
+          </ul>
+        </section>
+      )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 w-full">
@@ -307,19 +374,85 @@ const Wardrobe = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center py-16 w-full">
-              <p className="text-gray-400 italic text-xs">
-                {hasActiveFilters
-                  ? "Brak ubrań spełniających wybrane kryteria."
-                  : "Brak ubrań w tej kategorii."}
-              </p>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-2 text-xs font-bold text-fitte-brown-dark hover:underline cursor-pointer touch-manipulation"
-                >
-                  Wyczyść filtry
-                </button>
+            <div className="col-span-full empty-wardrobe-state">
+              {clothes.length === 0 ? (
+                <>
+                  <div className="empty-wardrobe-icon">
+                    <Shirt size={34} aria-hidden="true" />
+                  </div>
+
+                  <span className="empty-wardrobe-eyebrow">
+                    TWOJA SZAFA CZEKA NA PIERWSZY ELEMENT
+                  </span>
+
+                  <h3>Dodaj pierwsze ubranie</h3>
+
+                  <p>
+                    Zrób zdjęcie ubrania, a Fitte AI rozpozna jego cechy.
+                    Później wykorzysta je do stworzenia stylizacji dopasowanej
+                    do okazji, pogody i Twojego stylu.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(true)}
+                    className="empty-wardrobe-primary-action"
+                  >
+                    <Sparkles size={18} />
+                    Dodaj pierwsze ubranie
+                    <ArrowRight size={17} />
+                  </button>
+
+                  <div className="empty-wardrobe-steps">
+                    <div>
+                      <span>1</span>
+                      Dodaj górę
+                    </div>
+                    <div>
+                      <span>2</span>
+                      Dodaj dół lub sukienkę
+                    </div>
+                    <div>
+                      <span>3</span>
+                      Dodaj obuwie
+                    </div>
+                  </div>
+                </>
+              ) : hasActiveFilters ? (
+                <>
+                  <p className="text-gray-400 italic text-xs">
+                    Brak ubrań spełniających wybrane kryteria.
+                  </p>
+
+                  <button
+                    onClick={clearFilters}
+                    className="mt-2 text-xs font-bold text-fitte-brown-dark hover:underline cursor-pointer touch-manipulation"
+                  >
+                    Wyczyść filtry
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="empty-wardrobe-icon">
+                    <Shirt size={30} aria-hidden="true" />
+                  </div>
+
+                  <h3>Ta kategoria jest jeszcze pusta</h3>
+
+                  <p>
+                    Dodaj kolejne ubranie, aby Fitte mogło przygotowywać
+                    bardziej różnorodne propozycje.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(true)}
+                    className="empty-wardrobe-secondary-action"
+                  >
+                    <Plus size={16} />
+                    Dodaj ubranie
+                  </button>
+                </>
               )}
             </div>
           )}

@@ -11,9 +11,9 @@
       transparent 50%
     ),
     linear-gradient(180deg, #fdfbfa 0%, #f5efeb 100%) !important;
-  background-attachment: scroll; 
-  min-height: 100dvh; 
-    padding-top: max(1rem, env(safe-area-inset-top));
+  background-attachment: scroll;
+  min-height: 100dvh;
+  padding-top: max(1rem, env(safe-area-inset-top));
   padding-bottom: max(2rem, env(safe-area-inset-bottom));
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
@@ -122,7 +122,9 @@
 }
 
 .ai-result-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -171,6 +173,55 @@
 
 .animate-fade-in {
   animation: fadeIn 0.5s ease-out forwards;
+}
+
+.generation-status,
+.generation-error {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.generation-status {
+  color: var(--color-fitte-brown-dark);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--color-fitte-sand);
+}
+
+.generation-status svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.generation-status p + p {
+  margin-top: 2px;
+  color: #8e8e8e;
+}
+
+.generation-error {
+  color: #9f2d2d;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+}
+
+.generation-error svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.generation-error button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 @keyframes fadeIn {

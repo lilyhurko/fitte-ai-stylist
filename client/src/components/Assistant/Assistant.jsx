@@ -5,6 +5,8 @@ import {
   Sparkles,
   Brain,
   Monitor,
+  CircleAlert,
+  RefreshCw,
   ThumbsUp,
   ThumbsDown,
 } from "lucide-react";
@@ -17,6 +19,7 @@ const Assistant = () => {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [generationError, setGenerationError] = useState("");
 
   const [geminiFeedback, setGeminiFeedback] = useState(null);
   const [groqFeedback, setGroqFeedback] = useState(null);
@@ -25,14 +28,10 @@ const Assistant = () => {
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
   const handleGenerate = async () => {
-    if (!prompt && !selectedOccasion) return;
+    if (loading || (!prompt && !selectedOccasion)) return;
 
     setLoading(true);
-    setResults(null);
-
-    setGeminiFeedback(null);
-    setGroqFeedback(null);
-    setFitteFeedback(null);
+    setGenerationError("");
 
     const fullQuery = `Okazja: ${selectedOccasion}. Szczegóły: ${prompt}`;
 
@@ -80,12 +79,25 @@ const Assistant = () => {
         return;
       }
 
-      const data = await response.json();
-      if (response.ok) {
-        setResults(data);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setGenerationError(
+          data.error ||
+            "Nie udało się wygenerować propozycji. Spróbuj ponownie za chwilę.",
+        );
+        return;
       }
+
+      setResults(data);
+      setGeminiFeedback(null);
+      setGroqFeedback(null);
+      setFitteFeedback(null);
     } catch (error) {
       console.error("Błąd asystenta podczas wysyłania żądania:", error);
+      setGenerationError(
+        "Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie.",
+      );
     } finally {
       setLoading(false);
     }
@@ -215,7 +227,10 @@ const Assistant = () => {
               className="generate-btn w-full md:w-auto bg-fitte-brown-dark text-white px-8 py-3.5 rounded-full hover:opacity-90 active:scale-95 transition-all font-bold flex items-center justify-center gap-2.5 text-sm shadow-sm touch-manipulation"
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={18} />
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Tworzę propozycje…
+                </>
               ) : (
                 <>
                   <Sparkles size={18} /> Generuj propozycje
@@ -225,6 +240,32 @@ const Assistant = () => {
           </div>
         </div>
       </section>
+
+      {loading && (
+        <section className="generation-status" role="status" aria-live="polite">
+          <Loader2 className="animate-spin" size={20} aria-hidden="true" />
+          <div>
+            <p className="font-semibold">Tworzę Twoje propozycje…</p>
+            <p>
+              Analizuję szafę, okazję i pogodę. Zwykle zajmuje to kilkanaście
+              sekund.
+            </p>
+            {results && <p>Poprzednia rekomendacja pozostaje widoczna.</p>}
+          </div>
+        </section>
+      )}
+
+      {generationError && (
+        <section className="generation-error" role="alert">
+          <CircleAlert size={20} aria-hidden="true" />
+          <div>
+            <p>{generationError}</p>
+            <button type="button" onClick={handleGenerate}>
+              <RefreshCw size={14} aria-hidden="true" /> Spróbuj ponownie
+            </button>
+          </div>
+        </section>
+      )}
 
       {results && (
         <section className="mt-8 md:mt-16 animate-fade-in">

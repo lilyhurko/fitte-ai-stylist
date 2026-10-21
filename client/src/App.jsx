@@ -1,29 +1,34 @@
 import React from "react";
 import {
   BrowserRouter as Router,
-  Routes,
-  Route,
   Navigate,
+  Route,
+  Routes,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { WardrobeProvider } from "./context/WardrobeContext";
+import { CalendarProvider } from "./context/CalendarContext";
+import { NotificationProvider } from "./context/NotificationContext";
+
 import Sidebar from "./components/Sidebar/Sidebar";
-import Assistant from "./components/Assistant/Assistant";
-import Register from "./pages/Register/Register";
 import Navbar from "./components/Navbar/Navbar";
+import Assistant from "./components/Assistant/Assistant";
+import NotificationContainer from "./components/Notifications/NotificationContainer";
+
 import GuestPage from "./pages/GuestPage/GuestPage";
 import StyleQuiz from "./pages/StyleQuiz/StyleQuiz";
 import Wardrobe from "./pages/Wardrobe/Wardrobe";
 import Login from "./pages/Login/Login";
+import Register from "./pages/Register/Register";
 import Profile from "./pages/Profile/Profile";
 import History from "./pages/History/History";
-import {CalendarProvider} from "./context/CalendarContext"
 import Calendar from "./pages/Calendar/Calendar";
-import "./index.css";
 
+import "./index.css";
 
 function AppContent() {
   const { user, loading } = useAuth();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -31,6 +36,7 @@ function AppContent() {
       </div>
     );
   }
+
   if (!user) {
     return (
       <Routes>
@@ -46,8 +52,10 @@ function AppContent() {
   return (
     <div className="flex min-h-screen bg-fitte-cream">
       <Sidebar />
-      <div className="flex-1 flex flex-col main-content">
+
+      <div className="flex flex-1 flex-col main-content">
         <Navbar />
+
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Assistant />} />
@@ -67,15 +75,18 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <WardrobeProvider>
-        <CalendarProvider>
-        <Router>
-          <AppContent />
-        </Router>
-        </CalendarProvider>
-      </WardrobeProvider>
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <WardrobeProvider>
+          <CalendarProvider>
+            <Router>
+              <AppContent />
+              <NotificationContainer />
+            </Router>
+          </CalendarProvider>
+        </WardrobeProvider>
+      </AuthProvider>
+    </NotificationProvider>
   );
 }
 

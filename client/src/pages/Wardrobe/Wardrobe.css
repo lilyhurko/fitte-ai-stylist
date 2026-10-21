@@ -4,7 +4,7 @@
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
-  overflow-x: hidden; 
+  overflow-x: hidden;
   padding-top: max(1rem, env(safe-area-inset-top));
   padding-bottom: max(5rem, env(safe-area-inset-bottom));
   padding-left: max(1rem, env(safe-area-inset-left));
@@ -12,8 +12,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .wardrobe-content h2 .italic {
@@ -59,7 +65,7 @@
 .cloth-card span {
   font-size: 10px;
   letter-spacing: 0.05em;
-  color: #A0A0A0;
+  color: #a0a0a0;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -70,6 +76,165 @@
   scrollbar-width: none;
 }
 
+.empty-wardrobe-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 38rem;
+  padding: 3.5rem 1.5rem;
+  margin: 1rem auto;
+  text-align: center;
+  background: linear-gradient(135deg, #fffdf9, #f8efe5);
+  border: 1px solid rgba(208, 181, 151, 0.55);
+  border-radius: 1.5rem;
+}
+
+.empty-wardrobe-icon {
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1rem;
+  color: var(--color-fitte-brown-dark);
+  background: white;
+  border: 1px solid rgba(208, 181, 151, 0.55);
+  border-radius: 50%;
+  place-items: center;
+  box-shadow: 0 8px 20px rgba(61, 43, 31, 0.08);
+}
+
+.empty-wardrobe-eyebrow,
+.wardrobe-readiness-eyebrow {
+  color: var(--color-fitte-terracotta);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.empty-wardrobe-state h3,
+.wardrobe-readiness-card h3 {
+  margin: 0.5rem 0;
+  color: var(--color-fitte-brown-dark);
+  font-family: var(--font-playfair, serif);
+  font-size: 1.55rem;
+}
+
+.empty-wardrobe-state p,
+.wardrobe-readiness-card p {
+  max-width: 31rem;
+  margin: 0;
+  color: #75675c;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.empty-wardrobe-primary-action,
+.empty-wardrobe-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.empty-wardrobe-primary-action {
+  color: white;
+  background: var(--color-fitte-brown-dark);
+  border: 1px solid var(--color-fitte-brown-dark);
+}
+
+.empty-wardrobe-secondary-action {
+  color: var(--color-fitte-brown-dark);
+  background: white;
+  border: 1px solid var(--color-fitte-sand);
+}
+
+.empty-wardrobe-primary-action:hover,
+.empty-wardrobe-secondary-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(61, 43, 31, 0.14);
+}
+
+.empty-wardrobe-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.empty-wardrobe-steps div {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  color: #75675c;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.empty-wardrobe-steps span {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: white;
+  background: var(--color-fitte-terracotta);
+  border-radius: 50%;
+  font-size: 0.65rem;
+  place-items: center;
+}
+
+.wardrobe-readiness-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #fffaf3;
+  border: 1px solid rgba(208, 181, 151, 0.65);
+  border-radius: 1rem;
+}
+
+.wardrobe-readiness-card h3 {
+  font-size: 1.25rem;
+}
+
+.wardrobe-readiness-card ul {
+  display: grid;
+  align-content: center;
+  gap: 0.45rem;
+  min-width: 10rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.wardrobe-readiness-card li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #a29a92;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.wardrobe-readiness-card li svg {
+  color: #d6cdc4;
+}
+
+.wardrobe-readiness-card li.completed {
+  color: #386641;
+}
+
+.wardrobe-readiness-card li.completed svg {
+  color: #5a9d65;
+}
 
 @media (max-width: 768px) {
   .wardrobe-content {
@@ -102,5 +267,20 @@
     max-width: 100% !important;
     width: 100% !important;
     box-sizing: border-box;
+  }
+  .wardrobe-readiness-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .wardrobe-readiness-card ul {
+    min-width: 0;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .wardrobe-readiness-card li {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 0.68rem;
   }
 }
