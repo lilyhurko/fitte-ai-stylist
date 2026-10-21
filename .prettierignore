@@ -5,3 +5,5 @@ server/prisma/
 coverage/
 playwright-report/
 test-results/
+ai-service/.venv/
+ai-service/venv/

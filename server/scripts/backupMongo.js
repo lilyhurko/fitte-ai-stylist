@@ -81,11 +81,11 @@ const createBackup = async () => {
   await run("mongodump", [
     `--uri=${databaseUrl}`,
     `--db=${databaseName}`,
-    "--oplog",
     "--gzip",
     `--archive=${archivePath}`,
   ]);
 
+  await fsp.chmod(archivePath, 0o600);
   const archiveStats = await fsp.stat(archivePath);
   const manifest = {
     database: databaseName,
@@ -95,7 +95,7 @@ const createBackup = async () => {
     createdAt: new Date().toISOString(),
     retentionDays,
     restoreCommand:
-      "npm run restore:mongodb:test -- ../backups/mongodb/<backup>.archive.gz",
+      "npm run restore:mongodb:test -- backups/mongodb/<backup>.archive.gz",
   };
 
   await fsp.writeFile(

@@ -10,6 +10,9 @@
     "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta,green\" \"npm run server\" \"npm run client\" \"npm run ai\"",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
+    "backup:mongodb": "node server/scripts/backupMongo.js",
+    "backup:mongodb:schedule": "node server/scripts/installMongoBackupSchedule.js",
+    "restore:mongodb:test": "node server/scripts/restoreMongoToTest.js",
     "prepare": "husky",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

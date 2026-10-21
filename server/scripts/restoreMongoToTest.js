@@ -53,8 +53,9 @@ const restoreToTestDatabase = async () => {
   await fsp.access(archivePath);
   const manifestPath = `${archivePath}.json`;
 
+  let manifest;
   try {
-    const manifest = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
+    manifest = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
     const checksum = await calculateSha256(archivePath);
     if (manifest.sha256 !== checksum) {
       throw new Error("Suma SHA-256 archiwum nie odpowiada manifestowi");
@@ -67,10 +68,15 @@ const restoreToTestDatabase = async () => {
   }
 
   const targetDatabaseName = getDatabaseName(testDatabaseUrl);
+  if (!manifest.database) {
+    throw new Error("Manifest nie zawiera nazwy źródłowej bazy danych");
+  }
 
   await run("mongorestore", [
     `--uri=${testDatabaseUrl}`,
-    `--nsInclude=${targetDatabaseName}.*`,
+    `--nsInclude=${manifest.database}.*`,
+    `--nsFrom=${manifest.database}.*`,
+    `--nsTo=${targetDatabaseName}.*`,
     "--drop",
     "--gzip",
     `--archive=${archivePath}`,
