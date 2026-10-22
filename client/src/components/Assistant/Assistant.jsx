@@ -7,8 +7,6 @@ import {
   Shirt,
   Loader2,
   Sparkles,
-  Brain,
-  Monitor,
   CircleAlert,
   RefreshCw,
   ThumbsUp,
@@ -49,9 +47,7 @@ const Assistant = () => {
   const [results, setResults] = useState(null);
   const [generationError, setGenerationError] = useState("");
 
-  const [geminiFeedback, setGeminiFeedback] = useState(null);
-  const [groqFeedback, setGroqFeedback] = useState(null);
-  const [fitteFeedback, setFitteFeedback] = useState(null);
+  const [comparisonFeedback, setComparisonFeedback] = useState({});
 
   const occasions = ["Randka", "Praca", "Casual", "Impreza", "Sport", "Podróż"];
 
@@ -125,9 +121,7 @@ const Assistant = () => {
       }
 
       setResults(data);
-      setGeminiFeedback(null);
-      setGroqFeedback(null);
-      setFitteFeedback(null);
+      setComparisonFeedback({});
     } catch (error) {
       console.error("Błąd asystenta podczas wysyłania żądania:", error);
       setGenerationError(
@@ -138,72 +132,66 @@ const Assistant = () => {
     }
   };
 
-  const handleModelFeedback = async (modelType, feedbackType) => {
-    const analysisId = results._id || results.id;
+  const handleComparisonFeedback = async (comparison, feedbackType) => {
+    const analysisId = results?.id || results?._id;
 
-    if (!analysisId) return;
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/analyze/${analysisId}/feedback`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ modelType, feedback: feedbackType }),
-        },
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        logout();
-        return;
-      }
-
-      if (response.ok) {
-        if (modelType === "gemini") setGeminiFeedback(feedbackType);
-        if (modelType === "groq") setGroqFeedback(feedbackType);
-      }
-    } catch (error) {
-      console.error(`Błąd feedbacku dla ${modelType}:`, error);
-    }
-  };
-
-  const handleFitteFeedback = async (feedbackType) => {
-    if (!results?.recommendationId) return;
-
-    const analysisId = results.id || results._id;
+    if (!analysisId || comparisonFeedback[comparison.id]) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/recommendations/${results.recommendationId}/feedback`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
+      if (comparison.feedbackType === "fitte") {
+        const response = await fetch(
+          `${API_BASE_URL}/recommendations/${comparison.recommendationId}/feedback`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              feedback: feedbackType,
+              analysisId,
+            }),
           },
-          body: JSON.stringify({
-            feedback: feedbackType,
-            analysisId: analysisId,
-          }),
-        },
-      );
+        );
 
-      if (response.status === 401 || response.status === 403) {
-        logout();
-        return;
+        if (response.status === 401 || response.status === 403) {
+          logout();
+          return;
+        }
+
+        if (!response.ok) return;
+      } else {
+        const response = await fetch(
+          `${API_BASE_URL}/analyze/${analysisId}/feedback`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              modelType: comparison.feedbackType,
+              feedback: feedbackType,
+            }),
+          },
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          logout();
+          return;
+        }
+
+        if (!response.ok) return;
       }
 
-      if (response.ok) {
-        setFitteFeedback(feedbackType);
-      }
+      setComparisonFeedback((previousFeedback) => ({
+        ...previousFeedback,
+        [comparison.id]: feedbackType,
+      }));
     } catch (error) {
-      console.error("Błąd feedbacku Fitte Engine:", error);
+      console.error("Nie udało się zapisać anonimowej oceny:", error);
     }
   };
-
   return (
     <main className="assistant-container">
       <header className="mb-6 mt-1">
@@ -336,195 +324,109 @@ const Assistant = () => {
 
       {results && (
         <section className="mt-8 md:mt-16 animate-fade-in">
-          <h3 className="font-playfair text-xl md:text-2xl mb-5 md:mb-8">
-            Porównanie inteligentnych propozycji
-          </h3>
+          <div className="results-intro">
+            <p className="results-eyebrow">PORÓWNANIE</p>
+            <h3 className="font-playfair text-xl md:text-2xl">
+              Która propozycja najlepiej pasuje do Ciebie?
+            </h3>
+            <p className="results-description">
+              Oceń każdą stylizację niezależnie. Źródła propozycji są celowo
+              ukryte, aby ocena dotyczyła wyłącznie jakości zestawu.
+            </p>
+          </div>
 
           <div className="results-grid">
-            <div className="ai-result-card">
-              <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase mb-3">
-                  <Sparkles size={14} /> Gemini 2.5 Flash
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                  {results.geminiResponse}
-                </p>
+            {results.anonymousComparisons?.map((comparison) => {
+              const feedback = comparisonFeedback[comparison.id];
 
-                {results.geminiItems && results.geminiItems.length > 0 ? (
-                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 overflow-x-auto">
-                    {results.geminiItems.map((cloth) => (
-                      <img
-                        key={cloth.id}
-                        src={cloth.imageUrl}
-                        alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
-                        title={cloth.name}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-gray-400 bg-gray-50/50 border border-dashed border-gray-200 p-3 rounded-xl text-center italic mb-4">
-                    Model dopasował ubrania spoza Twojej szafy.
-                  </div>
-                )}
-              </div>
-              <div className="mt-auto pt-3 border-t border-fitte-sand/40 flex justify-between items-center">
-                <span className="text-[10px] text-gray-400 tracking-wider uppercase">
-                  Trafiona stylizacja?
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleModelFeedback("gemini", "LIKE")}
-                    disabled={geminiFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${
-                      geminiFeedback === "LIKE"
-                        ? "bg-green-50 text-green-600 border-green-200 scale-105"
-                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
-                    }`}
-                  >
-                    <ThumbsUp size={15} />
-                  </button>
-                  <button
-                    onClick={() => handleModelFeedback("gemini", "DISLIKE")}
-                    disabled={geminiFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${
-                      geminiFeedback === "DISLIKE"
-                        ? "bg-red-50 text-red-600 border-red-200 scale-105"
-                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
-                    }`}
-                  >
-                    <ThumbsDown size={15} />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="ai-result-card">
-              <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-orange-600 font-bold text-[10px] uppercase mb-3">
-                  <Monitor size={14} /> GPT-OSS 120B (Groq)
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                  {results.groqResponse}
-                </p>
+              return (
+                <article
+                  key={comparison.id}
+                  className="ai-result-card anonymous-result-card"
+                >
+                  <div className="ai-text-content">
+                    <div className="anonymous-result-label">
+                      <Sparkles size={14} aria-hidden="true" />
+                      {comparison.label}
+                    </div>
 
-                {results.groqItems && results.groqItems.length > 0 ? (
-                  <div className="flex gap-2 bg-fitte-sand/10 p-2 rounded-2xl w-full justify-center items-center border border-fitte-sand/20 mb-4 overflow-x-auto">
-                    {results.groqItems.map((cloth) => (
-                      <img
-                        key={cloth.id}
-                        src={cloth.imageUrl}
-                        alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
-                        title={cloth.name}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-gray-400 bg-gray-50/50 border border-dashed border-gray-200 p-3 rounded-xl text-center italic mb-4">
-                    Model dopasował ubrania spoza Twojej szafy.
-                  </div>
-                )}
-              </div>
-              <div className="mt-auto pt-3 border-t border-fitte-sand/40 flex justify-between items-center">
-                <span className="text-[10px] text-gray-400 tracking-wider uppercase">
-                  Trafiona stylizacja?
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleModelFeedback("groq", "LIKE")}
-                    disabled={groqFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${
-                      groqFeedback === "LIKE"
-                        ? "bg-green-50 text-green-600 border-green-200 scale-105"
-                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
-                    }`}
-                  >
-                    <ThumbsUp size={15} />
-                  </button>
-                  <button
-                    onClick={() => handleModelFeedback("groq", "DISLIKE")}
-                    disabled={groqFeedback !== null}
-                    className={`p-2 rounded-xl border transition-all ${
-                      groqFeedback === "DISLIKE"
-                        ? "bg-red-50 text-red-600 border-red-200 scale-105"
-                        : "bg-white text-gray-400 hover:text-fitte-brown-dark border-gray-100"
-                    }`}
-                  >
-                    <ThumbsDown size={15} />
-                  </button>
-                </div>
-              </div>
-            </div>
+                    <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                      {comparison.response}
+                    </p>
 
-            <div className="ai-result-card bg-fitte-brown-dark text-white scale-up">
-              <div className="ai-text-content">
-                <div className="flex items-center gap-2 text-fitte-beige font-bold text-[10px] uppercase mb-3">
-                  <Brain size={14} /> Fitte Engine
-                </div>
-                <p className="text-sm text-fitte-beige/90 leading-relaxed font-medium mb-4">
-                  {results.fitteResponse}
-                </p>
-                {results.fitteRecommendationAvailability?.status ===
-                  "SINGLE" && (
-                  <div
-                    role="status"
-                    className="mb-4 rounded-xl border border-amber-200/30 bg-amber-100/10 px-3 py-2 text-xs leading-relaxed text-amber-100"
-                  >
-                    {results.fitteRecommendationAvailability.message}
+                    {comparison.availability?.status === "SINGLE" && (
+                      <div
+                        className="recommendation-availability-note"
+                        role="status"
+                      >
+                        {comparison.availability.message}
+                      </div>
+                    )}
+
+                    {comparison.items?.length > 0 ? (
+                      <div className="comparison-items">
+                        {comparison.items.map((cloth) => (
+                          <img
+                            key={cloth.id}
+                            src={cloth.imageUrl}
+                            alt={cloth.name}
+                            className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
+                            title={cloth.name}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="comparison-no-items">
+                        Nie udało się jednoznacznie połączyć wszystkich
+                        elementów propozycji z ubraniami w Twojej szafie.
+                      </div>
+                    )}
                   </div>
-                )}
-                {results.fitteItems && results.fitteItems.length > 0 && (
-                  <div className="flex gap-2 bg-white/10 p-2 rounded-2xl w-full justify-center items-center backdrop-blur-sm border border-white/5 mb-4 overflow-x-auto">
-                    {results.fitteItems.map((cloth) => (
-                      <img
-                        key={cloth.id}
-                        src={cloth.imageUrl}
-                        alt={cloth.name}
-                        className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
-                        title={cloth.name}
-                      />
-                    ))}
+
+                  <div className="comparison-feedback">
+                    <span className="comparison-feedback-question">
+                      Czy założyłabyś tę stylizację?
+                    </span>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleComparisonFeedback(comparison, "LIKE")
+                        }
+                        disabled={Boolean(feedback)}
+                        aria-label={`Polub ${comparison.label}`}
+                        className={`comparison-feedback-button ${
+                          feedback === "LIKE"
+                            ? "comparison-feedback-button-like"
+                            : ""
+                        }`}
+                      >
+                        <ThumbsUp size={16} aria-hidden="true" />
+                        Tak
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleComparisonFeedback(comparison, "DISLIKE")
+                        }
+                        disabled={Boolean(feedback)}
+                        aria-label={`Odrzuć ${comparison.label}`}
+                        className={`comparison-feedback-button ${
+                          feedback === "DISLIKE"
+                            ? "comparison-feedback-button-dislike"
+                            : ""
+                        }`}
+                      >
+                        <ThumbsDown size={16} aria-hidden="true" />
+                        Nie
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-fitte-beige/60 tracking-wider uppercase">
-                    Czy to udana stylizacja?
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleFitteFeedback("LIKE")}
-                      aria-label="Polub rekomendację Fitte"
-                      disabled={fitteFeedback !== null}
-                      className={`p-2 rounded-xl transition-all ${
-                        fitteFeedback === "LIKE"
-                          ? "bg-green-600 text-white scale-105"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      }`}
-                    >
-                      <ThumbsUp size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleFitteFeedback("DISLIKE")}
-                      type="button"
-                      aria-label="Odrzuć rekomendację Fitte"
-                      disabled={fitteFeedback !== null}
-                      className={`p-2 rounded-xl transition-all ${
-                        fitteFeedback === "DISLIKE"
-                          ? "bg-red-600 text-white scale-105"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      }`}
-                    >
-                      <ThumbsDown size={15} />
-                    </button>
-                  </div>
-                </div>
-                <div className="text-[9px] uppercase tracking-widest opacity-60">
-                  Deterministyczna analiza garderoby adaptacyjnej
-                </div>
-              </div>
-            </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
