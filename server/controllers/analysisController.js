@@ -10,6 +10,18 @@ const {
 const { writeLog } = require("../services/logger");
 const { isNonOutfitItem } = require("../outfitEngine");
 
+const shuffle = (items) => {
+  const result = [...items];
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+
+    [result[index], result[randomIndex]] = [result[randomIndex], result[index]];
+  }
+
+  return result;
+};
+
 const analyze = async (req, res, next) => {
   const validation = analyzeSchema.safeParse(req.body);
   if (!validation.success)
@@ -123,6 +135,8 @@ const analyze = async (req, res, next) => {
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
     const groqResolved = resolveMatchedItems(groqResponse, clothes);
 
+    const comparisonOrder = shuffle(["gemini", "groq", "fitte"]);
+
     const record = await prisma.analysis.create({
       data: {
         query,
@@ -130,6 +144,7 @@ const analyze = async (req, res, next) => {
         groqResponse: `${groqResponse} (Czas: ${groqTime}ms)`,
         fitteResponse: `${fitteResult.explanation} (Czas: ${fitteTime}ms)`,
         contextUsed: context,
+        comparisonOrder,
         userId,
       },
     });
@@ -153,22 +168,40 @@ const analyze = async (req, res, next) => {
       }
     }
 
+    const comparisonSources = {
+      gemini: {
+        response: `${geminiResolved.cleanText} (Czas: ${geminiTime}ms)`,
+        items: geminiResolved.items,
+        feedbackType: "gemini",
+      },
+      groq: {
+        response: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
+        items: groqResolved.items,
+        feedbackType: "groq",
+      },
+      fitte: {
+        response: `${fitteResult.explanation} (Czas: ${fitteTime}ms)`,
+        items: fitteResult.fitteItems,
+        feedbackType: "fitte",
+        recommendationId: fitteResult.recommendationId,
+        availability: fitteResult.recommendationAvailability,
+      },
+    };
+
+    const anonymousComparisons = comparisonOrder.map((source, index) => ({
+      id: `proposal-${index + 1}`,
+      label: `Propozycja ${String.fromCharCode(65 + index)}`,
+      ...comparisonSources[source],
+    }));
+
     res.json({
       ...record,
-      geminiResponse: `${geminiResolved.cleanText} (Czas: ${geminiTime}ms)`,
-      groqResponse: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
-      recommendationId: fitteResult.recommendationId,
-      fitteAlgorithmVersion: fitteResult.algorithmVersion,
-      fitteRecommendationAvailability: fitteResult.recommendationAvailability,
+      anonymousComparisons,
       weatherContext,
-      fitteItems: fitteResult.fitteItems,
-      geminiItems: geminiResolved.items,
-      groqItems: groqResolved.items,
     });
   } catch (error) {
     error.publicMessage = "Błąd serwera podczas analizy AI.";
     next(error);
   }
 };
-
 module.exports = { analyze };

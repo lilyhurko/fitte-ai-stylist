@@ -25,6 +25,7 @@ model Analysis {
   user            User                   @relation(fields: [userId], references: [id])
   recommendations OutfitRecommendation[]
   createdAt       DateTime               @default(now())
+  comparisonOrder Json?
 }
 
 model User {
