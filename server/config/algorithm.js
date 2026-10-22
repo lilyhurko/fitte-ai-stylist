@@ -1,8 +1,6 @@
-const FITTE_ALGORITHM_VERSION =
-  "fitte-v2.8-weather-guardrail";
+const FITTE_ALGORITHM_VERSION = "fitte-v2.10-weather-aware-layering";
 
-const FITTE_EXPLANATION_PROMPT_VERSION =
-  "fitte-explanation-v1";
+const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
 
 const FITTE_EXPLANATION_CONFIG = Object.freeze({
   temperature: 0.2,

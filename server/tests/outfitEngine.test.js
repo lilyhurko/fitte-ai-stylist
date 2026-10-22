@@ -117,13 +117,7 @@ test("niedopasowanie do deszczu daje karę zamiast twardego weta", () => {
     waterResistance: "NONE",
   });
 
-  const result = calculateOutfitScore(
-    [sandals],
-    {},
-    null,
-    "Casual",
-    "Rain",
-  );
+  const result = calculateOutfitScore([sandals], {}, null, "Casual", "Rain");
 
   assert.equal(result.details.weatherScore, -40);
   assert.equal(result.details.hardVeto, false);
@@ -190,6 +184,84 @@ test("generateBestOutfits zwraca maksymalnie trzy posortowane zestawy", () => {
   });
 });
 
+test("deszczowa i chłodna pogoda preferuje zestaw z okryciem wierzchnim", () => {
+  const clothes = [
+    createItem({ id: "shirt", name: "Biała koszula", style: "Classic" }),
+    createItem({
+      id: "trousers",
+      name: "Czarne spodnie",
+      category: "Dół",
+      style: "Classic",
+    }),
+    createItem({
+      id: "boots",
+      name: "Skórzane botki",
+      category: "Obuwie",
+      style: "Classic",
+      waterResistance: "WATER_REPELLENT",
+    }),
+    createItem({
+      id: "rain-coat",
+      name: "Kurtka przeciwdeszczowa",
+      category: "Okrycia wierzchnie",
+      style: "Classic",
+      waterResistance: "WATERPROOF",
+      warmthLevel: 4,
+      seasons: ["AUTUMN"],
+    }),
+  ];
+
+  const results = generateBestOutfits(clothes, {}, null, "Praca", {
+    conditions: ["Rain", "Cold"],
+    precipitationMm: 4,
+    rainMm: 4,
+    temperatureC: 10,
+    apparentTemperatureC: 7,
+  });
+
+  assert.ok(results.length > 0);
+  assert.ok(results[0].outfit.some((item) => item.id === "rain-coat"));
+  assert.equal(results[0].outfit.length, 4);
+});
+
+test("ulewa odrzuca szpilki, gdy istnieją bezpieczne buty", () => {
+  const clothes = [
+    createItem({ id: "top", name: "Klasyczna koszula", style: "Classic" }),
+    createItem({
+      id: "bottom",
+      name: "Klasyczne spodnie",
+      category: "Dół",
+      style: "Classic",
+    }),
+    createItem({
+      id: "heels",
+      name: "Czarne szpilki na obcasie",
+      category: "Obuwie",
+      style: "Classic",
+    }),
+    createItem({
+      id: "boots",
+      name: "Wodoodporne botki",
+      category: "Obuwie",
+      style: "Classic",
+      waterResistance: "WATERPROOF",
+    }),
+  ];
+
+  const results = generateBestOutfits(clothes, {}, null, "Praca", {
+    conditions: ["Rain"],
+    precipitationMm: 6,
+    rainMm: 6,
+  });
+
+  assert.ok(results.length > 0);
+  assert.ok(
+    results.every(
+      (result) => !result.outfit.some((item) => item.id === "heels"),
+    ),
+  );
+});
+
 test("identyczne dane wejściowe dają identyczny ranking baseline", () => {
   const clothes = [
     createItem({
@@ -231,13 +303,7 @@ test("ciemne zimowe ubranie otrzymuje karę podczas upału", () => {
     warmthLevel: 5,
   });
 
-  const result = calculateOutfitScore(
-    [darkItem],
-    {},
-    null,
-    "Casual",
-    "Hot",
-  );
+  const result = calculateOutfitScore([darkItem], {}, null, "Casual", "Hot");
 
   assert.equal(result.details.weatherScore, -88);
   assert.equal(result.details.hardVeto, false);
@@ -478,23 +544,14 @@ test("pula jakości odrzuca zestawy słabsze od ustalonego progu", () => {
   );
 });
 
-
 test("ostatni zestaw jest wykluczany, gdy istnieje świeża alternatywa", () => {
   const recentCandidate = {
-    outfit: [
-      { id: "top-a" },
-      { id: "bottom" },
-      { id: "shoes" },
-    ],
+    outfit: [{ id: "top-a" }, { id: "bottom" }, { id: "shoes" }],
     totalScore: 100,
   };
 
   const freshCandidate = {
-    outfit: [
-      { id: "top-b" },
-      { id: "bottom" },
-      { id: "shoes" },
-    ],
+    outfit: [{ id: "top-b" }, { id: "bottom" }, { id: "shoes" }],
     totalScore: 95,
   };
 
@@ -512,32 +569,21 @@ test("ostatni zestaw jest wykluczany, gdy istnieje świeża alternatywa", () => 
 
 test("ostatnie zestawy pozostają dostępne, gdy nie ma świeżej alternatywy", () => {
   const firstCandidate = {
-    outfit: [
-      { id: "top-a" },
-      { id: "bottom" },
-      { id: "shoes" },
-    ],
+    outfit: [{ id: "top-a" }, { id: "bottom" }, { id: "shoes" }],
     totalScore: 100,
   };
 
   const secondCandidate = {
-    outfit: [
-      { id: "top-b" },
-      { id: "bottom" },
-      { id: "shoes" },
-    ],
+    outfit: [{ id: "top-b" }, { id: "bottom" }, { id: "shoes" }],
     totalScore: 95,
   };
 
   const qualityPool = [firstCandidate, secondCandidate];
 
-  const result = excludeRecentOutfitsWhenAlternativeExists(
-    qualityPool,
-    [
-      { clothIds: ["top-a", "bottom", "shoes"] },
-      { clothIds: ["top-b", "bottom", "shoes"] },
-    ],
-  );
+  const result = excludeRecentOutfitsWhenAlternativeExists(qualityPool, [
+    { clothIds: ["top-a", "bottom", "shoes"] },
+    { clothIds: ["top-b", "bottom", "shoes"] },
+  ]);
 
   assert.deepEqual(result, qualityPool);
 });
@@ -627,10 +673,7 @@ test("guardrail odrzuca skrajnie niedopasowany zestaw, gdy istnieje bezpieczniej
     },
   };
 
-  const result = applyWeatherGuardrail([
-    severeCandidate,
-    acceptableCandidate,
-  ]);
+  const result = applyWeatherGuardrail([severeCandidate, acceptableCandidate]);
 
   assert.deepEqual(result, [acceptableCandidate]);
 });

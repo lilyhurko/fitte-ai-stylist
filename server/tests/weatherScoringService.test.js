@@ -19,9 +19,7 @@ test("sandały bez wodoodporności otrzymują karę podczas deszczu", () => {
 
   assert.equal(result.score, -40);
   assert.ok(
-    result.reasons.some(
-      (reason) => reason.code === "open-shoes-in-rain",
-    ),
+    result.reasons.some((reason) => reason.code === "open-shoes-in-rain"),
   );
 });
 
@@ -141,14 +139,10 @@ test("śnieg ma inne reguły niż deszcz", () => {
 
   assert.equal(result.score, -65);
   assert.ok(
-    result.reasons.some(
-      (reason) => reason.code === "open-shoes-in-snow",
-    ),
+    result.reasons.some((reason) => reason.code === "open-shoes-in-snow"),
   );
   assert.equal(
-    result.reasons.some(
-      (reason) => reason.code === "open-shoes-in-rain",
-    ),
+    result.reasons.some((reason) => reason.code === "open-shoes-in-rain"),
     false,
   );
 });
@@ -174,9 +168,7 @@ test("wysokość temperatury zwiększa karę podczas silnego upału", () => {
 
   assert.equal(result.score, -52);
   assert.ok(
-    result.reasons.some(
-      (reason) => reason.code === "high-heat-intensity",
-    ),
+    result.reasons.some((reason) => reason.code === "high-heat-intensity"),
   );
 });
 
@@ -229,8 +221,29 @@ test("lekki element otrzymuje większą karę podczas bardzo silnego wiatru", ()
 
   assert.equal(result.score, -14);
   assert.ok(
-    result.reasons.some(
-      (reason) => reason.code === "strong-wind-light-item",
-    ),
+    result.reasons.some((reason) => reason.code === "strong-wind-light-item"),
+  );
+});
+
+test("szpilki otrzymują silną karę podczas intensywnego deszczu", () => {
+  const result = scoreItemWeatherFit(
+    {
+      id: "black-heels",
+      name: "Czarne szpilki na obcasie",
+      category: "Obuwie",
+      materials: [],
+      seasons: [],
+      waterResistance: null,
+    },
+    {
+      conditions: ["Rain"],
+      precipitationMm: 6,
+      rainMm: 6,
+    },
+  );
+
+  assert.equal(result.score, -65);
+  assert.ok(
+    result.reasons.some((reason) => reason.code === "high-heels-in-heavy-rain"),
   );
 });

@@ -10,7 +10,10 @@ const {
   normalizeStyleNames,
   normalizeColorName,
 } = require("./services/attributeNormalizationService");
-const { scoreOutfitWeatherFit } = require("./services/weatherScoringService");
+const {
+  scoreOutfitWeatherFit,
+  normalizeWeatherInput,
+} = require("./services/weatherScoringService");
 const {
   clampPreferenceWeight,
 } = require("./services/preferenceLearningService");
@@ -367,6 +370,28 @@ function excludeRecentOutfitsWhenAlternativeExists(
 
   return freshAlternatives.length > 0 ? freshAlternatives : qualityPool;
 }
+
+function shouldAddOuterwear(weatherInput) {
+  const weather = normalizeWeatherInput(weatherInput);
+  const conditions = new Set(weather.conditions);
+  const observedTemperatures = [
+    weather.temperatureC,
+    weather.apparentTemperatureC,
+    weather.temperatureMinC,
+    weather.temperatureMaxC,
+    weather.apparentTemperatureMinC,
+    weather.apparentTemperatureMaxC,
+  ].filter((value) => Number.isFinite(value));
+
+  return (
+    conditions.has("Rain") ||
+    conditions.has("Snow") ||
+    conditions.has("Cold") ||
+    conditions.has("Windy") ||
+    observedTemperatures.some((temperature) => temperature <= 14)
+  );
+}
+
 function generateBestOutfits(
   clothes,
   userProfile,
@@ -383,27 +408,15 @@ function generateBestOutfits(
   const buty = wearableClothes.filter(
     (c) => c.category === "Buty" || c.category === "Obuwie",
   );
+  const okrycia = wearableClothes.filter(
+    (c) => c.category === "Okrycia wierzchnie",
+  );
+  const shouldLayer = shouldAddOuterwear(weatherType) && okrycia.length > 0;
 
   let combinations = [];
 
-  if (buty.length === 0) {
-    goras.forEach((g) => {
-      dols.forEach((d) => {
-        const outfit = [g, d];
-        const scoring = calculateOutfitScore(
-          outfit,
-          userProfile,
-          eventContext,
-          selectedOccasion,
-          weatherType,
-          recommendationHistory,
-        );
-        combinations.push({ outfit, ...scoring });
-      });
-    });
-
-    sukienki.forEach((s) => {
-      const outfit = [s];
+  const addCombination = (baseOutfit) => {
+    const scoreOutfit = (outfit) => {
       const scoring = calculateOutfitScore(
         outfit,
         userProfile,
@@ -412,38 +425,41 @@ function generateBestOutfits(
         weatherType,
         recommendationHistory,
       );
+
       combinations.push({ outfit, ...scoring });
+    };
+
+    scoreOutfit(baseOutfit);
+
+    if (shouldLayer) {
+      okrycia.forEach((okrycie) => {
+        scoreOutfit([...baseOutfit, okrycie]);
+      });
+    }
+  };
+
+  if (buty.length === 0) {
+    goras.forEach((g) => {
+      dols.forEach((d) => {
+        addCombination([g, d]);
+      });
+    });
+
+    sukienki.forEach((s) => {
+      addCombination([s]);
     });
   } else {
     goras.forEach((g) => {
       dols.forEach((d) => {
         buty.forEach((b) => {
-          const outfit = [g, d, b];
-          const scoring = calculateOutfitScore(
-            outfit,
-            userProfile,
-            eventContext,
-            selectedOccasion,
-            weatherType,
-            recommendationHistory,
-          );
-          combinations.push({ outfit, ...scoring });
+          addCombination([g, d, b]);
         });
       });
     });
 
     sukienki.forEach((s) => {
       buty.forEach((b) => {
-        const outfit = [s, b];
-        const scoring = calculateOutfitScore(
-          outfit,
-          userProfile,
-          eventContext,
-          selectedOccasion,
-          weatherType,
-          recommendationHistory,
-        );
-        combinations.push({ outfit, ...scoring });
+        addCombination([s, b]);
       });
     });
   }
@@ -474,4 +490,5 @@ module.exports = {
   createQualityPool,
   excludeRecentOutfitsWhenAlternativeExists,
   applyWeatherGuardrail,
+  shouldAddOuterwear,
 };

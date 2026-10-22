@@ -11,6 +11,27 @@ const includesKeyword = (item, keywords) => {
   const name = item?.name?.toLowerCase() || "";
   return keywords.some((keyword) => name.includes(keyword));
 };
+const getRainIntensity = (weatherContext) => {
+  if (!weatherContext.conditions.includes("Rain")) {
+    return "NONE";
+  }
+
+  const rainfall = Math.max(
+    Number(weatherContext.rainMm) || 0,
+    Number(weatherContext.precipitationMm) || 0,
+  );
+
+  if (rainfall >= 5) return "HEAVY";
+  if (rainfall >= 1) return "MODERATE";
+
+  return "LIGHT";
+};
+
+const isHighHeelFootwear = (item) =>
+  item?.category === "Obuwie" &&
+  includesKeyword(item, ["szpilk", "obcas", "czółenk", "czolen", "koturn"]);
+
+const isOuterwear = (item) => item?.category === "Okrycia wierzchnie";
 
 const addReason = (reasons, code, value) => {
   reasons.push({ code, value });
@@ -45,10 +66,8 @@ const normalizeWeatherInput = (weatherInput) => {
       apparentTemperatureC: weatherInput.apparentTemperatureC ?? null,
       temperatureMinC: weatherInput.temperatureMinC ?? null,
       temperatureMaxC: weatherInput.temperatureMaxC ?? null,
-      apparentTemperatureMinC:
-        weatherInput.apparentTemperatureMinC ?? null,
-      apparentTemperatureMaxC:
-        weatherInput.apparentTemperatureMaxC ?? null,
+      apparentTemperatureMinC: weatherInput.apparentTemperatureMinC ?? null,
+      apparentTemperatureMaxC: weatherInput.apparentTemperatureMaxC ?? null,
       precipitationMm: weatherInput.precipitationMm ?? 0,
       rainMm: weatherInput.rainMm ?? 0,
       snowfallCm: weatherInput.snowfallCm ?? 0,
@@ -94,8 +113,28 @@ const scoreItemWeatherFit = (item, weatherInput = "Clear") => {
       score += addReason(reasons, "suede-in-rain", -20);
     }
 
-    if (includesKeyword(item, ["sandał", "klapk"])) {
+    if (includesKeyword(item, ["sandał", "sandal", "klapk"])) {
       score += addReason(reasons, "open-shoes-in-rain", -30);
+    }
+
+    if (isOuterwear(item)) {
+      score += addReason(reasons, "outerwear-in-rain", 10);
+    }
+
+    const rainIntensity = getRainIntensity(weatherContext);
+
+    if (isHighHeelFootwear(item)) {
+      const highHeelPenalty = {
+        LIGHT: -22,
+        MODERATE: -40,
+        HEAVY: -65,
+      }[rainIntensity];
+
+      score += addReason(
+        reasons,
+        `high-heels-in-${rainIntensity.toLowerCase()}-rain`,
+        highHeelPenalty,
+      );
     }
   }
   if (conditions.includes("Snow")) {
@@ -189,6 +228,10 @@ const scoreItemWeatherFit = (item, weatherInput = "Clear") => {
 
     if (materials.has("WOOL") || materials.has("CASHMERE")) {
       score += addReason(reasons, "warm-material-in-cold", 10);
+    }
+
+    if (isOuterwear(item)) {
+      score += addReason(reasons, "outerwear-in-cold", 6);
     }
 
     if (
