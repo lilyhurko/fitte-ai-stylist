@@ -48,6 +48,22 @@ model User {
   defaultTimezone     String?
   createdAt           DateTime               @default(now())
   events              Event[]
+  authIdentities      AuthIdentity[]
+}
+
+model AuthIdentity {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  provider        String
+  providerSubject String
+  email           String?
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
 }
 
 model Cloth {

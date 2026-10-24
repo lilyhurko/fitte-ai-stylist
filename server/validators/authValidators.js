@@ -44,10 +44,17 @@ const changePasswordSchema = z
     message: "Nowe hasło musi różnić się od obecnego",
     path: ["newPassword"],
   });
+const googleLoginSchema = z.object({
+  credential: z
+    .string()
+    .min(1, "Token Google jest wymagany")
+    .max(5000, "Token Google jest nieprawidłowy"),
+});
 
 module.exports = {
   emailSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
+  googleLoginSchema,
 };

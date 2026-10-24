@@ -157,6 +157,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (credential) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/login/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ credential }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        saveSession(data.user);
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: data.error || "Nie udało się zalogować przez Google.",
+      };
+    } catch {
+      return {
+        success: false,
+        error: "Błąd połączenia z serwerem.",
+      };
+    }
+  };
+
   const register = async (userData) => {
     try {
       const response = await fetch(`${API_BASE_URL}/register`, {
@@ -180,7 +208,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, register, logout, login, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        register,
+        logout,
+        login,
+        loginWithGoogle,
+        loading,
+      }}
+    >
+      {" "}
       {children}
     </AuthContext.Provider>
   );

@@ -13,7 +13,7 @@
   border: 1px solid var(--border-color);
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
   text-align: center;
 }
 
@@ -84,4 +84,35 @@
   color: #000;
   font-weight: 700;
   text-decoration: underline;
+}
+.google-login-section {
+  margin-top: 18px;
+}
+
+.auth-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: #888;
+  font-size: 12px;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.google-sign-in-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.google-login-error {
+  margin-top: 12px;
+  margin-bottom: 0;
 }
