@@ -95,12 +95,6 @@ const startTestServer = async () => {
   const originalUserFindUnique = prisma.user.findUnique;
 
   prisma.user.findUnique = async (args) => {
-    const user = await originalUserFindUnique(args);
-
-    if (user) {
-      return user;
-    }
-
     const requestedId = args?.where?.id;
 
     if (requestedId === USER_A_ID || requestedId === USER_B_ID) {
@@ -110,7 +104,7 @@ const startTestServer = async () => {
       };
     }
 
-    return null;
+    return originalUserFindUnique(args);
   };
 
   const app = express();
