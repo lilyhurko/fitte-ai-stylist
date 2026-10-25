@@ -18,11 +18,17 @@ const {
   requestPasswordResetSchema,
   verifyPasswordResetCodeSchema,
   resetPasswordSchema,
+  verifyEmailCodeSchema,
 } = require("../validators/authValidators");
 const {
   PASSWORD_RESET_CODE_TTL_MINUTES,
   sendPasswordResetCodeEmail,
 } = require("../services/passwordResetEmailService");
+
+const {
+  EMAIL_VERIFICATION_CODE_TTL_MINUTES,
+  sendEmailVerificationCodeEmail,
+} = require("../services/emailVerificationService");
 
 const GOOGLE_PROVIDER = "google";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -46,8 +52,6 @@ const createSession = (res, user) => {
 };
 
 const getActivePasswordResetCode = async (userId, now) => {
-  // MongoDB rozróżnia pole null od pola nieustawionego. Wybór rekordu po
-  // pobraniu ostatnich kodów zapewnia poprawne działanie w obu przypadkach.
   const resetCodes = await prisma.passwordResetCode.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -55,6 +59,18 @@ const getActivePasswordResetCode = async (userId, now) => {
   });
 
   return resetCodes.find(
+    (candidate) =>
+      !candidate.usedAt && candidate.expiresAt > now && candidate.attempts < 5,
+  );
+};
+const getActiveEmailVerificationCode = async (userId, now) => {
+  const verificationCodes = await prisma.emailVerificationCode.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+
+  return verificationCodes.find(
     (candidate) =>
       !candidate.usedAt && candidate.expiresAt > now && candidate.attempts < 5,
   );
@@ -457,6 +473,168 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const requestEmailVerification = async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        email: true,
+        emailVerifiedAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Sesja jest nieprawidłowa." });
+    }
+
+    if (user.emailVerifiedAt) {
+      return res.json({
+        success: true,
+        message: "Adres e-mail jest już potwierdzony.",
+      });
+    }
+
+    const now = new Date();
+    const cooldownStart = new Date(now.getTime() - 60 * 1000);
+
+    const recentlyRequestedCode = await prisma.emailVerificationCode.findFirst({
+      where: {
+        userId: user.id,
+        createdAt: { gte: cooldownStart },
+      },
+      select: { id: true },
+    });
+
+    if (recentlyRequestedCode) {
+      return res.json({
+        success: true,
+        message: "Kod został już wysłany. Poczekaj chwilę przed kolejną próbą.",
+      });
+    }
+
+    await prisma.emailVerificationCode.updateMany({
+      where: { userId: user.id },
+      data: { usedAt: now },
+    });
+
+    const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+
+    const verificationCode = await prisma.emailVerificationCode.create({
+      data: {
+        userId: user.id,
+        codeHash: await bcrypt.hash(code, 10),
+        expiresAt: new Date(
+          now.getTime() + EMAIL_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000,
+        ),
+      },
+    });
+
+    try {
+      await sendEmailVerificationCodeEmail({
+        email: user.email,
+        code,
+      });
+    } catch {
+      await prisma.emailVerificationCode.update({
+        where: { id: verificationCode.id },
+        data: { usedAt: new Date() },
+      });
+
+      return res.status(503).json({
+        error: "Nie udało się wysłać kodu. Spróbuj ponownie później.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Kod weryfikacyjny został wysłany na Twój adres e-mail.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się wysłać kodu weryfikacyjnego.";
+    next(error);
+  }
+};
+
+const verifyEmail = async (req, res, next) => {
+  const validation = verifyEmailCodeSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        emailVerifiedAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Sesja jest nieprawidłowa." });
+    }
+
+    if (user.emailVerifiedAt) {
+      return res.json({
+        success: true,
+        message: "Adres e-mail jest już potwierdzony.",
+      });
+    }
+
+    const now = new Date();
+    const verificationCode = await getActiveEmailVerificationCode(user.id, now);
+
+    if (!verificationCode) {
+      return res.status(400).json({
+        error: "Kod jest nieprawidłowy, wykorzystany lub wygasł.",
+      });
+    }
+
+    const isCodeValid = await bcrypt.compare(
+      validation.data.code,
+      verificationCode.codeHash,
+    );
+
+    if (!isCodeValid) {
+      await prisma.emailVerificationCode.update({
+        where: { id: verificationCode.id },
+        data: { attempts: { increment: 1 } },
+      });
+
+      return res.status(400).json({
+        error: "Kod jest nieprawidłowy, wykorzystany lub wygasł.",
+      });
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: now },
+      }),
+      prisma.emailVerificationCode.update({
+        where: { id: verificationCode.id },
+        data: { usedAt: now },
+      }),
+      prisma.emailVerificationCode.updateMany({
+        where: { userId: user.id },
+        data: { usedAt: now },
+      }),
+    ]);
+
+    return res.json({
+      success: true,
+      message: "Adres e-mail został potwierdzony.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się potwierdzić adresu e-mail.";
+    next(error);
+  }
+};
+
 const getSession = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
@@ -487,6 +665,8 @@ module.exports = {
   requestPasswordReset,
   verifyPasswordResetCode,
   resetPassword,
+  requestEmailVerification,
+  verifyEmail,
   getSession,
   logout,
 };

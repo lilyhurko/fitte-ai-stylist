@@ -80,6 +80,13 @@ const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+const verifyEmailCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Kod musi zawierać dokładnie 6 cyfr"),
+});
+
 module.exports = {
   emailSchema,
   loginSchema,
@@ -89,4 +96,5 @@ module.exports = {
   requestPasswordResetSchema,
   verifyPasswordResetCodeSchema,
   resetPasswordSchema,
+  verifyEmailCodeSchema,
 };

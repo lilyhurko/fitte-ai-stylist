@@ -29,28 +29,30 @@ model Analysis {
 }
 
 model User {
-  id                  String                 @id @default(auto()) @map("_id") @db.ObjectId
-  email               String                 @unique
-  name                String
-  gender              String?
-  password            String
-  styleTags           Json?
-  favoriteColors      Json?
-  styleWeights        Json?
-  colorWeights        Json?
-  clothes             Cloth[]
-  clothingDrafts      ClothDraft[]
-  analyses            Analysis[]
-  recommendations     OutfitRecommendation[]
-  defaultLocationName String?
-  defaultLatitude     Float?
-  defaultLongitude    Float?
-  defaultTimezone     String?
-  createdAt           DateTime               @default(now())
-  events              Event[]
-  authIdentities      AuthIdentity[]
-  passwordResetCodes  PasswordResetCode[]
-  sessionVersion      Int                    @default(0)
+  id                     String                  @id @default(auto()) @map("_id") @db.ObjectId
+  email                  String                  @unique
+  name                   String
+  gender                 String?
+  password               String
+  styleTags              Json?
+  favoriteColors         Json?
+  styleWeights           Json?
+  colorWeights           Json?
+  clothes                Cloth[]
+  clothingDrafts         ClothDraft[]
+  analyses               Analysis[]
+  recommendations        OutfitRecommendation[]
+  defaultLocationName    String?
+  defaultLatitude        Float?
+  defaultLongitude       Float?
+  defaultTimezone        String?
+  createdAt              DateTime                @default(now())
+  events                 Event[]
+  authIdentities         AuthIdentity[]
+  passwordResetCodes     PasswordResetCode[]
+  emailVerifiedAt        DateTime?
+  emailVerificationCodes EmailVerificationCode[]
+  sessionVersion         Int                     @default(0)
 }
 
 model AuthIdentity {
@@ -69,6 +71,22 @@ model AuthIdentity {
 }
 
 model PasswordResetCode {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  codeHash String
+
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model EmailVerificationCode {
   id       String @id @default(auto()) @map("_id") @db.ObjectId
   codeHash String
 

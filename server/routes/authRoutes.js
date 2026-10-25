@@ -6,6 +6,8 @@ const {
   requestPasswordReset,
   verifyPasswordResetCode,
   resetPassword,
+  requestEmailVerification,
+  verifyEmail,
   getSession,
   logout,
 } = require("../controllers/authController");
@@ -27,6 +29,19 @@ router.post(
   verifyPasswordResetCode,
 );
 router.post("/reset-password", passwordResetConfirmLimiter, resetPassword);
+router.post(
+  "/email-verification/request",
+  passwordResetLimiter,
+  authenticateToken,
+  requestEmailVerification,
+);
+
+router.post(
+  "/email-verification/verify",
+  passwordResetConfirmLimiter,
+  authenticateToken,
+  verifyEmail,
+);
 router.get("/session", authenticateToken, getSession);
 router.post("/logout", logout);
 

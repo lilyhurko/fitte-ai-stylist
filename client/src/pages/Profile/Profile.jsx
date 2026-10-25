@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Save, Key, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import "./Profile.css";
 import { API_BASE_URL } from "../../config";
+import EmailVerificationCard from "../../components/auth/EmailVerificationCard";
 
 const Profile = () => {
   const { user, logout } = useAuth();
@@ -436,6 +437,10 @@ const Profile = () => {
             </button>
           </div>
         </section>
+        <EmailVerificationCard
+          email={user?.email}
+          verifiedAt={user?.emailVerifiedAt}
+        />
         <section className="profile-card md:col-span-2 bg-red-50/40 rounded-[24px] md:rounded-[40px] p-5 md:p-10 border border-red-200 w-full">
           <div className="max-w-2xl">
             <h3 className="font-playfair text-lg md:text-xl text-red-800">

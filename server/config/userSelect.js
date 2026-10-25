@@ -2,6 +2,7 @@ const PUBLIC_USER_SELECT = {
   id: true,
   sessionVersion: true,
   email: true,
+  emailVerifiedAt: true,
   name: true,
   gender: true,
   styleTags: true,
