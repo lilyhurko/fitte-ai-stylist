@@ -31,8 +31,30 @@ const aiLimiter = rateLimit({
   },
 });
 
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Zbyt wiele próśb o kod resetu. Spróbuj ponownie za godzinę.",
+  },
+});
+
+const passwordResetConfirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Zbyt wiele prób potwierdzenia kodu. Spróbuj ponownie za 15 minut.",
+  },
+});
+
 module.exports = {
   authLimiter,
   uploadLimiter,
   aiLimiter,
+  passwordResetLimiter,
+  passwordResetConfirmLimiter,
 };

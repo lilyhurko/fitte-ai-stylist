@@ -47,7 +47,9 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
+          <p className="auth-forgot-password">
+            <Link to="/forgot-password">Nie pamiętasz hasła?</Link>
+          </p>
           <button type="submit" className="auth-submit-btn">
             Zaloguj się
           </button>

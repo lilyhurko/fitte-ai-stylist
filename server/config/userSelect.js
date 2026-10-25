@@ -1,5 +1,6 @@
 const PUBLIC_USER_SELECT = {
   id: true,
+  sessionVersion: true,
   email: true,
   name: true,
   gender: true,

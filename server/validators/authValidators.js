@@ -50,6 +50,35 @@ const googleLoginSchema = z.object({
     .min(1, "Token Google jest wymagany")
     .max(5000, "Token Google jest nieprawidłowy"),
 });
+const requestPasswordResetSchema = z.object({
+  email: emailSchema,
+});
+
+const verifyPasswordResetCodeSchema = z.object({
+  email: emailSchema,
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Kod musi zawierać dokładnie 6 cyfr"),
+});
+
+const resetPasswordSchema = z
+  .object({
+    email: emailSchema,
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "Kod musi zawierać dokładnie 6 cyfr"),
+    newPassword: z
+      .string()
+      .min(8, "Nowe hasło musi mieć minimum 8 znaków")
+      .max(128, "Hasło jest za długie"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Hasła muszą być identyczne",
+    path: ["confirmPassword"],
+  });
 
 module.exports = {
   emailSchema,
@@ -57,4 +86,7 @@ module.exports = {
   registerSchema,
   changePasswordSchema,
   googleLoginSchema,
+  requestPasswordResetSchema,
+  verifyPasswordResetCodeSchema,
+  resetPasswordSchema,
 };

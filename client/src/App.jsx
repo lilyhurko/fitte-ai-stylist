@@ -24,6 +24,10 @@ import Profile from "./pages/Profile/Profile";
 import History from "./pages/History/History";
 import Calendar from "./pages/Calendar/Calendar";
 
+import ForgotPassword from "./pages/PasswordReset/ForgotPassword";
+import ResetPassword from "./pages/PasswordReset/ResetPassword";
+import VerifyResetCode from "./pages/PasswordReset/VerifyResetCode";
+
 import "./index.css";
 
 function AppContent() {
@@ -44,6 +48,9 @@ function AppContent() {
         <Route path="/quiz" element={<StyleQuiz />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     );

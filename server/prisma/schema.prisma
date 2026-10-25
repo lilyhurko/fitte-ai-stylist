@@ -49,6 +49,8 @@ model User {
   createdAt           DateTime               @default(now())
   events              Event[]
   authIdentities      AuthIdentity[]
+  passwordResetCodes  PasswordResetCode[]
+  sessionVersion      Int                    @default(0)
 }
 
 model AuthIdentity {
@@ -64,6 +66,22 @@ model AuthIdentity {
 
   @@unique([provider, providerSubject])
   @@index([userId])
+}
+
+model PasswordResetCode {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  codeHash String
+
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model Cloth {
