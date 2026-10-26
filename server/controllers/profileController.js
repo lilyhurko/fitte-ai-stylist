@@ -6,6 +6,8 @@ const {
   deleteAccountSchema,
 } = require("../validators/profileValidators");
 const { PUBLIC_USER_SELECT } = require("../config/userSelect");
+const { createUserDataExport } = require("../services/dataExportService");
+const { writeLog } = require("../services/logger");
 const {
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_CLEAR_OPTIONS,
@@ -96,6 +98,35 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+const exportUserData = async (req, res, next) => {
+  try {
+    const exportData = await createUserDataExport(req.user.userId);
+
+    if (!exportData) {
+      return res.status(404).json({ error: "Nie znaleziono użytkownika." });
+    }
+
+    const date = new Date().toISOString().slice(0, 10);
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="fitte-eksport-danych-${date}.json"`,
+    );
+    res.setHeader("Cache-Control", "no-store");
+
+    writeLog("info", "user_data_exported", {
+      requestId: req.requestId,
+      userId: req.user.userId,
+    });
+
+    return res.status(200).json(exportData);
+  } catch (error) {
+    error.publicMessage = "Nie udało się przygotować eksportu danych.";
+    next(error);
+  }
+};
+
 const changePassword = async (req, res, next) => {
   const validation = changePasswordSchema.safeParse(req.body);
   if (!validation.success)
@@ -174,4 +205,5 @@ module.exports = {
   updateProfile,
   changePassword,
   deleteAccount,
+  exportUserData,
 };

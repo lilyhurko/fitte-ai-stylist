@@ -5,6 +5,7 @@ const {
   cancelClothDraft,
   addCloth,
   getWardrobe,
+  addManualCloth,
   deleteCloth,
   updateCloth,
 } = require("../controllers/wardrobeController");
@@ -23,6 +24,7 @@ router.post(
 );
 router.post("/drafts/:id/confirm", confirmClothDraft);
 router.delete("/drafts/:id", cancelClothDraft);
+router.post("/manual", addManualCloth);
 router.post("/add", uploadLimiter, upload.single("image"), addCloth);
 router.get("/", getWardrobe);
 router.delete("/:id", deleteCloth);

@@ -5,6 +5,20 @@ import { API_BASE_URL } from "../../config";
 import ClothDraftForm from "./ClothDraftForm";
 import "./AddItemModal.css";
 
+const EMPTY_MANUAL_VALUES = {
+  name: "",
+  category: "Góra",
+  style: "Casual",
+  color: "",
+  materials: [],
+  seasons: [],
+  warmthLevel: null,
+  waterResistance: null,
+  formality: null,
+  pattern: null,
+  sleeveLength: null,
+};
+
 const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -14,7 +28,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-
+  const [isManualMode, setIsManualMode] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -34,6 +48,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     setIsDragging(false);
     setIsProcessing(false);
     setIsSaving(false);
+    setIsManualMode(false);
     setError("");
 
     if (fileInputRef.current) {
@@ -164,6 +179,16 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     }
   };
 
+  const handleStartManualAdd = () => {
+    clearPreview();
+    setFile(null);
+    setPreview(null);
+    setDraft(null);
+    setDraftValues({ ...EMPTY_MANUAL_VALUES });
+    setIsManualMode(true);
+    setError("");
+  };
+
   const handleFieldChange = (field, value) => {
     setError("");
 
@@ -189,14 +214,15 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   };
 
   const handleConfirm = async () => {
-    if (!draft?.id || !draftValues || isSaving) return;
-
+    if (!draftValues || isSaving) return;
     setIsSaving(true);
     setError("");
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/wardrobe/drafts/${draft.id}/confirm`,
+        draft?.id
+          ? `${API_BASE_URL}/wardrobe/drafts/${draft.id}/confirm`
+          : `${API_BASE_URL}/wardrobe/manual`,
         {
           method: "POST",
           credentials: "include",
@@ -228,7 +254,7 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     <div className="modal-overlay">
       <div
         className={`modal-content apple-card ${
-          draft ? "draft-modal-content" : ""
+          draft || isManualMode ? "draft-modal-content" : ""
         }`}
       >
         {" "}
@@ -267,10 +293,11 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               </div>
             </div>
           </div>
-        ) : draft && draftValues ? (
+        ) : (draft || isManualMode) && draftValues ? (
           <ClothDraftForm
             draft={draft}
             values={draftValues}
+            isManual={isManualMode}
             isSaving={isSaving}
             error={error}
             onFieldChange={handleFieldChange}
@@ -361,6 +388,14 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               >
                 <span>Analizuj z Fitte AI</span>
                 <span className="btn-icon">✦</span>
+              </button>
+              <button
+                type="button"
+                className="manual-add-button"
+                onClick={handleStartManualAdd}
+                disabled={isProcessing}
+              >
+                Dodaj ręcznie bez zdjęcia
               </button>
             </div>
           </>

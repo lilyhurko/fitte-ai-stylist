@@ -185,49 +185,47 @@ const confirmClothDraft = async (req, res, next) => {
   }
 };
 
-
 const cancelClothDraft = async (req, res, next) => {
-    const idValidation = objectIdSchema.safeParse(req.params.id);
+  const idValidation = objectIdSchema.safeParse(req.params.id);
 
-    if (!idValidation.success) {
-      return res.status(400).json({
-        error: idValidation.error.issues[0].message,
+  if (!idValidation.success) {
+    return res.status(400).json({
+      error: idValidation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const draft = await prisma.clothDraft.findFirst({
+      where: {
+        id: idValidation.data,
+        userId: req.user.userId,
+      },
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        error: "Nie znaleziono wersji roboczej ubrania.",
       });
     }
 
-    try {
-      const draft = await prisma.clothDraft.findFirst({
-        where: {
-          id: idValidation.data,
-          userId: req.user.userId,
-        },
-      });
+    await deleteImage(draft.cloudinaryPublicId);
 
-      if (!draft) {
-        return res.status(404).json({
-          error: "Nie znaleziono wersji roboczej ubrania.",
-        });
-      }
+    await prisma.clothDraft.delete({
+      where: {
+        id: draft.id,
+      },
+    });
 
-      await deleteImage(draft.cloudinaryPublicId);
+    return res.json({
+      success: true,
+      message: "Wersja robocza została usunięta.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się anulować wersji roboczej ubrania.";
 
-      await prisma.clothDraft.delete({
-        where: {
-          id: draft.id,
-        },
-      });
-
-      return res.json({
-        success: true,
-        message: "Wersja robocza została usunięta.",
-      });
-    } catch (error) {
-      error.publicMessage = "Nie udało się anulować wersji roboczej ubrania.";
-
-      next(error);
-    }
-  };
-
+    next(error);
+  }
+};
 
 const addCloth = async (req, res, next) => {
   try {
@@ -260,6 +258,43 @@ const addCloth = async (req, res, next) => {
     res.json({ success: true, item });
   } catch (error) {
     error.publicMessage = "Błąd serwera podczas dodawania ubrania.";
+    next(error);
+  }
+};
+
+const addManualCloth = async (req, res, next) => {
+  const validation = clothDraftSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const manualData = {
+      ...validation.data,
+      color: normalizeColorName(validation.data.color),
+    };
+
+    const item = await prisma.cloth.create({
+      data: {
+        ...manualData,
+        imageUrl: null,
+        cloudinaryPublicId: null,
+        userId: req.user.userId,
+        aiSuggestedAttributes: null,
+        correctedFields: [],
+        attributesConfirmedAt: new Date(),
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      item,
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się ręcznie dodać ubrania.";
     next(error);
   }
 };
@@ -339,6 +374,7 @@ module.exports = {
   analyzeClothDraft,
   confirmClothDraft,
   cancelClothDraft,
+  addManualCloth,
   addCloth,
   getWardrobe,
   deleteCloth,

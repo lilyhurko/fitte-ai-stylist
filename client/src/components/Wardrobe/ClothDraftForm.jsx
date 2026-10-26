@@ -31,21 +31,15 @@ const SelectField = ({
           return;
         }
 
-        onChange(
-          numeric ? Number(selectedValue) : selectedValue,
-        );
+        onChange(numeric ? Number(selectedValue) : selectedValue);
       }}
     >
-      {allowEmpty && (
-        <option value="">Nie określono</option>
-      )}
+      {allowEmpty && <option value="">Nie określono</option>}
 
       {options.map((option) => {
-        const optionValue =
-          typeof option === "string" ? option : option.value;
+        const optionValue = typeof option === "string" ? option : option.value;
 
-        const optionLabel =
-          typeof option === "string" ? option : option.label;
+        const optionLabel = typeof option === "string" ? option : option.label;
 
         return (
           <option key={optionValue} value={optionValue}>
@@ -57,13 +51,7 @@ const SelectField = ({
   </label>
 );
 
-const CheckboxGroup = ({
-  label,
-  field,
-  values,
-  options,
-  onToggle,
-}) => (
+const CheckboxGroup = ({ label, field, values, options, onToggle }) => (
   <fieldset className="draft-checkbox-group">
     <legend>{label}</legend>
 
@@ -85,6 +73,7 @@ const CheckboxGroup = ({
 const ClothDraftForm = ({
   draft,
   values,
+  isManual,
   isSaving,
   error,
   onFieldChange,
@@ -99,16 +88,19 @@ const ClothDraftForm = ({
       onConfirm();
     }}
   >
-    <div className="draft-preview">
-      <img
-        src={draft.imageUrl}
-        alt="Ubranie przeanalizowane przez Fitte AI"
-      />
-    </div>
+    {!isManual && draft?.imageUrl && (
+      <div className="draft-preview">
+        <img
+          src={draft.imageUrl}
+          alt="Ubranie przeanalizowane przez Fitte AI"
+        />
+      </div>
+    )}
 
     <p className="draft-description">
-      Sprawdź dane rozpoznane przez AI i popraw je przed
-      dodaniem ubrania do szafy.
+      {isManual
+        ? "Uzupełnij właściwości ubrania. Element zostanie dodany bez zdjęcia, ale będzie uwzględniany w rekomendacjach."
+        : "Sprawdź dane rozpoznane przez AI i popraw je przed dodaniem ubrania do szafy."}
     </p>
 
     <label className="draft-field">
@@ -118,9 +110,7 @@ const ClothDraftForm = ({
         value={values.name}
         maxLength={120}
         required
-        onChange={(event) =>
-          onFieldChange("name", event.target.value)
-        }
+        onChange={(event) => onFieldChange("name", event.target.value)}
       />
     </label>
 
@@ -129,9 +119,7 @@ const ClothDraftForm = ({
       value={values.category}
       options={CLOTHING_CATEGORIES}
       allowEmpty={false}
-      onChange={(value) =>
-        onFieldChange("category", value)
-      }
+      onChange={(value) => onFieldChange("category", value)}
     />
 
     <SelectField
@@ -139,9 +127,7 @@ const ClothDraftForm = ({
       value={values.style}
       options={CLOTHING_STYLES}
       allowEmpty={false}
-      onChange={(value) =>
-        onFieldChange("style", value)
-      }
+      onChange={(value) => onFieldChange("style", value)}
     />
 
     <label className="draft-field">
@@ -151,9 +137,7 @@ const ClothDraftForm = ({
         value={values.color}
         maxLength={50}
         required
-        onChange={(event) =>
-          onFieldChange("color", event.target.value)
-        }
+        onChange={(event) => onFieldChange("color", event.target.value)}
       />
     </label>
 
@@ -178,45 +162,35 @@ const ClothDraftForm = ({
       value={values.warmthLevel}
       options={WARMTH_OPTIONS}
       numeric
-      onChange={(value) =>
-        onFieldChange("warmthLevel", value)
-      }
+      onChange={(value) => onFieldChange("warmthLevel", value)}
     />
 
     <SelectField
       label="Wodoodporność"
       value={values.waterResistance}
       options={WATER_RESISTANCE_OPTIONS}
-      onChange={(value) =>
-        onFieldChange("waterResistance", value)
-      }
+      onChange={(value) => onFieldChange("waterResistance", value)}
     />
 
     <SelectField
       label="Formalność"
       value={values.formality}
       options={FORMALITY_OPTIONS}
-      onChange={(value) =>
-        onFieldChange("formality", value)
-      }
+      onChange={(value) => onFieldChange("formality", value)}
     />
 
     <SelectField
       label="Wzór"
       value={values.pattern}
       options={PATTERN_OPTIONS}
-      onChange={(value) =>
-        onFieldChange("pattern", value)
-      }
+      onChange={(value) => onFieldChange("pattern", value)}
     />
 
     <SelectField
       label="Długość rękawa"
       value={values.sleeveLength}
       options={SLEEVE_LENGTH_OPTIONS}
-      onChange={(value) =>
-        onFieldChange("sleeveLength", value)
-      }
+      onChange={(value) => onFieldChange("sleeveLength", value)}
     />
 
     {error && (
@@ -226,11 +200,7 @@ const ClothDraftForm = ({
     )}
 
     <div className="draft-actions">
-      <button
-        type="button"
-        disabled={isSaving}
-        onClick={onCancel}
-      >
+      <button type="button" disabled={isSaving} onClick={onCancel}>
         Anuluj
       </button>
 

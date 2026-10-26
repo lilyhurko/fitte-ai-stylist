@@ -354,11 +354,20 @@ const Wardrobe = () => {
                     </button>
                   </div>
 
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-contain p-2.5 md:p-4 group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-contain p-2.5 md:p-4 group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-fitte-brown-dark/55">
+                      <Shirt size={34} aria-hidden="true" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                        Dodano ręcznie
+                      </span>
+                    </div>
+                  )}
                   {item.style && (
                     <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-bold uppercase text-fitte-brown-dark shadow-2xs max-w-[65%] truncate">
                       {item.style}
