@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Save, Key, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
+import { useNotification } from "../../context/NotificationContext";
+import {
+  Save,
+  Key,
+  CheckCircle,
+  AlertCircle,
+  Trash2,
+  Download,
+} from "lucide-react";
 import "./Profile.css";
 import { API_BASE_URL } from "../../config";
 import EmailVerificationCard from "../../components/auth/EmailVerificationCard";
 
 const Profile = () => {
   const { user, logout, refreshSession } = useAuth();
-
+  const { showSuccess, showError } = useNotification();
   const [formData, setFormData] = useState({
     firstName: user?.firstName || user?.name || "",
     email: user?.email || "",
@@ -29,6 +37,7 @@ const Profile = () => {
   });
 
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingExport, setLoadingExport] = useState(false);
 
   const [deleteMessage, setDeleteMessage] = useState({
     type: "",
@@ -166,6 +175,43 @@ const Profile = () => {
       setPasswordMessage({ type: "error", text: "Błąd serwera." });
     } finally {
       setLoadingPassword(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setLoadingExport(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile/export`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        showError(data.error || "Nie udało się przygotować eksportu danych.");
+        return;
+      }
+
+      const file = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(file);
+      const link = document.createElement("a");
+      const disposition = response.headers.get("content-disposition");
+      const filename =
+        disposition?.match(/filename="([^"]+)"/)?.[1] ||
+        "fitte-eksport-danych.json";
+
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      showSuccess("Eksport danych został pobrany.");
+    } catch {
+      showError("Nie udało się połączyć z serwerem.");
+    } finally {
+      setLoadingExport(false);
     }
   };
 
@@ -445,6 +491,36 @@ const Profile = () => {
           email={user?.email}
           verifiedAt={user?.emailVerifiedAt}
         />
+        <section className="profile-card md:col-span-2 bg-white rounded-[24px] md:rounded-[40px] p-5 md:p-8 border border-fitte-sand shadow-sm w-full">
+          <div className="flex flex-col gap-5">
+            <div className="flex items-start gap-3">
+              <Download
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-fitte-terracotta"
+                size={22}
+              />
+              <div>
+                <h3 className="font-playfair text-lg md:text-xl text-fitte-brown-dark">
+                  Pobierz swoje dane
+                </h3>
+                <p className="mt-1 text-xs md:text-sm text-fitte-brown-light">
+                  Pobierz kopię profilu, garderoby, wydarzeń, historii analiz i
+                  rekomendacji w formacie JSON.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportData}
+              disabled={loadingExport}
+              className="w-full sm:w-fit bg-transparent border-2 border-fitte-brown-dark text-fitte-brown-dark px-5 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-fitte-brown-dark hover:text-white transition-all text-sm touch-manipulation"
+            >
+              <Download size={16} />
+              {loadingExport ? "Przygotowywanie pliku..." : "Pobierz moje dane"}
+            </button>
+          </div>
+        </section>
         <section className="profile-card md:col-span-2 bg-red-50/40 rounded-[24px] md:rounded-[40px] p-5 md:p-10 border border-red-200 w-full">
           <div className="max-w-2xl">
             <h3 className="font-playfair text-lg md:text-xl text-red-800">
