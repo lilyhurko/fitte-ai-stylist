@@ -29,8 +29,12 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   const validation = updateProfileSchema.safeParse(req.body);
-  if (!validation.success)
-    return res.status(400).json({ error: validation.error.issues[0].message });
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
 
   const {
     firstName,
@@ -39,26 +43,52 @@ const updateProfile = async (req, res, next) => {
     defaultLocationName,
     defaultLatitude,
     defaultLongitude,
+    defaultTimezone,
   } = validation.data;
+
+  const normalizedEmail = email.toLowerCase();
+
   try {
-    if (email) {
-      const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser && existingUser.id !== req.user.userId) {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    if (!currentUser) {
+      return res.status(404).json({ error: "Nie znaleziono użytkownika." });
+    }
+
+    const emailChanged = currentUser.email.toLowerCase() !== normalizedEmail;
+
+    if (emailChanged) {
+      const userWithThisEmail = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        select: { id: true },
+      });
+
+      if (userWithThisEmail) {
         return res.status(400).json({ error: "E-mail zajęty." });
       }
     }
+
     const updatedUser = await prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: currentUser.id },
       data: {
         name: firstName,
-        email,
+        email: normalizedEmail,
         gender,
         defaultLocationName,
         defaultLatitude,
         defaultLongitude,
+        defaultTimezone,
+        emailVerifiedAt: emailChanged ? null : undefined,
       },
       select: PUBLIC_USER_SELECT,
     });
+
     res.json(updatedUser);
   } catch (error) {
     error.publicMessage = "Nie udało się zaktualizować profilu.";

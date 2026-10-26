@@ -6,7 +6,7 @@ import { API_BASE_URL } from "../../config";
 import EmailVerificationCard from "../../components/auth/EmailVerificationCard";
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshSession } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || user?.name || "",
@@ -92,10 +92,13 @@ const Profile = () => {
       const data = await response.json();
 
       if (response.ok) {
+        await refreshSession();
+
         setProfileMessage({
           type: "success",
           text: "Profil zaktualizowany pomyślnie!",
         });
+
         await fetchProfileData();
       } else {
         setProfileMessage({
@@ -438,6 +441,7 @@ const Profile = () => {
           </div>
         </section>
         <EmailVerificationCard
+          key={`${user?.email}-${user?.emailVerifiedAt ?? "unverified"}`}
           email={user?.email}
           verifiedAt={user?.emailVerifiedAt}
         />

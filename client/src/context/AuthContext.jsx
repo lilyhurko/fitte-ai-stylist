@@ -49,6 +49,29 @@ export const AuthProvider = ({ children }) => {
     setUser(processedUser);
   }, []);
 
+  const refreshSession = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/session`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        setUser(null);
+        return { success: false };
+      }
+
+      const data = await response.json();
+      saveSession(data.user);
+
+      return { success: true, user: data.user };
+    } catch (error) {
+      console.error("Nie udało się odświeżyć sesji:", error);
+      setUser(null);
+
+      return { success: false };
+    }
+  }, [saveSession]);
+
   const logout = useCallback(async () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
@@ -115,27 +138,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("fitte_token");
       localStorage.removeItem("fitte_user");
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/session`, {
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          saveSession(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Nie udało się sprawdzić sesji:", error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+      await refreshSession();
+      setLoading(false);
     };
 
     initAuth();
-  }, [saveSession]);
+  }, [refreshSession]);
 
   const login = async (email, password) => {
     try {
@@ -216,6 +224,7 @@ export const AuthProvider = ({ children }) => {
         login,
         loginWithGoogle,
         loading,
+        refreshSession,
       }}
     >
       {" "}
