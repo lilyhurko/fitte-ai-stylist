@@ -636,7 +636,7 @@ const CapsuleModal = ({
   const [tripLoading, setTripLoading] = useState(false);
   const [tripError, setTripError] = useState("");
 
-  const combinations = useMemo(() => {
+  const locallyComposedCombinations = useMemo(() => {
     const goras = items.filter((item) => item.category === "Góra");
     const dols = items.filter((item) => item.category === "Dół");
     const sukienki = items.filter((item) => item.category === "Sukienki");
@@ -686,6 +686,17 @@ const CapsuleModal = ({
 
     return combos;
   }, [items]);
+
+  const hasUnchangedGeneratedItems =
+    data?.capsuleItems?.length === items.length &&
+    data.capsuleItems.every((item) =>
+      items.some((current) => current.id === item.id),
+    );
+
+  const combinations =
+    hasUnchangedGeneratedItems && data?.combinationDetails?.length
+      ? data.combinationDetails
+      : locallyComposedCombinations;
 
   const availableToAdd = useMemo(
     () => (allClothes || []).filter((c) => !items.some((i) => i.id === c.id)),
@@ -933,11 +944,13 @@ const CapsuleModal = ({
               <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
                 Kombinacje zestawów ({combinations.length})
               </h4>
-              {mode === "trip" && data?.hasEnoughOutfits && (
-                <p className="mb-2 text-[9px] font-medium text-emerald-700">
-                  Przygotowano komplet zestawów na wszystkie dni wyjazdu.
-                </p>
-              )}
+              {mode === "trip" &&
+                data?.hasEnoughOutfits &&
+                !data?.weatherReadinessMessage && (
+                  <p className="mb-2 text-[9px] font-medium text-emerald-700">
+                    Przygotowano komplet zestawów na wszystkie dni wyjazdu.
+                  </p>
+                )}
               <div className="flex flex-col gap-2">
                 {combinations.map((combination, index) => (
                   <div

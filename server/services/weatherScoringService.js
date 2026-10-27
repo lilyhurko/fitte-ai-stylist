@@ -33,6 +33,12 @@ const isHighHeelFootwear = (item) =>
 
 const isOuterwear = (item) => item?.category === "Okrycia wierzchnie";
 
+const isShortBottom = (item) =>
+  item?.category === "Dół" &&
+  includesKeyword(item, ["szort", "short", "spoden"]);
+
+const isLightKimono = (item) => includesKeyword(item, ["kimono"]);
+
 const addReason = (reasons, code, value) => {
   reasons.push({ code, value });
   return value;
@@ -232,6 +238,17 @@ const scoreItemWeatherFit = (item, weatherInput = "Clear") => {
 
     if (isOuterwear(item)) {
       score += addReason(reasons, "outerwear-in-cold", 6);
+    }
+
+    // Older wardrobe items may not have AI attributes yet. A name such as
+    // "szorty" is still sufficiently explicit to avoid treating it as a
+    // neutral choice on a cold day.
+    if (isShortBottom(item)) {
+      score += addReason(reasons, "shorts-in-cold-weather", -45);
+    }
+
+    if (isLightKimono(item)) {
+      score += addReason(reasons, "light-kimono-in-cold-weather", -20);
     }
 
     if (

@@ -16,6 +16,59 @@ const NEUTRAL_COLORS = [
   "granatowy",
 ];
 const CAPSULE_OVERLAP_PENALTY_WEIGHT = 30;
+
+const getWeatherConditions = (weatherTypes = []) =>
+  weatherTypes.flatMap((weather) =>
+    typeof weather === "string" ? [weather] : weather?.conditions || [],
+  );
+
+const needsOuterwear = (weatherTypes) => {
+  const conditions = new Set(getWeatherConditions(weatherTypes));
+
+  return (
+    conditions.has("Cold") ||
+    conditions.has("Rain") ||
+    conditions.has("Snow") ||
+    conditions.has("Windy")
+  );
+};
+
+const isShortBottom = (item) =>
+  item?.category === "Dół" && /szort|short|spoden/i.test(item?.name || "");
+
+const isLightKimono = (item) => /kimono/i.test(item?.name || "");
+
+const keepWeatherSuitableAlternatives = (items, weatherTypes) => {
+  if (items.length < 2) {
+    return items;
+  }
+
+  const conditions = new Set(getWeatherConditions(weatherTypes));
+  const safeItems = items.filter(
+    (item) =>
+      !(conditions.has("Cold") && (isShortBottom(item) || isLightKimono(item))),
+  );
+
+  // Do not make the feature unusable for a person who owns only shorts.
+  return safeItems.length > 0 ? safeItems : items;
+};
+
+const createWeatherReadinessMessage = (capsuleItems, weatherTypes) => {
+  if (!needsOuterwear(weatherTypes)) {
+    return null;
+  }
+
+  const hasOuterwear = capsuleItems.some(
+    (item) => item.category === "Okrycia wierzchnie",
+  );
+
+  if (!hasOuterwear) {
+    return "Prognoza wymaga warstwy zewnętrznej, ale w garderobie nie ma odpowiedniego okrycia. Dodaj kurtkę lub płaszcz, aby kapsuła była bezpieczniejsza na chłód i opady.";
+  }
+
+  return null;
+};
+
 const scoreItemAcrossWeather = (item, weatherTypes) => {
   if (!Array.isArray(weatherTypes) || weatherTypes.length === 0) {
     return 0;
@@ -262,13 +315,22 @@ function buildCapsule(
     (scoreVersatility(a, userProfile) +
       scoreItemAcrossWeather(a, weatherTypes));
 
-  const goras = pool.filter((c) => c.category === "Góra").sort(byVersatility);
-  const dols = pool.filter((c) => c.category === "Dół").sort(byVersatility);
+  const goras = keepWeatherSuitableAlternatives(
+    pool.filter((c) => c.category === "Góra"),
+    weatherTypes,
+  ).sort(byVersatility);
+  const dols = keepWeatherSuitableAlternatives(
+    pool.filter((c) => c.category === "Dół"),
+    weatherTypes,
+  ).sort(byVersatility);
   const sukienki = pool
     .filter((c) => c.category === "Sukienki")
     .sort(byVersatility);
   const buty = pool
     .filter((c) => c.category === "Buty" || c.category === "Obuwie")
+    .sort(byVersatility);
+  const okrycia = pool
+    .filter((c) => c.category === "Okrycia wierzchnie")
     .sort(byVersatility);
   const { selectedGoras, selectedDols, selectedSukienki, selectedButy } =
     targetCombos
@@ -285,7 +347,11 @@ function buildCapsule(
     ...selectedDols,
     ...selectedSukienki,
     ...selectedButy,
+    ...(needsOuterwear(weatherTypes) ? okrycia.slice(0, 1) : []),
   ];
+  const selectedOuterwear = needsOuterwear(weatherTypes)
+    ? okrycia.slice(0, 1)
+    : [];
 
   let rawCombos = [];
 
@@ -293,25 +359,25 @@ function buildCapsule(
     selectedGoras.forEach((g) => {
       selectedDols.forEach((d) => {
         selectedButy.forEach((b) => {
-          rawCombos.push([g, d, b]);
+          rawCombos.push([g, d, b, ...selectedOuterwear]);
         });
       });
     });
 
     selectedSukienki.forEach((s) => {
       selectedButy.forEach((b) => {
-        rawCombos.push([s, b]);
+        rawCombos.push([s, b, ...selectedOuterwear]);
       });
     });
   } else {
     selectedGoras.forEach((g) => {
       selectedDols.forEach((d) => {
-        rawCombos.push([g, d]);
+        rawCombos.push([g, d, ...selectedOuterwear]);
       });
     });
 
     selectedSukienki.forEach((s) => {
-      rawCombos.push([s]);
+      rawCombos.push([s, ...selectedOuterwear]);
     });
   }
 
@@ -356,6 +422,10 @@ function buildCapsule(
       isComplete: candidate.isComplete,
       missingCategories: candidate.missingCategories,
     })),
+    weatherReadinessMessage: createWeatherReadinessMessage(
+      capsuleItems,
+      weatherTypes,
+    ),
   };
 }
 
@@ -378,10 +448,7 @@ function generateCapsuleWardrobe(
 
 function addTripAvailability(capsule, requestedDays) {
   const generatedOutfitCount = capsule.combinations.length;
-  const missingOutfitCount = Math.max(
-    0,
-    requestedDays - generatedOutfitCount,
-  );
+  const missingOutfitCount = Math.max(0, requestedDays - generatedOutfitCount);
 
   return {
     ...capsule,
@@ -390,9 +457,14 @@ function addTripAvailability(capsule, requestedDays) {
     missingOutfitCount,
     hasEnoughOutfits: missingOutfitCount === 0,
     availabilityMessage:
-      missingOutfitCount > 0
-        ? `Udało się przygotować ${generatedOutfitCount} z ${requestedDays} wymaganych zestawów. Brakuje ${missingOutfitCount}.`
-        : null,
+      [
+        missingOutfitCount > 0
+          ? `Udało się przygotować ${generatedOutfitCount} z ${requestedDays} wymaganych zestawów. Brakuje ${missingOutfitCount}.`
+          : null,
+        capsule.weatherReadinessMessage,
+      ]
+        .filter(Boolean)
+        .join(" ") || null,
   };
 }
 
@@ -402,10 +474,7 @@ function generateTripCapsuleWardrobe(
   weatherTypes = ["Clear"],
   days = 1,
 ) {
-  const requestedDays = Math.max(
-    1,
-    parseInt(days, 10) || 1,
-  );
+  const requestedDays = Math.max(1, parseInt(days, 10) || 1);
 
   const emptyCapsule = {
     capsuleItems: [],
@@ -418,9 +487,7 @@ function generateTripCapsuleWardrobe(
     return addTripAvailability(emptyCapsule, requestedDays);
   }
 
-  const wearableClothes = clothes.filter(
-    (item) => !isNonOutfitItem(item),
-  );
+  const wearableClothes = clothes.filter((item) => !isNonOutfitItem(item));
 
   if (wearableClothes.length < 5) {
     return addTripAvailability(emptyCapsule, requestedDays);
@@ -431,14 +498,9 @@ function generateTripCapsuleWardrobe(
       ? weatherTypes
       : ["Clear"];
 
-  const capsule = buildCapsule(
-    wearableClothes,
-    userProfile,
-    safeWeatherTypes,
-    {
-      targetCombos: requestedDays,
-    },
-  );
+  const capsule = buildCapsule(wearableClothes, userProfile, safeWeatherTypes, {
+    targetCombos: requestedDays,
+  });
 
   return addTripAvailability(capsule, requestedDays);
 }

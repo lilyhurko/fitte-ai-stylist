@@ -54,6 +54,42 @@ test("lekka letnia sukienka jest karana podczas zimna bez twardego weta", () => 
   assert.ok(result.score > -999);
 });
 
+test("szorty są wyraźnie karane podczas chłodu także bez pełnych atrybutów AI", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Szorty z haftem",
+      category: "Dół",
+      materials: [],
+      seasons: [],
+    },
+    "Cold",
+  );
+
+  assert.equal(result.score, -45);
+  assert.ok(
+    result.reasons.some((reason) => reason.code === "shorts-in-cold-weather"),
+  );
+});
+
+test("lekkie kimono otrzymuje karę podczas chłodu bez pełnych atrybutów AI", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Kimono z haftem",
+      category: "Góra",
+      materials: [],
+      seasons: [],
+    },
+    "Cold",
+  );
+
+  assert.equal(result.score, -20);
+  assert.ok(
+    result.reasons.some(
+      (reason) => reason.code === "light-kimono-in-cold-weather",
+    ),
+  );
+});
+
 test("ciepłe zimowe ubranie z wełny otrzymuje premię podczas zimna", () => {
   const result = scoreItemWeatherFit(
     {

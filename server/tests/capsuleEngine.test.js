@@ -142,6 +142,81 @@ test("sandały pozostają dostępne podczas deszczu, gdy nie ma innych butów", 
   assert.ok(result.combinations.length > 0);
 });
 
+test("kapsuła na chłód i deszcz odrzuca szorty oraz dodaje okrycie", () => {
+  const wardrobe = [
+    createItem("kimono", "Góra", { name: "Kimono z haftem" }),
+    createItem("shirt", "Góra", { name: "Koszula z długim rękawem" }),
+    createItem("sweater", "Góra", {
+      name: "Ciepły sweter",
+      warmthLevel: 4,
+      seasons: ["AUTUMN"],
+    }),
+    createItem("shorts", "Dół", { name: "Szorty z haftem" }),
+    createItem("jeans", "Dół", {
+      name: "Jeansy",
+      warmthLevel: 3,
+      seasons: ["AUTUMN"],
+    }),
+    createItem("sneakers", "Obuwie", { name: "Sneakersy" }),
+    createItem("coat", "Okrycia wierzchnie", {
+      name: "Kurtka przeciwdeszczowa",
+      warmthLevel: 4,
+      waterResistance: "WATER_REPELLENT",
+    }),
+  ];
+
+  const result = generateTripCapsuleWardrobe(
+    wardrobe,
+    {},
+    [{ conditions: ["Cold", "Rain"], temperatureC: 8 }],
+    2,
+  );
+
+  assert.equal(
+    result.capsuleItems.some((item) => item.id === "shorts"),
+    false,
+  );
+  assert.equal(
+    result.capsuleItems.some((item) => item.id === "kimono"),
+    false,
+  );
+  assert.equal(result.weatherReadinessMessage, null);
+  result.combinations.forEach((outfit) => {
+    assert.equal(
+      outfit.some((item) => item.id === "shorts"),
+      false,
+    );
+    assert.equal(
+      outfit.some((item) => item.id === "coat"),
+      true,
+    );
+  });
+});
+
+test("kapsuła ostrzega, gdy na chłód i deszcz brakuje okrycia", () => {
+  const wardrobe = [
+    createItem("top-1", "Góra"),
+    createItem("top-2", "Góra"),
+    createItem("shorts", "Dół", { name: "Szorty" }),
+    createItem("jeans", "Dół", { name: "Jeansy" }),
+    createItem("sneakers", "Obuwie"),
+  ];
+
+  const result = generateTripCapsuleWardrobe(
+    wardrobe,
+    {},
+    [{ conditions: ["Cold", "Rain"], temperatureC: 8 }],
+    2,
+  );
+
+  assert.match(result.weatherReadinessMessage, /okrycia/i);
+  assert.match(result.availabilityMessage, /okrycia/i);
+  assert.equal(
+    result.capsuleItems.some((item) => item.id === "shorts"),
+    false,
+  );
+});
+
 test("kapsuła bez obuwia tworzy i oznacza niekompletne zestawy", () => {
   const wardrobeWithoutShoes = [
     createItem("top-1", "Góra"),
