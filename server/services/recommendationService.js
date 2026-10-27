@@ -2,6 +2,7 @@ const { prisma } = require("../config/prisma");
 const { groq, GROQ_MODEL } = require("../config/aiClients");
 const { generateBestOutfits } = require("../outfitEngine");
 const { writeLog } = require("./logger");
+const { describeWeather } = require("./aiService");
 const { resilientOperation } = require("./resilienceService");
 const { estimateGroqCostUsd } = require("./aiCostService");
 const {
@@ -77,14 +78,17 @@ async function askFitteEngine(
       .join(" oraz ");
 
     const aktywnaOkazja = currentEvent ? currentEvent.title : selectedOccasion;
+    const weatherDescription = describeWeather(weatherContext);
 
     const explanationPrompt = `
       Jesteś warstwą wyjaśniającą systemu rekomendacji Fitte AI.
       Algorytm wybrał dla użytkownika zestaw ubrań: ${itemsDescription}.
       Zapytanie użytkownika: "${query}"
       Okazja: ${aktywnaOkazja}.
+      Pogoda: ${weatherDescription}.
 
-      Napisz maksymalnie 1-2 bardzo krótkie, konkretne zdania uzasadniające, dlaczego ten zestaw pasuje do okazji: ${aktywnaOkazja}. 
+      Napisz DOKŁADNIE dwa krótkie, konkretne zdania po polsku. Pierwsze ma uzasadniać zestaw względem okazji, drugie ma odnieść się do pogody, warstw i obuwia.
+      Nie zwracaj listy elementów ani tekstu w formacie "ubranie + ubranie + buty". Nie twórz faktów, których nie ma w danych.
       Nie wspominaj o innych wydarzeniach z kalendarza, jeśli nie są bezpośrednio związane z zapytaniem: "${query}".
       Odpowiedz wyłącznie czystym uzasadnieniem bez powitań, po polsku.
     `;

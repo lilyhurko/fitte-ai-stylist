@@ -5,6 +5,28 @@ const {
   resolveMatchedItems,
 } = require("../services/clothingMatchService");
 
+const COMPARISON_SOURCES = ["gemini", "groq", "fitte"];
+
+const getFeedbackStatus = (score, recommendationStatus) => {
+  if (score === 1) return "LIKE";
+  if (score === 0) return "DISLIKE";
+  if (recommendationStatus === "LIKED") return "LIKE";
+  if (recommendationStatus === "DISLIKED") return "DISLIKE";
+  return "PENDING";
+};
+
+const getComparisonOrder = (comparisonOrder) => {
+  if (!Array.isArray(comparisonOrder)) return COMPARISON_SOURCES;
+
+  const validOrder = comparisonOrder.filter((source) =>
+    COMPARISON_SOURCES.includes(source),
+  );
+
+  return new Set(validOrder).size === COMPARISON_SOURCES.length
+    ? validOrder
+    : COMPARISON_SOURCES;
+};
+
 const getHistory = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -24,7 +46,6 @@ const getHistory = async (req, res, next) => {
     const clothes = allClothes.filter((cloth) => !isNonOutfitItem(cloth));
     const clothesMap = new Map(clothes.map((cloth) => [cloth.id, cloth]));
     const richHistory = history.map((item) => {
-      const { recommendations: _recommendations, ...analysis } = item;
       const geminiResolved = resolveMatchedItems(
         item.geminiResponse || "",
         clothes,
@@ -43,13 +64,41 @@ const getHistory = async (req, res, next) => {
       }
       if (fitteItems.length === 0)
         fitteItems = findMatchingClothes(item.fitteResponse || "", clothes);
+
+      const comparisonsBySource = {
+        gemini: {
+          response: geminiResolved.cleanText,
+          items: geminiResolved.items,
+          feedback: getFeedbackStatus(item.geminiScore),
+        },
+        groq: {
+          response: groqResolved.cleanText,
+          items: groqResolved.items,
+          feedback: getFeedbackStatus(item.groqScore),
+        },
+        fitte: {
+          response: item.fitteResponse || "",
+          items: fitteItems,
+          feedback: getFeedbackStatus(
+            item.fitteScore,
+            matchingRecommendation?.status,
+          ),
+        },
+      };
+
+      const anonymousComparisons = getComparisonOrder(item.comparisonOrder).map(
+        (source, index) => ({
+          id: `proposal-${index + 1}`,
+          label: `Propozycja ${String.fromCharCode(65 + index)}`,
+          ...comparisonsBySource[source],
+        }),
+      );
+
       return {
-        ...analysis,
-        geminiResponse: geminiResolved.cleanText,
-        groqResponse: groqResolved.cleanText,
-        geminiItems: geminiResolved.items,
-        groqItems: groqResolved.items,
-        fitteItems,
+        id: item.id,
+        query: item.query,
+        createdAt: item.createdAt,
+        anonymousComparisons,
       };
     });
     res.json(richHistory);

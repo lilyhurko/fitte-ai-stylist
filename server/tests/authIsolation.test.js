@@ -268,14 +268,17 @@ test("historia i wydarzenia są izolowane pomiędzy użytkownikami", async () =>
     const historyB = await historyBResponse.json();
 
     assert.deepEqual(
-      historyA.map((analysis) => analysis.userId),
-      [USER_A_ID],
+      historyA.map((analysis) => analysis.query),
+      ["Analiza użytkownika A"],
     );
 
     assert.deepEqual(
-      historyB.map((analysis) => analysis.userId),
-      [USER_B_ID],
+      historyB.map((analysis) => analysis.query),
+      ["Analiza użytkownika B"],
     );
+
+    assert.equal(historyA[0].userId, undefined);
+    assert.equal(historyB[0].userId, undefined);
 
     const [eventsAResponse, eventsBResponse] = await Promise.all([
       fetch(`${baseUrl}/events`, {

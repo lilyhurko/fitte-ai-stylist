@@ -5,11 +5,11 @@ import {
   ChevronUp,
   MessageSquare,
   Sparkles,
-  Shirt,
-  Monitor,
+  ThumbsDown,
+  ThumbsUp,
 } from "lucide-react";
 import "./History.css";
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from "../../config";
 
 const History = () => {
   const [historyItems, setHistoryItems] = useState([]);
@@ -52,6 +52,24 @@ const History = () => {
     return new Date(dateString).toLocaleDateString("pl-PL", options);
   };
 
+  const feedbackView = {
+    LIKE: {
+      label: "Oceniono: Tak",
+      className: "text-emerald-700 bg-emerald-50 border-emerald-100",
+      Icon: ThumbsUp,
+    },
+    DISLIKE: {
+      label: "Oceniono: Nie",
+      className: "text-rose-700 bg-rose-50 border-rose-100",
+      Icon: ThumbsDown,
+    },
+    PENDING: {
+      label: "Bez oceny",
+      className: "text-gray-500 bg-gray-50 border-gray-200",
+      Icon: Sparkles,
+    },
+  };
+
   return (
     <main className="history-container p-4 md:p-10 bg-fitte-cream min-h-screen w-full max-w-full overflow-x-hidden">
       <header className="mb-6 md:mb-12">
@@ -59,8 +77,8 @@ const History = () => {
           Historia <span className="italic">Analiz</span>
         </h2>
         <p className="text-gray-400 text-xs md:text-sm">
-          Przeglądaj swoje archiwalne zapytania i generowane przez AI propozycje
-          stylizacji.
+          Przeglądaj archiwalne zapytania, anonimowe propozycje i zapisane
+          oceny.
         </p>
       </header>
 
@@ -70,7 +88,10 @@ const History = () => {
         </div>
       ) : historyItems.length === 0 ? (
         <div className="bg-white rounded-[24px] md:rounded-[30px] p-8 md:p-12 text-center border border-fitte-sand/30 shadow-sm max-w-2xl mx-auto mt-6">
-          <MessageSquare className="mx-auto text-fitte-sand mb-3 md:mb-4" size={36} />
+          <MessageSquare
+            className="mx-auto text-fitte-sand mb-3 md:mb-4"
+            size={36}
+          />
           <p className="text-fitte-brown-dark font-medium mb-1 text-sm md:text-base">
             Brak zapisanych analiz
           </p>
@@ -115,94 +136,51 @@ const History = () => {
 
                 {isExpanded && (
                   <div className="border-t border-fitte-sand/20 p-4 md:p-6 bg-[#faf8f5]/50 rounded-b-2xl md:rounded-b-3xl space-y-4 md:space-y-6">
-                    <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-4 border border-fitte-sand/20 text-xs">
-                      <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-fitte-brown-dark/70 mb-1.5 text-[10px] md:text-xs">
-                        <Shirt size={13} />
-                        <span>Stan szafy i dane wejściowe</span>
-                      </div>
-                      <pre className="font-sans text-gray-500 whitespace-pre-wrap leading-relaxed text-[10px] md:text-xs max-h-32 overflow-y-auto">
-                        {item.contextUsed || "Brak zarejestrowanego kontekstu."}
-                      </pre>
-                    </div>
-
                     <div className="history-ai-grid grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-5 border border-fitte-sand/20 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-fitte-sand/10">
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Sparkles size={11} /> Gemini 2.5
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
-                            {item.geminiResponse || "Model nie zwrócił odpowiedzi."}
-                          </p>
-                        </div>
-                        {item.geminiItems && item.geminiItems.length > 0 && (
-                          <div className="flex gap-1.5 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto overflow-x-auto">
-                            {item.geminiItems.map((cloth) => (
-                              <img
-                                key={cloth.id}
-                                src={cloth.imageUrl}
-                                alt={cloth.name}
-                                className="w-10 h-14 md:w-12 md:h-16 object-contain bg-white rounded-lg p-1 shadow-2xs shrink-0"
-                                title={cloth.name}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {item.anonymousComparisons?.map((comparison) => {
+                        const feedback =
+                          feedbackView[comparison.feedback] ||
+                          feedbackView.PENDING;
+                        const FeedbackIcon = feedback.Icon;
 
-                      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-5 border border-fitte-sand/20 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-fitte-sand/10">
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Monitor size={11} /> GPT-OSS 120B
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
-                            {item.groqResponse || "Model nie zwrócił odpowiedzi."}
-                          </p>
-                        </div>
-                        {item.groqItems && item.groqItems.length > 0 && (
-                          <div className="flex gap-1.5 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto overflow-x-auto">
-                            {item.groqItems.map((cloth) => (
-                              <img
-                                key={cloth.id}
-                                src={cloth.imageUrl}
-                                alt={cloth.name}
-                                className="w-10 h-14 md:w-12 md:h-16 object-contain bg-white rounded-lg p-1 shadow-2xs shrink-0"
-                                title={cloth.name}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="bg-fitte-brown-dark rounded-xl md:rounded-2xl p-4 md:p-5 text-white flex flex-col justify-between shadow-sm">
-                        <div>
-                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-fitte-cream bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Sparkles size={10} /> FITTE ENGINE
-                            </span>
-                          </div>
-                          <p className="text-xs text-fitte-cream/90 leading-relaxed whitespace-pre-wrap font-light mb-3">
-                            {item.fitteResponse || "Fitte Engine nie zwrócił odpowiedzi."}
-                          </p>
-                        </div>
-                        {item.fitteItems && item.fitteItems.length > 0 && (
-                          <div className="flex gap-1.5 bg-white/10 p-2 rounded-xl justify-center items-center backdrop-blur-sm border border-white/5 mt-auto overflow-x-auto">
-                            {item.fitteItems.map((cloth) => (
-                              <img
-                                key={cloth.id}
-                                src={cloth.imageUrl}
-                                alt={cloth.name}
-                                className="w-10 h-14 md:w-12 md:h-16 object-contain bg-white rounded-lg p-1 shadow-2xs shrink-0"
-                                title={cloth.name}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        return (
+                          <article
+                            key={comparison.id}
+                            className="bg-white rounded-xl md:rounded-2xl p-4 md:p-5 border border-fitte-sand/20 flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-fitte-sand/10">
+                                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-fitte-brown-dark bg-fitte-cream px-2 py-0.5 rounded-md flex items-center gap-1">
+                                  <Sparkles size={11} /> {comparison.label}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1 ${feedback.className}`}
+                                >
+                                  <FeedbackIcon size={10} aria-hidden="true" />
+                                  {feedback.label}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
+                                {comparison.response ||
+                                  "Nie udało się zapisać odpowiedzi."}
+                              </p>
+                            </div>
+                            {comparison.items?.length > 0 && (
+                              <div className="flex gap-1.5 bg-fitte-sand/10 p-2 rounded-xl justify-center items-center border border-fitte-sand/20 mt-auto overflow-x-auto">
+                                {comparison.items.map((cloth) => (
+                                  <img
+                                    key={cloth.id}
+                                    src={cloth.imageUrl}
+                                    alt={cloth.name}
+                                    className="w-10 h-14 md:w-12 md:h-16 object-contain bg-white rounded-lg p-1 shadow-2xs shrink-0"
+                                    title={cloth.name}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </article>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

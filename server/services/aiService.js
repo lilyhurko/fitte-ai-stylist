@@ -80,17 +80,18 @@ INFORMACJE O UŻYTKOWNIKU I SZAFIE:
 ${context}
 
 ZASADY ODPOWIEDZI (KRYTYCZNE):
-1. Odpowiedz bardzo zwięźle (maksymalnie 2-3 konkretne zdania).
-2. Dopasuj ubiór adekwatnie do aktualnej pogody.
-3. Wybierz kompletny zestaw ubrań składający się z:
+1. Odpowiedz DOKŁADNIE dwoma krótkimi, naturalnymi zdaniami po polsku. Pierwsze ma opisać zestaw i jego dopasowanie do okazji, drugie ma wyjaśnić dopasowanie do pogody, warstw i obuwia.
+2. Nie zwracaj samej listy elementów, nie używaj formatu "ubranie + ubranie + buty" i nie powtarzaj nazw bez uzasadnienia.
+3. Dopasuj ubiór adekwatnie do aktualnej pogody. Przy chłodzie i deszczu nie proponuj satynowej sukienki na ramiączkach, lekkiego kimona, szortów, sandałów ani szpilek, jeśli w szafie jest bezpieczniejsza alternatywa.
+4. Wybierz kompletny zestaw ubrań składający się z:
    - GÓRY i DOŁU (lub Sukienki)
    - ORAZ PASUJĄCEGO OBUWIA (butów) z listy ubrań w szafie.
-4. Wybieraj ubrania i obuwie WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań ani butów, których użytkownik nie ma w szafie.
-5. Nie pisz uprzejmościowych wstępów ani podsumowań.
-6. Na samym końcu odpowiedzi, w NOWEJ linii, podaj znacznik w dokładnie takim formacie:
+5. Wybieraj ubrania i obuwie WYŁĄCZNIE z listy powyżej. Nie zmyślaj ubrań ani butów, których użytkownik nie ma w szafie.
+6. Nie pisz uprzejmościowych wstępów ani podsumowań.
+7. Na samym końcu odpowiedzi, w NOWEJ linii, podaj znacznik w dokładnie takim formacie:
 UBRANIA: [dokładna nazwa 1]|[dokładna nazwa 2]|[dokładna nazwa 3]
 Użyj DOKŁADNIE takich nazw ubrań, jakie widnieją na liście w sekcji "Ubrania w szafie" powyżej (bez odmiany przez przypadki, bez cudzysłowów). Wypisz tylko te ubrania, które faktycznie polecasz w tej odpowiedzi. Ta linia jest wyłącznie do przetworzenia maszynowego.
-7. Nigdy nie proponuj bielizny ani stroju kąpielowego jako elementu stylizacji na wyjście — to nie są ubrania wierzchnie, niezależnie od okazji.
+8. Nigdy nie proponuj bielizny ani stroju kąpielowego jako elementu stylizacji na wyjście — to nie są ubrania wierzchnie, niezależnie od okazji.
 
 PYTANIE UŻYTKOWNIKA: ${query}
 `;
