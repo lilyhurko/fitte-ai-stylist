@@ -90,6 +90,25 @@ test("lekkie kimono otrzymuje karę podczas chłodu bez pełnych atrybutów AI",
   );
 });
 
+test("satynowa sukienka otrzymuje silną karę podczas chłodu", () => {
+  const result = scoreItemWeatherFit(
+    {
+      name: "Satynowa sukienka midi na ramiączkach",
+      category: "Sukienki",
+      materials: [],
+      seasons: [],
+    },
+    "Cold",
+  );
+
+  assert.equal(result.score, -35);
+  assert.ok(
+    result.reasons.some(
+      (reason) => reason.code === "light-dress-in-cold-weather",
+    ),
+  );
+});
+
 test("ciepłe zimowe ubranie z wełny otrzymuje premię podczas zimna", () => {
   const result = scoreItemWeatherFit(
     {

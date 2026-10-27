@@ -318,6 +318,31 @@ function applyWeatherGuardrail(
     return combinations;
   }
 
+  const criticalWeatherReasons = new Set([
+    "shorts-in-cold-weather",
+    "light-dress-in-cold-weather",
+    "open-shoes-in-rain",
+    "open-shoes-in-snow",
+    "high-heels-in-light-rain",
+    "high-heels-in-moderate-rain",
+    "high-heels-in-heavy-rain",
+  ]);
+
+  const hasCriticalWeatherRisk = (candidate) =>
+    candidate?.details?.weatherReasons?.some((reason) =>
+      criticalWeatherReasons.has(reason.code),
+    );
+
+  const safeCandidates = combinations.filter(
+    (candidate) =>
+      !hasCriticalWeatherRisk(candidate) &&
+      getWeatherScore(candidate) >= config.acceptableAlternativeThreshold,
+  );
+
+  if (safeCandidates.length > 0) {
+    return safeCandidates;
+  }
+
   return combinations.filter(
     (candidate) => getWeatherScore(candidate) > config.severeMismatchThreshold,
   );

@@ -262,6 +262,55 @@ test("ulewa odrzuca szpilki, gdy istnieją bezpieczne buty", () => {
   );
 });
 
+test("chłód i deszcz odrzucają lekką sukienkę oraz szpilki, gdy istnieje alternatywa", () => {
+  const clothes = [
+    createItem({
+      id: "shirt",
+      name: "Koszula z długim rękawem",
+      style: "Classic",
+    }),
+    createItem({
+      id: "dress",
+      name: "Satynowa sukienka midi na ramiączkach",
+      category: "Sukienki",
+      style: "Chic",
+    }),
+    createItem({
+      id: "jeans",
+      name: "Ciemne jeansy",
+      category: "Dół",
+      style: "Classic",
+    }),
+    createItem({
+      id: "heels",
+      name: "Klasyczne czarne szpilki",
+      category: "Obuwie",
+      style: "Chic",
+    }),
+    createItem({
+      id: "boots",
+      name: "Wodoodporne botki",
+      category: "Obuwie",
+      style: "Classic",
+      waterResistance: "WATERPROOF",
+    }),
+  ];
+
+  const results = generateBestOutfits(clothes, {}, null, "Randka", {
+    conditions: ["Rain", "Cold"],
+    precipitationMm: 2,
+    rainMm: 2,
+    temperatureC: 8,
+  });
+
+  assert.ok(results.length > 0);
+  results.forEach((result) => {
+    const ids = result.outfit.map((item) => item.id);
+    assert.equal(ids.includes("dress"), false);
+    assert.equal(ids.includes("heels"), false);
+  });
+});
+
 test("identyczne dane wejściowe dają identyczny ranking baseline", () => {
   const clothes = [
     createItem({

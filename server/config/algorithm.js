@@ -1,4 +1,4 @@
-const FITTE_ALGORITHM_VERSION = "fitte-v2.10-weather-aware-layering";
+const FITTE_ALGORITHM_VERSION = "fitte-v2.11-critical-weather-guardrails";
 
 const FITTE_EXPLANATION_PROMPT_VERSION = "fitte-explanation-v1";
 

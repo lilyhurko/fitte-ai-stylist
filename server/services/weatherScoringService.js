@@ -39,6 +39,17 @@ const isShortBottom = (item) =>
 
 const isLightKimono = (item) => includesKeyword(item, ["kimono"]);
 
+const isClearlyLightDress = (item) =>
+  item?.category === "Sukienki" &&
+  includesKeyword(item, [
+    "satyn",
+    "jedwab",
+    "ramiącz",
+    "ramiacz",
+    "slip",
+    "mini",
+  ]);
+
 const addReason = (reasons, code, value) => {
   reasons.push({ code, value });
   return value;
@@ -131,8 +142,8 @@ const scoreItemWeatherFit = (item, weatherInput = "Clear") => {
 
     if (isHighHeelFootwear(item)) {
       const highHeelPenalty = {
-        LIGHT: -22,
-        MODERATE: -40,
+        LIGHT: -35,
+        MODERATE: -50,
         HEAVY: -65,
       }[rainIntensity];
 
@@ -249,6 +260,10 @@ const scoreItemWeatherFit = (item, weatherInput = "Clear") => {
 
     if (isLightKimono(item)) {
       score += addReason(reasons, "light-kimono-in-cold-weather", -20);
+    }
+
+    if (isClearlyLightDress(item)) {
+      score += addReason(reasons, "light-dress-in-cold-weather", -35);
     }
 
     if (
