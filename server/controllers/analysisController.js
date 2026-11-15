@@ -135,6 +135,13 @@ const analyze = async (req, res, next) => {
     const geminiResolved = resolveMatchedItems(geminiResponse, clothes);
     const groqResolved = resolveMatchedItems(groqResponse, clothes);
 
+    const geminiUnavailable =
+      geminiResponse === "Model Gemini jest chwilowo niedostępny.";
+
+    const groqUnavailable =
+      groqResponse === "Model Groq jest chwilowo niedostępny." ||
+      !groqResponse?.trim();
+
     const comparisonOrder = shuffle(["gemini", "groq", "fitte"]);
 
     const record = await prisma.analysis.create({
@@ -170,13 +177,15 @@ const analyze = async (req, res, next) => {
 
     const comparisonSources = {
       gemini: {
-        response: `${geminiResolved.cleanText} (Czas: ${geminiTime}ms)`,
-        items: geminiResolved.items,
+        response: geminiUnavailable ? "" : geminiResolved.cleanText,
+        items: geminiUnavailable ? [] : geminiResolved.items,
+        status: geminiUnavailable ? "unavailable" : "success",
         feedbackType: "gemini",
       },
       groq: {
-        response: `${groqResolved.cleanText} (Czas: ${groqTime}ms)`,
-        items: groqResolved.items,
+        response: groqUnavailable ? "" : groqResolved.cleanText,
+        items: groqUnavailable ? [] : groqResolved.items,
+        status: groqUnavailable ? "unavailable" : "success",
         feedbackType: "groq",
       },
       fitte: {

@@ -143,6 +143,10 @@ async function askGemini(query, context, weatherInput, requestId) {
       provider: "gemini",
       requestId,
       errorName: error.name,
+      errorMessage: error.message,
+      statusCode:
+        error.status ?? error.statusCode ?? error.response?.status ?? null,
+      errorCode: error.code ?? error.error?.code ?? null,
     });
 
     return "Model Gemini jest chwilowo niedostępny.";
@@ -166,7 +170,7 @@ async function askGroqCloud(query, context, weatherInput, requestId) {
           messages: [{ role: "user", content: prompt }],
           temperature: 0.2,
           reasoning_effort: "low",
-          max_completion_tokens: 256,
+          max_completion_tokens: 512,
         }),
       {
         retries: 0,
@@ -195,15 +199,29 @@ async function askGroqCloud(query, context, weatherInput, requestId) {
       costType: "estimate",
     });
 
-    return (
-      chatCompletion.choices[0]?.message?.content ||
-      "Brak odpowiedzi ze strony modelu Groq."
-    );
+    const content = chatCompletion.choices?.[0]?.message?.content?.trim();
+
+    if (!content) {
+      writeLog("warn", "groq_empty_response", {
+        provider: "groq",
+        requestId,
+        model: chatCompletion.model || GROQ_MODEL,
+        finishReason: chatCompletion.choices?.[0]?.finish_reason || null,
+      });
+
+      return "";
+    }
+
+    return content;
   } catch (error) {
     writeLog("warn", "groq_fallback", {
       provider: "groq",
       requestId,
       errorName: error.name,
+      errorMessage: error.message,
+      statusCode:
+        error.status ?? error.statusCode ?? error.response?.status ?? null,
+      errorCode: error.code ?? error.error?.code ?? null,
     });
 
     return "Model Groq jest chwilowo niedostępny.";

@@ -338,7 +338,7 @@ const Assistant = () => {
           <div className="results-grid">
             {results.anonymousComparisons?.map((comparison) => {
               const feedback = comparisonFeedback[comparison.id];
-
+              const isUnavailable = !comparison.response?.trim();
               return (
                 <article
                   key={comparison.id}
@@ -350,36 +350,45 @@ const Assistant = () => {
                       {comparison.label}
                     </div>
 
-                    <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                      {comparison.response}
-                    </p>
-
-                    {comparison.availability?.status === "SINGLE" && (
-                      <div
-                        className="recommendation-availability-note"
-                        role="status"
-                      >
-                        {comparison.availability.message}
-                      </div>
-                    )}
-
-                    {comparison.items?.length > 0 ? (
-                      <div className="comparison-items">
-                        {comparison.items.map((cloth) => (
-                          <img
-                            key={cloth.id}
-                            src={cloth.imageUrl}
-                            alt={cloth.name}
-                            className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
-                            title={cloth.name}
-                          />
-                        ))}
+                    {isUnavailable ? (
+                      <div className="comparison-no-items">
+                        Ta propozycja jest chwilowo niedostępna. Spróbuj
+                        wygenerować porównanie ponownie.
                       </div>
                     ) : (
-                      <div className="comparison-no-items">
-                        Nie udało się jednoznacznie połączyć wszystkich
-                        elementów propozycji z ubraniami w Twojej szafie.
-                      </div>
+                      <>
+                        <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                          {comparison.response}
+                        </p>
+
+                        {comparison.availability?.status === "SINGLE" && (
+                          <div
+                            className="recommendation-availability-note"
+                            role="status"
+                          >
+                            {comparison.availability.message}
+                          </div>
+                        )}
+
+                        {comparison.items?.length > 0 ? (
+                          <div className="comparison-items">
+                            {comparison.items.map((cloth) => (
+                              <img
+                                key={cloth.id}
+                                src={cloth.imageUrl}
+                                alt={cloth.name}
+                                className="w-14 h-18 object-contain bg-white rounded-xl p-1 shadow-sm flex-shrink-0"
+                                title={cloth.name}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="comparison-no-items">
+                            Model zwrócił opis, ale nie wskazał nazw ubrań w
+                            wymaganym formacie.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
