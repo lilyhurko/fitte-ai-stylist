@@ -33,11 +33,8 @@ const updateProfileSchema = z
     if (hasLatitude !== hasLongitude) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message:
-          "Szerokość i długość geograficzna muszą zostać podane razem",
-        path: hasLatitude
-          ? ["defaultLongitude"]
-          : ["defaultLatitude"],
+        message: "Szerokość i długość geograficzna muszą zostać podane razem",
+        path: hasLatitude ? ["defaultLongitude"] : ["defaultLatitude"],
       });
     }
   });
@@ -53,7 +50,14 @@ const deleteAccountSchema = z.object({
   }),
 });
 
+const aiImageProcessingConsentSchema = z.object({
+  enabled: z.boolean({
+    error: "Nieprawidłowa wartość zgody na analizę zdjęć.",
+  }),
+});
+
 module.exports = {
   updateProfileSchema,
   deleteAccountSchema,
+  aiImageProcessingConsentSchema,
 };

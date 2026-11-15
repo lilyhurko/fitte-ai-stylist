@@ -49,6 +49,9 @@ const createEventSchema = z
     }
   });
 
+const updateEventSchema = createEventSchema;
+
 module.exports = {
   createEventSchema,
+  updateEventSchema,
 };

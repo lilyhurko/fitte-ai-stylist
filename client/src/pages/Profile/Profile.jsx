@@ -8,6 +8,8 @@ import {
   AlertCircle,
   Trash2,
   Download,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import "./Profile.css";
 import { API_BASE_URL } from "../../config";
@@ -38,6 +40,10 @@ const Profile = () => {
 
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingExport, setLoadingExport] = useState(false);
+  const [aiImageProcessingEnabled, setAiImageProcessingEnabled] = useState(
+    user?.aiImageProcessingEnabled ?? true,
+  );
+  const [loadingAiImageConsent, setLoadingAiImageConsent] = useState(false);
 
   const [deleteMessage, setDeleteMessage] = useState({
     type: "",
@@ -70,6 +76,7 @@ const Profile = () => {
         };
 
         setFormData(fetchedData);
+        setAiImageProcessingEnabled(data.aiImageProcessingEnabled ?? true);
       }
     } catch (error) {
       console.error("Nie udało się pobrać profilu:", error);
@@ -212,6 +219,46 @@ const Profile = () => {
       showError("Nie udało się połączyć z serwerem.");
     } finally {
       setLoadingExport(false);
+    }
+  };
+  const handleAiImageProcessingChange = async (enabled) => {
+    if (!enabled) {
+      const confirmed = window.confirm(
+        "Wycofanie zgody wyłączy analizę nowych zdjęć przez zewnętrzne AI. Twoje konto i obecna garderoba pozostaną bez zmian. Czy chcesz kontynuować?",
+      );
+
+      if (!confirmed) return;
+    }
+
+    setLoadingAiImageConsent(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/profile/ai-image-processing-consent`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showError(data.error || "Nie udało się zmienić ustawienia zgody.");
+        return;
+      }
+
+      setAiImageProcessingEnabled(data.user.aiImageProcessingEnabled);
+      await refreshSession();
+      showSuccess(data.message);
+    } catch {
+      showError("Nie udało się połączyć z serwerem.");
+    } finally {
+      setLoadingAiImageConsent(false);
     }
   };
 
@@ -509,7 +556,6 @@ const Profile = () => {
                 </p>
               </div>
             </div>
-
             <button
               type="button"
               onClick={handleExportData}
@@ -518,6 +564,58 @@ const Profile = () => {
             >
               <Download size={16} />
               {loadingExport ? "Przygotowywanie pliku..." : "Pobierz moje dane"}
+            </button>
+          </div>
+        </section>
+        <section className="profile-card md:col-span-2 bg-white rounded-[24px] md:rounded-[40px] p-5 md:p-8 border border-fitte-sand shadow-sm w-full">
+          <div className="flex flex-col gap-5">
+            <div className="flex items-start gap-3">
+              {aiImageProcessingEnabled ? (
+                <ShieldCheck
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-green-600"
+                  size={22}
+                />
+              ) : (
+                <ShieldOff
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-fitte-terracotta"
+                  size={22}
+                />
+              )}
+
+              <div>
+                <h3 className="font-playfair text-lg md:text-xl text-fitte-brown-dark">
+                  Prywatność zdjęć
+                </h3>
+
+                <p className="mt-1 text-xs md:text-sm text-fitte-brown-light">
+                  {aiImageProcessingEnabled
+                    ? "Analiza nowych zdjęć przez zewnętrzne AI jest włączona. Zdjęcie jest wysyłane wyłącznie w celu rozpoznania właściwości ubrania."
+                    : "Analiza nowych zdjęć przez zewnętrzne AI jest wyłączona. Nadal możesz dodawać ubrania ręcznie i korzystać z obecnej garderoby."}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={loadingAiImageConsent}
+              onClick={() =>
+                handleAiImageProcessingChange(!aiImageProcessingEnabled)
+              }
+              className="w-full sm:w-fit bg-transparent border-2 border-fitte-brown-dark text-fitte-brown-dark px-5 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-fitte-brown-dark hover:text-white transition-all text-sm touch-manipulation"
+            >
+              {aiImageProcessingEnabled ? (
+                <ShieldOff size={16} />
+              ) : (
+                <ShieldCheck size={16} />
+              )}
+
+              {loadingAiImageConsent
+                ? "Zapisywanie..."
+                : aiImageProcessingEnabled
+                  ? "Wycofaj zgodę"
+                  : "Włącz analizę zdjęć"}
             </button>
           </div>
         </section>

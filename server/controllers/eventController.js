@@ -16,7 +16,10 @@ const {
 } = require("../services/locationService");
 const { writeLog } = require("../services/logger");
 const { objectIdSchema } = require("../validators/commonValidators");
-const { createEventSchema } = require("../validators/eventValidators");
+const {
+  createEventSchema,
+  updateEventSchema,
+} = require("../validators/eventValidators");
 
 const getEvents = async (req, res, next) => {
   try {
@@ -145,7 +148,11 @@ const createEvent = async (req, res, next) => {
         error: "Nieprawidłowa data lub strefa czasowa wydarzenia.",
       });
     }
-
+    if (eventDate.getTime() < Date.now()) {
+      return res.status(400).json({
+        error: "Nie można dodać wydarzenia z datą w przeszłości.",
+      });
+    }
     const event = await prisma.event.create({
       data: {
         title,
@@ -163,6 +170,112 @@ const createEvent = async (req, res, next) => {
     res.json({ success: true, event });
   } catch (error) {
     error.publicMessage = "Nie udało się zapisać wydarzenia.";
+    next(error);
+  }
+};
+
+const updateEvent = async (req, res, next) => {
+  const idValidation = objectIdSchema.safeParse(req.params.id);
+
+  if (!idValidation.success) {
+    return res.status(400).json({
+      error: idValidation.error.issues[0].message,
+    });
+  }
+
+  const validation = updateEventSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const existingEvent = await prisma.event.findFirst({
+      where: {
+        id: idValidation.data,
+        userId: req.user.userId,
+      },
+    });
+
+    if (!existingEvent) {
+      return res.status(404).json({
+        error: "Nie znaleziono wydarzenia użytkownika.",
+      });
+    }
+
+    const {
+      title,
+      date,
+      occasion,
+      formality,
+      outfitIds,
+      locationName,
+      latitude,
+      longitude,
+      timezone,
+    } = validation.data;
+
+    let resolvedLocationName = locationName;
+    let resolvedLatitude = latitude;
+    let resolvedLongitude = longitude;
+    let resolvedTimezone = timezone || DEFAULT_TIMEZONE;
+
+    if (locationName && (latitude === undefined || longitude === undefined)) {
+      const geocodedLocation = await geocodeCity(locationName);
+
+      if (!geocodedLocation) {
+        return res.status(400).json({
+          error: "Nie znaleziono podanej lokalizacji.",
+        });
+      }
+
+      resolvedLocationName = [geocodedLocation.name, geocodedLocation.country]
+        .filter(Boolean)
+        .join(", ");
+
+      resolvedLatitude = geocodedLocation.latitude;
+      resolvedLongitude = geocodedLocation.longitude;
+      resolvedTimezone = geocodedLocation.timezone || resolvedTimezone;
+    }
+
+    const eventDate = parseEventLocalDateTime(date, resolvedTimezone);
+
+    if (!eventDate) {
+      return res.status(400).json({
+        error: "Nieprawidłowa data lub strefa czasowa wydarzenia.",
+      });
+    }
+    if (eventDate.getTime() < Date.now()) {
+      return res.status(400).json({
+        error:
+          "Nie można zapisać wydarzenia z datą w przeszłości. Ustaw przyszły termin.",
+      });
+    }
+
+    const event = await prisma.event.update({
+      where: { id: existingEvent.id },
+      data: {
+        title,
+        date: eventDate,
+        occasion,
+        formality,
+        outfitIds,
+        locationName: resolvedLocationName,
+        latitude: resolvedLatitude,
+        longitude: resolvedLongitude,
+        timezone: resolvedTimezone,
+      },
+    });
+
+    res.json({
+      success: true,
+      event,
+      message: "Wydarzenie zostało zaktualizowane.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się zaktualizować wydarzenia.";
     next(error);
   }
 };
@@ -187,4 +300,9 @@ const deleteEvent = async (req, res, next) => {
   }
 };
 
-module.exports = { getEvents, createEvent, deleteEvent };
+module.exports = {
+  getEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+};

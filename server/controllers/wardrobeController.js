@@ -29,6 +29,17 @@ const analyzeClothDraft = async (req, res, next) => {
         error: "Brak pliku obrazu.",
       });
     }
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { aiImageProcessingEnabled: true },
+    });
+
+    if (!user?.aiImageProcessingEnabled) {
+      return res.status(403).json({
+        error:
+          "Analiza zdjęć przez zewnętrzne AI jest wyłączona w ustawieniach prywatności. Możesz nadal dodać ubranie ręcznie.",
+      });
+    }
 
     const processingResult = await processAndUploadImage(
       req.file,

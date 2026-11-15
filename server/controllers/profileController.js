@@ -4,6 +4,7 @@ const { changePasswordSchema } = require("../validators/authValidators");
 const {
   updateProfileSchema,
   deleteAccountSchema,
+  aiImageProcessingConsentSchema,
 } = require("../validators/profileValidators");
 const { PUBLIC_USER_SELECT } = require("../config/userSelect");
 const { createUserDataExport } = require("../services/dataExportService");
@@ -126,6 +127,43 @@ const exportUserData = async (req, res, next) => {
     next(error);
   }
 };
+const updateAiImageProcessingConsent = async (req, res, next) => {
+  const validation = aiImageProcessingConsentSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      error: validation.error.issues[0].message,
+    });
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        aiImageProcessingEnabled: validation.data.enabled,
+        aiImageProcessingConsentChangedAt: new Date(),
+      },
+      select: PUBLIC_USER_SELECT,
+    });
+
+    writeLog("info", "ai_image_processing_consent_updated", {
+      requestId: req.requestId,
+      userId: user.id,
+      enabled: validation.data.enabled,
+    });
+
+    return res.json({
+      success: true,
+      user,
+      message: validation.data.enabled
+        ? "Zgoda na analizę zdjęć przez zewnętrzne AI została włączona."
+        : "Zgoda została wycofana. Nadal możesz dodawać ubrania ręcznie.",
+    });
+  } catch (error) {
+    error.publicMessage = "Nie udało się zmienić ustawienia zgody.";
+    next(error);
+  }
+};
 
 const changePassword = async (req, res, next) => {
   const validation = changePasswordSchema.safeParse(req.body);
@@ -206,4 +244,5 @@ module.exports = {
   changePassword,
   deleteAccount,
   exportUserData,
+  updateAiImageProcessingConsent,
 };

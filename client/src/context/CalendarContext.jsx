@@ -61,7 +61,36 @@ export const CalendarProvider = ({ children }) => {
       return false;
     }
   };
+  const updateEvent = async (id, eventData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+      });
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Nie udało się zaktualizować wydarzenia.",
+        );
+      }
+
+      await fetchEvents();
+      showSuccess("Wydarzenie zostało zaktualizowane.");
+
+      return true;
+    } catch (error) {
+      console.error("Błąd aktualizacji wydarzenia:", error);
+      showError(error.message);
+
+      return false;
+    }
+  };
   const deleteEvent = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/events/${id}`, {
@@ -90,6 +119,7 @@ export const CalendarProvider = ({ children }) => {
         loading,
         fetchEvents,
         addEvent,
+        updateEvent,
         deleteEvent,
       }}
     >

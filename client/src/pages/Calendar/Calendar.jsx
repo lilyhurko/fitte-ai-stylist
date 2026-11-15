@@ -8,6 +8,7 @@ import {
   Sparkles,
   Shirt,
   MapPin,
+  Pencil,
 } from "lucide-react";
 import "./Calendar.css";
 
@@ -15,7 +16,8 @@ const BROWSER_TIMEZONE =
   Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 const Calendar = () => {
-  const { events, loading, fetchEvents, addEvent, deleteEvent } = useCalendar();
+  const { events, loading, fetchEvents, addEvent, updateEvent, deleteEvent } =
+    useCalendar();
   const [formData, setFormData] = useState({
     title: "",
     date: "",
@@ -25,10 +27,39 @@ const Calendar = () => {
     timezone: BROWSER_TIMEZONE,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [currentTime, setCurrentTime] = useState(null);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+  useEffect(() => {
+    const refreshCurrentTime = () => {
+      setCurrentTime(new Date());
+    };
+
+    const initialTimerId = window.setTimeout(refreshCurrentTime, 0);
+    const intervalId = window.setInterval(refreshCurrentTime, 60_000);
+
+    return () => {
+      window.clearTimeout(initialTimerId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const currentTimeMs = currentTime?.getTime() ?? 0;
+
+  const orderedEvents = [...events].sort((firstEvent, secondEvent) => {
+    const firstIsPast = new Date(firstEvent.date).getTime() < currentTimeMs;
+
+    const secondIsPast = new Date(secondEvent.date).getTime() < currentTimeMs;
+
+    if (firstIsPast !== secondIsPast) {
+      return firstIsPast ? 1 : -1;
+    }
+
+    return new Date(firstEvent.date) - new Date(secondEvent.date);
+  });
 
   const currentWeekDays = React.useMemo(() => {
     const startOfWeek = new Date();
@@ -52,21 +83,74 @@ const Calendar = () => {
     }
     return days;
   }, []);
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      date: "",
+      occasion: "Casual",
+      formality: "Casual",
+      locationName: "",
+      timezone: BROWSER_TIMEZONE,
+    });
 
+    setEditingEventId(null);
+  };
+
+  const formatEventDateForInput = (event) => {
+    const date = new Date(event.date);
+
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: event.timezone || BROWSER_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+
+    const value = (type) =>
+      parts.find((part) => part.type === type)?.value || "";
+
+    return `${value("year")}-${value("month")}-${value("day")}T${value(
+      "hour",
+    )}:${value("minute")}`;
+  };
+
+  const handleStartEdit = (event) => {
+    setEditingEventId(event.id);
+
+    setFormData({
+      title: event.title,
+      date: formatEventDateForInput(event),
+      occasion: event.occasion,
+      formality: event.formality,
+      locationName: event.locationName || "",
+      timezone: event.timezone || BROWSER_TIMEZONE,
+      outfitIds: event.outfitIds || [],
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    resetForm();
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const success = await addEvent(formData);
+
+    const success = editingEventId
+      ? await updateEvent(editingEventId, formData)
+      : await addEvent(formData);
+
     if (success) {
-      setFormData({
-        title: "",
-        date: "",
-        occasion: "Casual",
-        formality: "Casual",
-        locationName: "",
-        timezone: BROWSER_TIMEZONE,
-      });
+      resetForm();
     }
+
     setIsSubmitting(false);
   };
 
@@ -164,7 +248,7 @@ const Calendar = () => {
       <div className="calendar-grid">
         <div className="apple-card add-event-card p-6 bg-white rounded-3xl border border-fitte-sand/30 shadow-sm">
           <h3 className="font-bold text-lg text-fitte-brown-dark mb-4">
-            Zaplanuj Wydarzenie
+            {editingEventId ? "Edytuj wydarzenie" : "Zaplanuj wydarzenie"}{" "}
           </h3>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="form-group">
@@ -243,25 +327,40 @@ const Calendar = () => {
               </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-fitte btn-primary w-full mt-2 bg-fitte-brown-dark text-white p-3 rounded-xl font-bold"
-            >
-              {isSubmitting ? (
-                <Loader2 className="animate-spin" size={18} />
-              ) : (
-                <>
-                  <Plus size={18} /> Dodaj do planu
-                </>
+            <div className="flex flex-col gap-2 mt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-fitte btn-primary w-full bg-fitte-brown-dark text-white p-3 rounded-xl font-bold"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="animate-spin" size={18} />
+                ) : editingEventId ? (
+                  "Zapisz zmiany"
+                ) : (
+                  <>
+                    <Plus size={18} /> Dodaj do planu
+                  </>
+                )}
+              </button>
+
+              {editingEventId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={isSubmitting}
+                  className="text-sm font-semibold text-fitte-brown-dark hover:underline"
+                >
+                  Anuluj edycję
+                </button>
               )}
-            </button>
+            </div>
           </form>
         </div>
 
         <div className="events-list-container">
           <h3 className="font-playfair text-2xl italic text-fitte-brown-dark mb-6">
-            Szczegóły nadchodzących dni
+            Twoje wydarzenia{" "}
           </h3>
 
           {loading ? (
@@ -273,60 +372,88 @@ const Calendar = () => {
             </div>
           ) : events.length > 0 ? (
             <div className="flex flex-col gap-4">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className="apple-card event-row flex justify-between items-center p-5 rounded-2xl group hover:translate-x-1 transition-all bg-white border border-fitte-sand/20"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="calendar-badge flex flex-col items-center justify-center rounded-xl p-3 bg-fitte-cream/40">
-                      <CalendarIcon
-                        size={20}
-                        className="text-fitte-brown-dark"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-base text-fitte-brown-dark">
-                        {event.title}
-                      </h4>
-                      <p className="text-xs text-gray-400">
-                        {new Date(event.date).toLocaleString("pl-PL", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: event.timezone || BROWSER_TIMEZONE,
-                          timeZoneName: "short",
-                        })}
-                      </p>
-                      {event.locationName && (
-                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                          <MapPin size={12} />
-                          {event.locationName}
+              {orderedEvents.map((event) => {
+                const isPastEvent =
+                  new Date(event.date).getTime() < currentTimeMs;
+                return (
+                  <div
+                    key={event.id}
+                    className={`apple-card event-row flex justify-between items-center p-5 rounded-2xl group hover:translate-x-1 transition-all border border-fitte-sand/20 ${
+                      isPastEvent ? "bg-gray-50 opacity-70" : "bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="calendar-badge flex flex-col items-center justify-center rounded-xl p-3 bg-fitte-cream/40">
+                        <CalendarIcon
+                          size={20}
+                          className="text-fitte-brown-dark"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-base text-fitte-brown-dark">
+                          {event.title}
+                        </h4>
+                        <p className="text-xs text-gray-400">
+                          {new Date(event.date).toLocaleString("pl-PL", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: event.timezone || BROWSER_TIMEZONE,
+                            timeZoneName: "short",
+                          })}
                         </p>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        <span className="tag tag-occasion">
-                          {event.occasion}
-                        </span>
-                        <span className="tag tag-formality">
-                          {event.formality}
-                        </span>
+                        {event.locationName && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                            <MapPin size={12} />
+                            {event.locationName}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="tag tag-occasion">
+                            {event.occasion}
+                          </span>
+                          <span className="tag tag-formality">
+                            {event.formality}
+                          </span>
+
+                          {isPastEvent && (
+                            <span className="tag bg-gray-200 text-gray-500">
+                              Zakończone
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(event)}
+                        className="p-2 text-gray-300 hover:text-fitte-brown-dark rounded-xl hover:bg-fitte-cream"
+                        aria-label={`Edytuj wydarzenie: ${event.title}`}
+                        title="Edytuj wydarzenie"
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm("Usunąć z kalendarza?")) {
+                            deleteEvent(event.id);
+                          }
+                        }}
+                        className="p-2 text-gray-300 hover:text-red-500 rounded-xl hover:bg-red-50"
+                        aria-label={`Usuń wydarzenie: ${event.title}`}
+                        title="Usuń wydarzenie"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Usunąć z kalendarza?"))
-                        deleteEvent(event.id);
-                    }}
-                    className="p-2 text-gray-300 hover:text-red-500 rounded-xl hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-gray-400 italic text-center py-10">

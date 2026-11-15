@@ -5,6 +5,7 @@ const {
   changePassword,
   deleteAccount,
   exportUserData,
+  updateAiImageProcessingConsent,
 } = require("../controllers/profileController");
 const { authenticateToken } = require("../middleware/authenticate");
 const { authLimiter } = require("../middleware/rateLimiters");
@@ -14,6 +15,7 @@ router.use(authenticateToken);
 
 router.get("/", getProfile);
 router.get("/export", exportUserData);
+router.patch("/ai-image-processing-consent", updateAiImageProcessingConsent);
 router.patch("/", updateProfile);
 router.post("/change-password", changePassword);
 router.delete("/", authLimiter, deleteAccount);

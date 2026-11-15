@@ -13,6 +13,8 @@ const PUBLIC_USER_SELECT = {
   defaultLocationName: true,
   defaultLatitude: true,
   defaultLongitude: true,
+  aiImageProcessingEnabled: true,
+  aiImageProcessingConsentChangedAt: true,
 };
 
 module.exports = { PUBLIC_USER_SELECT };

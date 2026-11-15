@@ -4,6 +4,7 @@ import { Loader2, Sparkles, Upload, X } from "lucide-react";
 import { API_BASE_URL } from "../../config";
 import ClothDraftForm from "./ClothDraftForm";
 import "./AddItemModal.css";
+import { useAuth } from "../../context/AuthContext";
 
 const EMPTY_MANUAL_VALUES = {
   name: "",
@@ -20,6 +21,8 @@ const EMPTY_MANUAL_VALUES = {
 };
 
 const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
+  const { user } = useAuth();
+  const aiImageProcessingEnabled = user?.aiImageProcessingEnabled ?? true;
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -378,17 +381,20 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
             )}
 
             <div className="modal-actions">
-              <button
-                type="button"
-                className={`btn-fitte btn-primary w-full bg-fitte-brown-dark text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 ${
-                  !file ? "opacity-50 cursor-not-allowed" : "hover:opacity-95"
-                }`}
-                disabled={!file || isProcessing}
-                onClick={handleGenerate}
-              >
-                <span>Analizuj z Fitte AI</span>
-                <span className="btn-icon">✦</span>
-              </button>
+              {aiImageProcessingEnabled && (
+                <button
+                  type="button"
+                  className={`btn-fitte btn-primary w-full bg-fitte-brown-dark text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 ${
+                    !file ? "opacity-50 cursor-not-allowed" : "hover:opacity-95"
+                  }`}
+                  disabled={!file || isProcessing}
+                  onClick={handleGenerate}
+                >
+                  <span>Analizuj z Fitte AI</span>
+                  <span className="btn-icon">✦</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 className="manual-add-button"
