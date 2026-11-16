@@ -221,13 +221,13 @@ const Wardrobe = () => {
   };
 
   return (
-    <div className="wardrobe-content md:p-10 w-full max-w-full overflow-x-hidden">
-      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-5 w-full">
+    <div className="wardrobe-content page-shell">
+      <header className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 w-full">
         <div>
-          <h2 className="font-playfair text-2xl md:text-4xl mb-1 leading-tight">
+          <h2 className="page-title">
             Moja <span className="italic">Garderoba</span>
           </h2>
-          <p className="text-gray-400 text-xs md:text-sm">
+          <p className="page-subtitle">
             Twoja cyfrowa szafa sterowana przez AI
           </p>
         </div>

@@ -193,14 +193,12 @@ const Assistant = () => {
     }
   };
   return (
-    <main className="assistant-container">
-      <header className="mb-6 mt-1">
-        <h2 className="font-playfair text-3xl md:text-5xl font-light leading-tight">
-          Co dziś <span className="italic text-fitte-terracotta">założyć?</span>
+    <main className="assistant-container page-shell">
+      <header className="page-header">
+        <h2 className="page-title">
+          Co dziś <span className="italic">założyć?</span>
         </h2>
-        <p className="text-fitte-brown-light text-xs md:text-sm mt-1.5">
-          Dostosuję propozycje do Twojego stylu.
-        </p>
+        <p className="page-subtitle">Dostosuję propozycje do Twojego stylu.</p>
       </header>
       {!wardrobeReadiness.isComplete && (
         <section className="wardrobe-assistant-hint" role="status">

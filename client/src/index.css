@@ -54,8 +54,50 @@ body {
   transform: translateY(0);
 }
 
+.page-shell {
+  width: min(100%, 1400px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: max(2rem, env(safe-area-inset-top))
+    max(1.5rem, env(safe-area-inset-right))
+    max(5rem, env(safe-area-inset-bottom))
+    max(1.5rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.page-header {
+  margin: 0 0 clamp(1.75rem, 3vw, 2.75rem);
+}
+
+.page-title {
+  margin: 0;
+  color: var(--color-fitte-brown-dark);
+  font-family: var(--font-playfair);
+  font-size: clamp(2.1rem, 3vw, 3rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.page-title .italic {
+  color: var(--color-fitte-terracotta);
+}
+
+.page-subtitle {
+  margin: 0.75rem 0 0;
+  color: var(--color-fitte-brown-light);
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  line-height: 1.55;
+}
+
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0 !important;
+  }
+
+  .page-shell {
+    padding-right: 12px;
+    padding-left: 12px;
   }
 }

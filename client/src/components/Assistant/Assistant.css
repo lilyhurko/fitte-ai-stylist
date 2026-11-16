@@ -4,9 +4,6 @@
 
 .assistant-container {
   min-height: 100dvh;
-  padding: max(1rem, env(safe-area-inset-top))
-    max(1rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
-    max(1rem, env(safe-area-inset-left));
   background:
     radial-gradient(
       circle at 10% 20%,

@@ -1,15 +1,73 @@
 .history-container {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: #3d2a25;
   min-height: 100dvh;
+}
+
+.history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 38rem) max-content;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.history-search {
   width: 100%;
-  max-width: 100vw;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  padding-top: max(1rem, env(safe-area-inset-top));
-  padding-bottom: max(5rem, env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
+  min-width: 0;
+}
+
+.history-sort-control {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-fitte-brown-dark);
+  font-size: 0.75rem;
+  justify-self: end;
+}
+
+.history-select-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.history-sort-select {
+  min-width: 10.5rem;
+  appearance: none;
+  padding: 0.65rem 2.5rem 0.65rem 1rem;
+  color: var(--color-fitte-brown-dark);
+  background: white;
+  border: 1px solid var(--color-fitte-sand);
+  border-radius: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  outline: none;
+  cursor: pointer;
+}
+
+.history-sort-select:focus {
+  border-color: var(--color-fitte-brown-dark);
+}
+
+.history-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  color: var(--color-fitte-brown-dark);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.history-list {
+  display: grid;
+  width: 100%;
+  gap: 0.9rem;
 }
 
 .history-card {
@@ -22,11 +80,14 @@
   transform: translateY(-1px);
 }
 
+.history-card-header {
+  min-height: 5.25rem;
+}
+
 .history-card pre {
   font-family: inherit;
   font-size: 11px;
 }
-
 
 @media (max-width: 768px) {
   .history-container {
@@ -34,6 +95,15 @@
     padding-left: 12px !important;
     padding-right: 12px !important;
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .history-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .history-sort-control {
+    justify-self: start;
   }
 
   .history-card .p-6 {
@@ -49,7 +119,7 @@
   .history-card-header .query-text {
     width: 100% !important;
     padding-right: 0 !important;
-    white-space: normal !important; 
+    white-space: normal !important;
   }
 
   .history-ai-grid {

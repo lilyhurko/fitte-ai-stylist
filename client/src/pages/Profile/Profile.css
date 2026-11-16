@@ -3,56 +3,57 @@
   flex-direction: column;
   justify-content: flex-start;
   animation: fadeInProfile 0.5s ease-out;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #3D2B1F;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #3d2b1f;
   min-height: 100dvh;
-  width: 100%;
-  max-width: 100vw;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  padding-top: max(1rem, env(safe-area-inset-top));
-  padding-bottom: max(5rem, env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
 }
 
 @keyframes fadeInProfile {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .profile-input {
   width: 100%;
-  background-color: #F8F5F2; 
-  border: 1px solid #E8DDD0; 
+  background-color: #f8f5f2;
+  border: 1px solid #e8ddd0;
   padding: 12px 16px;
   border-radius: 14px;
   font-size: 13px;
-  color: #3D2B1F;
+  color: #3d2b1f;
   outline: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
 .profile-input:focus {
-  border-color: #705C53; 
+  border-color: #705c53;
   background-color: #ffffff;
   box-shadow: 0 4px 12px rgba(61, 43, 31, 0.05);
 }
 
 .tag-pill {
   display: inline-block;
-  background-color: #EFE9E1; 
-  color: #3D2B1F;
+  background-color: #efe9e1;
+  color: #3d2b1f;
   padding: 5px 12px;
   border-radius: 999px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  border: 1px solid #E8DDD0;
+  border: 1px solid #e8ddd0;
 }
 
 .bg-fitte-brown-dark {
-  background-color: #3D2B1F;
+  background-color: #3d2b1f;
 }
 
 button:disabled {
@@ -63,7 +64,7 @@ button:disabled {
 .gender-btn {
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid #E8DDD0;
+  border: 1px solid #e8ddd0;
   font-size: 11px;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -71,16 +72,15 @@ button:disabled {
 }
 
 .gender-btn-active {
-  background-color: #3D2B1F;
+  background-color: #3d2b1f;
   color: white;
-  border-color: #3D2B1F;
+  border-color: #3d2b1f;
 }
 
 .gender-btn:hover:not(.gender-btn-active) {
-  border-color: #3D2B1F;
+  border-color: #3d2b1f;
   background-color: rgba(61, 43, 31, 0.02);
 }
-
 
 @media (max-width: 768px) {
   .profile-container {

@@ -118,20 +118,20 @@ const History = () => {
   };
 
   return (
-    <main className="history-container p-4 md:p-10 bg-fitte-cream min-h-screen w-full max-w-full overflow-x-hidden">
-      <header className="mb-6 md:mb-12">
-        <h2 className="font-playfair text-2xl md:text-4xl mb-1 md:mb-2 leading-tight">
+    <main className="history-container page-shell bg-fitte-cream">
+      <header className="page-header">
+        <h2 className="page-title">
           Historia <span className="italic">Analiz</span>
         </h2>
-        <p className="text-gray-400 text-xs md:text-sm">
+        <p className="page-subtitle">
           Przeglądaj archiwalne zapytania, anonimowe propozycje i zapisane
           oceny.
         </p>
       </header>
 
       {historyItems.length > 0 && (
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-sm">
+        <div className="history-toolbar">
+          <div className="history-search relative">
             <Search
               size={15}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -161,19 +161,26 @@ const History = () => {
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-fitte-brown-dark">
+          <label className="history-sort-control">
             Sortuj:
-            <select
-              value={sortBy}
-              onChange={(event) => {
-                setSortBy(event.target.value);
-                setCurrentPage(1);
-              }}
-              className="rounded-lg border border-fitte-sand bg-white px-2.5 py-2 text-xs font-medium outline-none focus:border-fitte-brown-dark"
-            >
-              <option value="newest">Najnowsze</option>
-              <option value="oldest">Najstarsze</option>
-            </select>
+            <span className="history-select-wrapper">
+              <select
+                value={sortBy}
+                onChange={(event) => {
+                  setSortBy(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="history-sort-select"
+              >
+                <option value="newest">Najnowsze</option>
+                <option value="oldest">Najstarsze</option>
+              </select>
+              <ChevronDown
+                className="history-select-chevron"
+                size={16}
+                aria-hidden="true"
+              />
+            </span>
           </label>
         </div>
       )}
@@ -213,7 +220,7 @@ const History = () => {
         </div>
       ) : (
         <>
-          <div className="space-y-3 md:space-y-4 max-w-6xl w-full">
+          <div className="history-list">
             {paginatedHistory.map((item) => {
               const isExpanded = expandedId === item.id;
               return (
@@ -232,7 +239,7 @@ const History = () => {
                     tabIndex={0}
                     aria-expanded={isExpanded}
                     aria-controls={`history-details-${item.id}`}
-                    className="history-card-header p-4 md:p-6 flex items-start md:items-center justify-between cursor-pointer select-none touch-manipulation"
+                    className="history-card-header p-4 md:p-5 flex items-start md:items-center justify-between cursor-pointer select-none touch-manipulation"
                   >
                     <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 flex-1 min-w-0 w-full">
                       <div className="flex items-center gap-1.5 text-gray-400 text-[10px] md:text-xs whitespace-nowrap bg-fitte-cream/50 px-2.5 py-1 rounded-lg w-fit">

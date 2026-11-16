@@ -155,12 +155,12 @@ const Calendar = () => {
   };
 
   return (
-    <div className="calendar-page p-4 md:p-10 bg-fitte-cream min-h-screen">
-      <header className="mb-10">
-        <h2 className="font-playfair text-4xl mb-2">
+    <div className="calendar-page page-shell bg-fitte-cream">
+      <header className="page-header">
+        <h2 className="page-title">
           Planer <span className="italic">Okazji i Stylizacji</span>
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="page-subtitle">
           Zarządzaj harmonogramem i przeglądaj kreacje Fitte AI na przestrzeni
           tygodnia
         </p>

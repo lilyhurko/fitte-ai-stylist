@@ -320,12 +320,12 @@ const Profile = () => {
   };
 
   return (
-    <main className="profile-container p-4 md:p-12 bg-fitte-cream min-h-screen w-full max-w-full overflow-x-hidden">
-      <header className="mb-6 md:mb-8">
-        <h2 className="font-playfair text-2xl md:text-5xl font-light leading-tight">
-          Twój <span className="italic text-fitte-terracotta">Profil</span>
+    <main className="profile-container page-shell bg-fitte-cream">
+      <header className="page-header">
+        <h2 className="page-title">
+          Twój <span className="italic">Profil</span>
         </h2>
-        <p className="text-fitte-brown-light text-xs md:text-sm mt-1">
+        <p className="page-subtitle">
           Zarządzaj swoimi danymi i bezpieczeństwem konta.
         </p>
       </header>

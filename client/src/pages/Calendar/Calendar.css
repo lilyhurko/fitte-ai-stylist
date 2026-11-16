@@ -75,11 +75,6 @@
   color: #2b4c7e;
 }
 
-.calendar-page {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
 .calendar-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -88,7 +83,7 @@
 
 @media (min-width: 1024px) {
   .calendar-grid {
-    grid-template-columns: 360px 1fr; 
+    grid-template-columns: 360px 1fr;
   }
 }
 
