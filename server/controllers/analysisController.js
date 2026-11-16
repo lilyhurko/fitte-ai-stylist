@@ -205,6 +205,12 @@ const analyze = async (req, res, next) => {
 
     res.json({
       ...record,
+      fitteRecommendation: {
+        response: `${fitteResult.explanation} (Czas: ${fitteTime}ms)`,
+        items: fitteResult.fitteItems,
+        recommendationId: fitteResult.recommendationId,
+        availability: fitteResult.recommendationAvailability,
+      },
       anonymousComparisons,
       weatherContext,
     });
