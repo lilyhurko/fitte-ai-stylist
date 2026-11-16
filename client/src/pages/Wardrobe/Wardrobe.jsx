@@ -27,6 +27,11 @@ const Wardrobe = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedStyles, setSelectedStyles] = useState([]);
+  const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 12;
+
   const wardrobeReadiness = useMemo(() => {
     const hasTop = clothes.some((item) => item.category === "Góra");
 
@@ -103,19 +108,67 @@ const Wardrobe = () => {
 
   const filteredClothes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return categoryScoped.filter((c) => {
+
+    return categoryScoped.filter((clothing) => {
       const matchesSearch =
-        !query || (c.name || "").toLowerCase().includes(query);
+        !query ||
+        (clothing.name || "").toLowerCase().includes(query) ||
+        (clothing.category || "").toLowerCase().includes(query);
+
       const matchesColor =
         selectedColors.length === 0 ||
-        (c.color && selectedColors.includes(c.color));
-      const itemStyles = parseStyles(c.style);
+        (clothing.color && selectedColors.includes(clothing.color));
+
+      const itemStyles = parseStyles(clothing.style);
       const matchesStyle =
         selectedStyles.length === 0 ||
-        itemStyles.some((s) => selectedStyles.includes(s));
+        itemStyles.some((style) => selectedStyles.includes(style));
+
       return matchesSearch && matchesColor && matchesStyle;
     });
   }, [categoryScoped, searchQuery, selectedColors, selectedStyles]);
+
+  const sortedClothes = useMemo(() => {
+    return [...filteredClothes].sort((firstItem, secondItem) => {
+      if (sortBy === "name-asc") {
+        return (firstItem.name || "").localeCompare(
+          secondItem.name || "",
+          "pl",
+        );
+      }
+
+      if (sortBy === "name-desc") {
+        return (secondItem.name || "").localeCompare(
+          firstItem.name || "",
+          "pl",
+        );
+      }
+
+      if (sortBy === "oldest") {
+        return (
+          new Date(firstItem.createdAt || 0).getTime() -
+          new Date(secondItem.createdAt || 0).getTime()
+        );
+      }
+
+      return (
+        new Date(secondItem.createdAt || 0).getTime() -
+        new Date(firstItem.createdAt || 0).getTime()
+      );
+    });
+  }, [filteredClothes, sortBy]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedClothes.length / ITEMS_PER_PAGE),
+  );
+
+  const activePage = Math.min(currentPage, totalPages);
+
+  const paginatedClothes = useMemo(() => {
+    const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
+    return sortedClothes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [activePage, sortedClothes]);
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
@@ -312,7 +365,29 @@ const Wardrobe = () => {
           </ul>
         </section>
       )}
+      {clothes.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-gray-400">
+            {sortedClothes.length === clothes.length
+              ? `Ubrań: ${clothes.length}`
+              : `Wyniki: ${sortedClothes.length} z ${clothes.length}`}
+          </p>
 
+          <label className="flex items-center gap-2 text-xs text-fitte-brown-dark">
+            Sortuj:
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              className="rounded-lg border border-fitte-sand bg-white px-2.5 py-1.5 text-xs font-medium outline-none focus:border-fitte-brown-dark"
+            >
+              <option value="newest">Najnowsze</option>
+              <option value="oldest">Najstarsze</option>
+              <option value="name-asc">Nazwa: A–Z</option>
+              <option value="name-desc">Nazwa: Z–A</option>
+            </select>
+          </label>
+        </div>
+      )}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 w-full">
           <Loader2
@@ -325,8 +400,8 @@ const Wardrobe = () => {
         </div>
       ) : (
         <div className="wardrobe-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 w-full">
-          {filteredClothes.length > 0 ? (
-            filteredClothes.map((item) => (
+          {sortedClothes.length > 0 ? (
+            paginatedClothes.map((item) => (
               <div key={item.id} className="cloth-card group w-full">
                 <div className="image-wrapper relative aspect-square rounded-xl overflow-hidden mb-2 bg-[#fdfdfd] border border-fitte-sand/20 w-full">
                   <div className="action-buttons absolute top-1.5 left-1.5 flex gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-all z-10">
@@ -467,7 +542,36 @@ const Wardrobe = () => {
           )}
         </div>
       )}
+      {!loading && sortedClothes.length > ITEMS_PER_PAGE && (
+        <nav
+          className="mt-8 flex items-center justify-center gap-3"
+          aria-label="Strony garderoby"
+        >
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={activePage === 1}
+            className="rounded-lg border border-fitte-sand bg-white px-3 py-2 text-xs font-bold text-fitte-brown-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Poprzednia
+          </button>
 
+          <span className="text-xs text-gray-500">
+            Strona {activePage} z {totalPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+            }
+            disabled={activePage === totalPages}
+            className="rounded-lg border border-fitte-sand bg-white px-3 py-2 text-xs font-bold text-fitte-brown-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Następna
+          </button>
+        </nav>
+      )}
       <AddItemModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
