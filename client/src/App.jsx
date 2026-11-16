@@ -28,6 +28,8 @@ import ForgotPassword from "./pages/PasswordReset/ForgotPassword";
 import ResetPassword from "./pages/PasswordReset/ResetPassword";
 import VerifyResetCode from "./pages/PasswordReset/VerifyResetCode";
 
+import NotFound from "./pages/NotFound/NotFound";
+
 import "./index.css";
 
 function AppContent() {
@@ -51,19 +53,23 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-reset-code" element={<VerifyResetCode />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     );
   }
 
   return (
     <div className="flex min-h-screen bg-fitte-cream">
+      <a className="skip-link" href="#main-content">
+        Przejdź do treści
+      </a>
+
       <Sidebar />
 
       <div className="flex flex-1 flex-col main-content">
         <Navbar />
 
-        <main className="flex-1">
+        <main id="main-content" className="flex-1" tabIndex="-1">
           <Routes>
             <Route path="/" element={<Assistant />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
@@ -72,7 +78,7 @@ function AppContent() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/register" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
       </div>

@@ -48,6 +48,13 @@ const History = () => {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const handleHistoryKeyDown = (event, id) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleExpand(id);
+    }
+  };
+
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -220,6 +227,11 @@ const History = () => {
                 >
                   <div
                     onClick={() => toggleExpand(item.id)}
+                    onKeyDown={(event) => handleHistoryKeyDown(event, item.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-controls={`history-details-${item.id}`}
                     className="history-card-header p-4 md:p-6 flex items-start md:items-center justify-between cursor-pointer select-none touch-manipulation"
                   >
                     <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 flex-1 min-w-0 w-full">
@@ -241,7 +253,10 @@ const History = () => {
                   </div>
 
                   {isExpanded && (
-                    <div className="border-t border-fitte-sand/20 p-4 md:p-6 bg-[#faf8f5]/50 rounded-b-2xl md:rounded-b-3xl space-y-4 md:space-y-6">
+                    <div
+                      id={`history-details-${item.id}`}
+                      className="border-t border-fitte-sand/20 p-4 md:p-6 bg-[#faf8f5]/50 rounded-b-2xl md:rounded-b-3xl space-y-4 md:space-y-6"
+                    >
                       <div className="history-ai-grid grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                         {item.anonymousComparisons?.map((comparison) => {
                           const feedback =
