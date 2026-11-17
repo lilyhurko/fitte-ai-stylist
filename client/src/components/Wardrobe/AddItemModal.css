@@ -133,6 +133,14 @@
   transition: all 0.3s ease;
   background: #f8f3ed;
   overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+}
+
+.drop-zone:focus-visible {
+  outline: 3px solid rgba(123, 91, 73, 0.45);
+  outline-offset: 3px;
 }
 
 .drop-zone.dragging {

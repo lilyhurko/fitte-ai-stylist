@@ -103,11 +103,47 @@ test.describe("pełny przepływ autoryzacji", () => {
       }),
     ).toBeVisible();
 
-    await page
-      .getByRole("button", {
-        name: "Dodaj ubranie",
-      })
-      .click();
+    const addClothesButton = page.getByRole("button", {
+      name: "Dodaj ubranie",
+    });
+
+    await addClothesButton.click();
+
+    const addItemDialog = page.getByRole("dialog", {
+      name: "Dodaj ubranie do garderoby",
+    });
+    const closeAddItemButton = addItemDialog.getByRole("button", {
+      name: "Zamknij",
+    });
+    const filePickerButton = addItemDialog.getByRole("button", {
+      name: "Wybierz zdjęcie ubrania",
+    });
+    const analyzeButton = addItemDialog.getByRole("button", {
+      name: "Analizuj z Fitte AI",
+    });
+    const manualAddButton = addItemDialog.getByRole("button", {
+      name: "Dodaj ręcznie bez zdjęcia",
+    });
+
+    await expect(addItemDialog).toBeVisible();
+    await expect(closeAddItemButton).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(filePickerButton).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(analyzeButton).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(manualAddButton).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(closeAddItemButton).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(manualAddButton).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(addItemDialog).toBeHidden();
+    await expect(addClothesButton).toBeFocused();
+
+    await addClothesButton.click();
 
     await page
       .locator('input[type="file"]')
@@ -132,6 +168,28 @@ test.describe("pełny przepływ autoryzacji", () => {
         exact: true,
       }),
     ).toBeVisible();
+
+    const editClothesButton = page.getByTitle("Edytuj ubranie").first();
+    await editClothesButton.click();
+
+    const editItemDialog = page.getByRole("dialog", {
+      name: "Edytuj ubranie",
+    });
+    const closeEditItemButton = editItemDialog.getByRole("button", {
+      name: "Zamknij edycję ubrania",
+    });
+    const saveEditItemButton = editItemDialog.getByRole("button", {
+      name: "Zapisz zmiany",
+    });
+
+    await expect(editItemDialog).toBeVisible();
+    await expect(closeEditItemButton).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(saveEditItemButton).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(editItemDialog).toBeHidden();
+    await expect(editClothesButton).toBeFocused();
+
     const recommendationUser = await prisma.user.findUnique({
       where: { email },
     });

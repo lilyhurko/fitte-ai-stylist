@@ -12,6 +12,7 @@ import {
   SLEEVE_LENGTH_OPTIONS,
 } from "../../constants/clothingOptions";
 import "./AddItemModal.css";
+import useModalFocus from "../../hooks/useModalFocus";
 
 const parseStyleString = (styleString) =>
   (styleString || "")
@@ -78,13 +79,14 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
   );
   const [formality, setFormality] = useState(item.formality || "");
   const [pattern, setPattern] = useState(item.pattern || "");
-  const [sleeveLength, setSleeveLength] = useState(
-    item.sleeveLength || "",
-  );
+  const [sleeveLength, setSleeveLength] = useState(item.sleeveLength || "");
   const [customStyleInput, setCustomStyleInput] = useState("");
   const [showCustomStyleInput, setShowCustomStyleInput] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useModalFocus(true, () => {
+    if (!saving) onClose();
+  });
 
   const canSave =
     name.trim().length > 0 &&
@@ -115,10 +117,7 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
         return current.filter((value) => value !== season);
       }
       if (season === "ALL_SEASON") return ["ALL_SEASON"];
-      return [
-        ...current.filter((value) => value !== "ALL_SEASON"),
-        season,
-      ];
+      return [...current.filter((value) => value !== "ALL_SEASON"), season];
     });
   };
 
@@ -168,7 +167,14 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal-content apple-card draft-modal-content max-w-md w-[90%] p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]">
+      <div
+        ref={dialogRef}
+        className="modal-content apple-card draft-modal-content max-w-md w-[90%] p-8 bg-[#FDFBF9] rounded-[32px] relative shadow-2xl animate-fade-in text-[#3D2B1F]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-item-dialog-title"
+        tabIndex={-1}
+      >
         <button
           type="button"
           className="close-btn absolute top-5 right-5 text-gray-400 hover:text-black transition-colors"
@@ -179,7 +185,7 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
           <X size={22} />
         </button>
 
-        <h2 className="font-playfair text-2xl mb-1">
+        <h2 id="edit-item-dialog-title" className="font-playfair text-2xl mb-1">
           Edytuj <span className="italic">ubranie</span>
         </h2>
         <p className="text-xs text-gray-400 mb-6">
@@ -232,7 +238,8 @@ const EditItemModalForm = ({ onClose, item, onSave }) => {
           <div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Style {selectedStyles.length > 0 && `(${selectedStyles.length})`}
+                Style{" "}
+                {selectedStyles.length > 0 && `(${selectedStyles.length})`}
               </span>
               <button
                 type="button"

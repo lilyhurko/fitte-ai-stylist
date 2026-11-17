@@ -5,6 +5,7 @@ import { API_BASE_URL } from "../../config";
 import ClothDraftForm from "./ClothDraftForm";
 import "./AddItemModal.css";
 import { useAuth } from "../../context/AuthContext";
+import useModalFocus from "../../hooks/useModalFocus";
 
 const EMPTY_MANUAL_VALUES = {
   name: "",
@@ -33,8 +34,6 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
   const [error, setError] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
   const fileInputRef = useRef(null);
-
-  if (!isOpen) return null;
 
   const clearPreview = () => {
     if (preview?.startsWith("blob:")) {
@@ -253,12 +252,21 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
     }
   };
 
+  const dialogRef = useModalFocus(isOpen, handleClose);
+
+  if (!isOpen) return null;
+
   return (
     <div className="modal-overlay">
       <div
+        ref={dialogRef}
         className={`modal-content apple-card ${
           draft || isManualMode ? "draft-modal-content" : ""
         }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Dodaj ubranie do garderoby"
+        tabIndex={-1}
       >
         {" "}
         {!isProcessing && (
@@ -314,7 +322,8 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               Dodaj do <span className="italic">Garderoby</span>
             </h2>
 
-            <div
+            <button
+              type="button"
               className={`drop-zone ${
                 isDragging ? "dragging" : ""
               } ${preview ? "has-image" : ""}`}
@@ -323,13 +332,11 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  fileInputRef.current?.click();
-                }
-              }}
+              aria-label={
+                file || preview
+                  ? "Zmień wybrane zdjęcie ubrania"
+                  : "Wybierz zdjęcie ubrania"
+              }
             >
               {preview ? (
                 <img
@@ -364,15 +371,15 @@ const AddItemModal = ({ isOpen, onClose, onAddSuccess }) => {
                   </p>
                 </div>
               )}
+            </button>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={(event) => handleFile(event.target.files?.[0])}
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-              />
-            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={(event) => handleFile(event.target.files?.[0])}
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+            />
 
             {error && (
               <p className="draft-error" role="alert">
