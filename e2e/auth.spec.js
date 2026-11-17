@@ -171,7 +171,14 @@ test.describe("pełny przepływ autoryzacji", () => {
       ],
     });
 
-    await page.goto("/");
+    // Ubrania dodane bezpośrednio do testowej bazy nie trafiają do stanu React.
+    // Ponowne wejście do Szafy odświeża kontekst przed generowaniem propozycji.
+    await page.goto("/wardrobe");
+    await expect(
+      page.getByText("Buty testowe E2E", { exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("link", { name: "Asystent" }).click();
 
     await page
       .getByRole("button", {
@@ -193,18 +200,32 @@ test.describe("pełny przepływ autoryzacji", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "Porównanie inteligentnych propozycji",
+        name: "Która propozycja najlepiej pasuje do Ciebie?",
       }),
     ).toBeVisible();
 
     await expect(
-      page.getByText("Zestaw został najlepiej oceniony", {
+      page.getByText("Źródła propozycji są celowo ukryte", {
         exact: false,
       }),
     ).toBeVisible();
 
+    await expect(page.getByRole("article")).toHaveCount(3);
+
+    const generatedAnalysis = await prisma.analysis.findFirst({
+      where: { userId: recommendationUser.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    assert.ok(generatedAnalysis);
+    assert.ok(Array.isArray(generatedAnalysis.comparisonOrder));
+
+    const fitteProposalIndex =
+      generatedAnalysis.comparisonOrder.indexOf("fitte");
+    assert.notEqual(fitteProposalIndex, -1);
+
     const fitteLikeButton = page.getByRole("button", {
-      name: "Polub rekomendację Fitte",
+      name: `Polub Propozycja ${String.fromCharCode(65 + fitteProposalIndex)}`,
     });
 
     await fitteLikeButton.click();
