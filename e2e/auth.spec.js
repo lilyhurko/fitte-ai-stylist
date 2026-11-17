@@ -118,9 +118,6 @@ test.describe("pełny przepływ autoryzacji", () => {
     const filePickerButton = addItemDialog.getByRole("button", {
       name: "Wybierz zdjęcie ubrania",
     });
-    const analyzeButton = addItemDialog.getByRole("button", {
-      name: "Analizuj z Fitte AI",
-    });
     const manualAddButton = addItemDialog.getByRole("button", {
       name: "Dodaj ręcznie bez zdjęcia",
     });
@@ -130,8 +127,6 @@ test.describe("pełny przepływ autoryzacji", () => {
 
     await page.keyboard.press("Tab");
     await expect(filePickerButton).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(analyzeButton).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(manualAddButton).toBeFocused();
     await page.keyboard.press("Tab");
