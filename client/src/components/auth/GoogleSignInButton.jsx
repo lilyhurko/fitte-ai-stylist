@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 
+const GOOGLE_SIGN_IN_STATE_KEY = "__fitteGoogleSignInState";
+
+const getGoogleSignInState = () => {
+  if (!window[GOOGLE_SIGN_IN_STATE_KEY]) {
+    window[GOOGLE_SIGN_IN_STATE_KEY] = {
+      clientId: null,
+      responseHandler: null,
+    };
+  }
+
+  return window[GOOGLE_SIGN_IN_STATE_KEY];
+};
+
 const GoogleSignInButton = ({ onSuccess }) => {
   const buttonRef = useRef(null);
   const [runtimeError, setRuntimeError] = useState("");
@@ -53,12 +66,19 @@ const GoogleSignInButton = ({ onSuccess }) => {
         return;
       }
 
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleResponse,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
+      const googleSignInState = getGoogleSignInState();
+      googleSignInState.responseHandler = handleGoogleResponse;
+
+      if (googleSignInState.clientId !== clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) =>
+            getGoogleSignInState().responseHandler?.(response),
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        googleSignInState.clientId = clientId;
+      }
 
       if (buttonRef.current) {
         buttonRef.current.replaceChildren();
@@ -80,6 +100,11 @@ const GoogleSignInButton = ({ onSuccess }) => {
 
     return () => {
       cancelled = true;
+
+      const googleSignInState = getGoogleSignInState();
+      if (googleSignInState.responseHandler === handleGoogleResponse) {
+        googleSignInState.responseHandler = null;
+      }
     };
   }, [clientId, handleGoogleResponse]);
 
